@@ -1,1 +1,1 @@
-# eventix
+# Eventix
