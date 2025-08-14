@@ -43,9 +43,70 @@ class EmpresaUser(models.Model):
     class Meta:
         unique_together = ("empresa", "user")
 
+# --- NOVO: Local do evento (venue) ---
+class LocalEvento(models.Model):
+    TIPO_CHOICES = [
+        ("ARENA", "Arena / Ginásio"),
+        ("PARQUE", "Parque / Área Aberta"),
+        ("CASA_SHOW", "Casa de Show"),
+        ("SALAO", "Salão / Centro de Eventos"),
+        ("ESTABELECIMENTO", "Estabelecimento Comercial"),
+        ("OUTRO", "Outro"),
+    ]
+    STATUS_CHOICES = [
+        ("ATIVO", "Ativo"),
+        ("INATIVO", "Inativo"),
+        ("MANUTENCAO", "Em manutenção"),
+    ]
+
+    empresa = models.ForeignKey(
+        Empresa, on_delete=models.CASCADE, related_name="locais",
+        help_text="Empresa responsável/locatária do local (opcional)."
+    )
+    nome = models.CharField(max_length=120)
+    tipo = models.CharField(max_length=20, choices=TIPO_CHOICES, default="OUTRO")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="ATIVO")
+
+    # Endereço
+    logradouro = models.CharField(max_length=120, blank=True, null=True)
+    numero = models.CharField(max_length=20, blank=True, null=True)
+    complemento = models.CharField(max_length=80, blank=True, null=True)
+    bairro = models.CharField(max_length=80, blank=True, null=True)
+    cidade = models.CharField(max_length=80, blank=True, null=True)
+    estado = models.CharField(max_length=2, blank=True, null=True)  # UF
+    cep = models.CharField(max_length=12, blank=True, null=True)
+    pais = models.CharField(max_length=60, blank=True, null=True, default="Brasil")
+
+    # Geo (sem GeoDjango, simples lat/lng)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+
+    # Operacional
+    capacidade_pessoas = models.PositiveIntegerField(blank=True, null=True)
+    possui_estacionamento = models.BooleanField(default=False)
+    possui_acessibilidade = models.BooleanField(default=True)
+    observacoes = models.TextField(blank=True, null=True)
+
+    # Contato
+    contato_nome = models.CharField(max_length=120, blank=True, null=True)
+    contato_email = models.EmailField(max_length=120, blank=True, null=True)
+    contato_telefone = models.CharField(max_length=30, blank=True, null=True)
+
+    class Meta:
+        verbose_name = "Local de Evento"
+        verbose_name_plural = "Locais de Evento"
+        ordering = ["nome"]
+        indexes = [
+            models.Index(fields=["cidade", "estado"]),
+            models.Index(fields=["status"]),
+        ]
+
+    def __str__(self):
+        return self.nome
 
 class Evento(models.Model):
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name="eventos")
+    local = models.ForeignKey("LocalEvento", on_delete=models.PROTECT, related_name="eventos", null=True, blank=True)
     descricao = models.CharField(max_length=80)
     data_inicio = models.DateTimeField()
     data_fim = models.DateTimeField()
