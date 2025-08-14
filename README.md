@@ -1,4 +1,38 @@
 # Eventix
+
+Apague migrações antigas (se existirem e puder) dos apps recém-criados e o db.sqlite3 (ou use seu Postgres limpo).
+
+python manage.py makemigrations app_eventos api_v01
+
+python manage.py migrate
+
+python manage.py createsuperuser (role pode ser “EMPREGADOR” para administrar)
+
+Testes rápidos:
+
+POST /auth/jwt/create/ (login)
+
+POST /api/signup/freelancer/
+
+POST /api/signup/empresa/
+
+POST /api/eventos/criar/
+
+POST /api/vagas/criar/
+
+GET /api/eventos/<id>/vagas/
+
+POST /api/vagas/candidatar/ (com Bearer de freelancer)
+
+GET /api/candidaturas/minhas/
+
+PATCH /api/candidaturas/<id>/status/ (com Bearer do empregador)
+
+POST /api/alocacoes/criar/
+
+
+
+
 - python -m venv .venv
 Windows
 - .venv\Scripts\activate  
