@@ -10,5 +10,5 @@ urlpatterns = [
     path("auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
 
     # API v1 (negócio + auth de signup)
-    path("api/", include("api_v01.urls")),
+   # path("api/", include("api_v01.urls")),
 ]
