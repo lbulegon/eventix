@@ -1,11 +1,6 @@
-"""
-Django settings for setup project.
-"""
-
+import os
 from pathlib import Path
 from datetime import timedelta
-import os
-
 # ============== BASE ==============
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -23,7 +18,6 @@ CSRF_TRUSTED_ORIGINS = [
     "https://eventix-development.up.railway.app",
     # se for usar outro domínio custom depois, add aqui também
 ]
-
 
 # ============ APPS ============
 INSTALLED_APPS = [
