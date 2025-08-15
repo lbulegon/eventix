@@ -130,16 +130,111 @@ class Funcao(models.Model):
     def __str__(self):
         return f"{self.nome} ({self.tipo_funcao.nome})"
 
+from django.conf import settings
+from django.db import models
+
+from django.conf import settings
+from django.db import models
 
 class Freelance(models.Model):
-    usuario       = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    VINCULO_CHOICES = [
+        ('intermitente', 'Intermitente'),
+        ('freelancer', 'Freelancer'),
+    ]
+    SEXO_CHOICES = [
+        ('M', 'Masculino'),
+        ('F', 'Feminino'),
+        ('O', 'Outro'),
+    ]
+    ESTADO_CIVIL_CHOICES = [
+        ('solteiro', 'Solteiro(a)'),
+        ('casado', 'Casado(a)'),
+        ('divorciado', 'Divorciado(a)'),
+        ('viuvo', 'Viúvo(a)'),
+    ]
+    TIPO_CONTA_CHOICES = [
+        ('corrente', 'Conta Corrente'),
+        ('poupanca', 'Poupança'),
+        ('pix', 'PIX'),
+    ]
+    RESULTADO_EXAME_CHOICES = [
+        ('apto', 'Apto'),
+        ('inapto', 'Inapto'),
+    ]
+
+    # Relacionamento com usuário
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+
+    # Dados pessoais
     nome_completo = models.CharField(max_length=255)
-    telefone      = models.CharField(max_length=20, blank=True, null=True)
-    documento     = models.CharField(max_length=50, blank=True, null=True)
-    habilidades   = models.TextField(blank=True, null=True)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    documento = models.CharField(max_length=50, blank=True, null=True)  # pode ser CPF
+    habilidades = models.TextField(blank=True, null=True)
+
+    cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
+    rg = models.CharField(max_length=20, blank=True, null=True)
+    orgao_expedidor = models.CharField(max_length=20, blank=True, null=True)
+    uf_rg = models.CharField(max_length=2, blank=True, null=True)
+    data_nascimento = models.DateField(blank=True, null=True)
+    sexo = models.CharField(max_length=1, choices=SEXO_CHOICES, blank=True, null=True)
+    estado_civil = models.CharField(max_length=20, choices=ESTADO_CIVIL_CHOICES, blank=True, null=True)
+    nacionalidade = models.CharField(max_length=50, default='Brasileira', blank=True, null=True)
+    naturalidade = models.CharField(max_length=100, blank=True, null=True)
+    nome_mae = models.CharField(max_length=255, blank=True, null=True)
+    nome_pai = models.CharField(max_length=255, blank=True, null=True)
+    foto = models.ImageField(upload_to='freelancers/fotos/', blank=True, null=True)
+
+    # Endereço
+    cep = models.CharField(max_length=9, blank=True, null=True)
+    logradouro = models.CharField(max_length=255, blank=True, null=True)
+    numero = models.CharField(max_length=10, blank=True, null=True)
+    complemento = models.CharField(max_length=100, blank=True, null=True)
+    bairro = models.CharField(max_length=100, blank=True, null=True)
+    cidade = models.CharField(max_length=100, blank=True, null=True)
+    uf = models.CharField(max_length=2, blank=True, null=True)
+
+    # Vínculo
+    tipo_vinculo = models.CharField(max_length=20, choices=VINCULO_CHOICES, blank=True, null=True)
+    data_admissao = models.DateField(blank=True, null=True)
+    data_rescisao = models.DateField(blank=True, null=True)
+    cargo = models.CharField(max_length=100, blank=True, null=True)
+    departamento = models.CharField(max_length=100, blank=True, null=True)
+    valor_hora = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
+    carga_horaria = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)  # horas
+    escala_trabalho = models.TextField(blank=True, null=True)
+
+    # Documentos extras
+    pis_pasep = models.CharField(max_length=20, blank=True, null=True)
+    carteira_trabalho_numero = models.CharField(max_length=20, blank=True, null=True)
+    carteira_trabalho_serie = models.CharField(max_length=10, blank=True, null=True)
+    titulo_eleitor = models.CharField(max_length=20, blank=True, null=True)
+    cnh_numero = models.CharField(max_length=20, blank=True, null=True)
+    cnh_categoria = models.CharField(max_length=5, blank=True, null=True)
+    certificado_reservista = models.CharField(max_length=20, blank=True, null=True)
+
+    # Dados Bancários
+    banco = models.CharField(max_length=100, blank=True, null=True)
+    agencia = models.CharField(max_length=10, blank=True, null=True)
+    conta = models.CharField(max_length=20, blank=True, null=True)
+    tipo_conta = models.CharField(max_length=20, choices=TIPO_CONTA_CHOICES, blank=True, null=True)
+    chave_pix = models.CharField(max_length=100, blank=True, null=True)
+
+    # Arquivos obrigatórios
+    arquivo_exame_medico = models.FileField(upload_to='freelancers/documentos/exame_medico/', blank=True, null=True)
+    arquivo_comprovante_residencia = models.FileField(upload_to='freelancers/documentos/comprovante_residencia/', blank=True, null=True)
+    arquivo_identidade_frente = models.ImageField(upload_to='freelancers/documentos/identidade/', blank=True, null=True)
+    arquivo_identidade_verso = models.ImageField(upload_to='freelancers/documentos/identidade/', blank=True, null=True)
+
+    # Observações
+    observacoes = models.TextField(blank=True, null=True)
+    observacoes_medicas = models.TextField(blank=True, null=True)
+
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.nome_completo
+
 
 
 class Candidatura(models.Model):
