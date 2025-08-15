@@ -10,13 +10,9 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     # JWT
-    path("auth/jwt/create/", TokenObtainPairView.as_view(), name="jwt-create"),
-    path("auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
-
-    
-
-]
+    # path("auth/jwt/create/", TokenObtainPairView.as_view(), name="jwt-create"),
+    # path("auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
 
     # API v1 (negócio + auth de signup)
-   # path("api/", include("api_v01.urls")),
+    # path("api/", include("api_v01.urls")),
 ]
