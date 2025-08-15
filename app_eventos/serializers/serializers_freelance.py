@@ -20,3 +20,31 @@ class FreelanceDocumentosSerializer(serializers.ModelSerializer):
             'arquivo_identidade_frente': {'required': True},
             'arquivo_identidade_verso': {'required': True},
         }
+
+
+class FreelanceCadastroBasicoSerializer(serializers.ModelSerializer):
+    """
+    Etapa 1 - Cadastro básico do freelancer (sem documentos obrigatórios).
+    """
+    class Meta:
+        model = Freelance
+        exclude = ['usuario', 'cadastro_completo']
+
+
+class FreelanceUploadDocumentosSerializer(serializers.ModelSerializer):
+    """
+    Etapa 2 - Upload de documentos obrigatórios do freelancer.
+    """
+    class Meta:
+        model = Freelance
+        fields = [
+            'arquivo_exame_medico',
+            'arquivo_comprovante_residencia',
+            'arquivo_identidade_frente',
+            'arquivo_identidade_verso'
+        ]
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        instance.verificar_cadastro_completo()
+        return instance

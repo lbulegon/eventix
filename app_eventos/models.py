@@ -229,7 +229,7 @@ class Freelance(models.Model):
     observacoes = models.TextField(blank=True, null=True)
     observacoes_medicas = models.TextField(blank=True, null=True)
 
-    criado_em = models.DateTimeField(auto_now_add=True)
+   # criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     cadastro_completo = models.BooleanField(default=False)  # Status do cadastro
     

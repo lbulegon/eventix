@@ -6,7 +6,7 @@ from django.contrib import admin
 from app_eventos import views  
 
 urlpatterns = [
-    path("", views.health_check, name="health_check"),
+   # path("", views.health_check, name="health_check"),
     path("admin/", admin.site.urls),
 
     # JWT
