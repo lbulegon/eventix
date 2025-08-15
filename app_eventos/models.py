@@ -231,10 +231,26 @@ class Freelance(models.Model):
 
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
+    cadastro_completo = models.BooleanField(default=False)  # Status do cadastro
+    
+    def verificar_cadastro_completo(self):
+        """
+        Verifica se o cadastro tem todos os documentos obrigatórios e marca como completo.
+        """
+        if (
+            self.arquivo_exame_medico and
+            self.arquivo_comprovante_residencia and
+            self.arquivo_identidade_frente and
+            self.arquivo_identidade_verso
+        ):
+            self.cadastro_completo = True
+            self.save()
+        else:
+            self.cadastro_completo = False
+            self.save()
 
     def __str__(self):
         return self.nome_completo
-
 
 
 class Candidatura(models.Model):
