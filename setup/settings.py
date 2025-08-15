@@ -10,10 +10,20 @@ import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
-DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 # Ajuste para seu domínio no Railway e uso local
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "127.0.0.1,localhost,.railway.app").split(",")
+ALLOWED_HOSTS = [
+    "eventix-development.up.railway.app",  # seu domínio Railway
+    "localhost",
+    "127.0.0.1",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://eventix-development.up.railway.app",
+    # se for usar outro domínio custom depois, add aqui também
+]
+
 
 # ============ APPS ============
 INSTALLED_APPS = [
