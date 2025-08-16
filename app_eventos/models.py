@@ -13,9 +13,7 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
-# app_eventos/models.py
-from django.db import models
-from django.conf import settings
+
 
 class TipoEmpresa(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -77,19 +75,19 @@ class Evento(models.Model):
     descricao         = models.TextField(blank=True, null=True)
     local             = models.ForeignKey(LocalEvento, on_delete=models.CASCADE, related_name="eventos")
     empresa_produtora = models.ForeignKey(
-        Empresa,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        limit_choices_to={'tipo': 'produtora'},
-        related_name="eventos_produzidos"
-    )
-    empresa_contratante = models.ForeignKey(
-        Empresa,
-        on_delete=models.CASCADE,
-        limit_choices_to={'tipo': 'contratante_mao_obra'},
-        related_name="eventos_cadastrados"
-    )
+    Empresa,
+    on_delete=models.SET_NULL,
+    null=True, blank=True,
+    limit_choices_to={'tipo_empresa': 'produtora'},
+    related_name="eventos_produzidos"
+)
 
+    empresa_contratante = models.ForeignKey(
+    Empresa,
+    on_delete=models.CASCADE,
+    limit_choices_to={'tipo_empresa': 'contratante_mao_obra'},
+    related_name="eventos_cadastrados"
+)
     def __str__(self):
         return self.nome
 
@@ -130,11 +128,7 @@ class Funcao(models.Model):
     def __str__(self):
         return f"{self.nome} ({self.tipo_funcao.nome})"
 
-from django.conf import settings
-from django.db import models
 
-from django.conf import settings
-from django.db import models
 
 class Freelance(models.Model):
     VINCULO_CHOICES = [
