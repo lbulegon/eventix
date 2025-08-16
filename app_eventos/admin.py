@@ -1,7 +1,7 @@
 # app_eventos/admin.py
 from django.contrib import admin
 from .models import User, Empresa, LocalEvento, Evento, SetorEvento, Vaga,Funcao, TipoFuncao
-from .models import Freelance, Candidatura, ContratacaoFreelance
+from .models import Freelance, Candidatura, ContratoFreelance
 
 @admin.register(Freelance)
 class FreelanceAdmin(admin.ModelAdmin):
@@ -16,7 +16,7 @@ class CandidaturaAdmin(admin.ModelAdmin):
     search_fields = ('freelance__nome_completo', 'vaga__nome')
 
 
-@admin.register(ContratacaoFreelance)
+@admin.register(ContratoFreelance)
 class ContratacaoFreelanceAdmin(admin.ModelAdmin):
     list_display = ('freelance', 'vaga', 'status', 'data_contratacao')
     list_filter = ('status',)

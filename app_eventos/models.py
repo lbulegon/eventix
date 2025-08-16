@@ -278,7 +278,7 @@ class Candidatura(models.Model):
         return f"{self.freelance} → {self.vaga} ({self.status})"
 
 
-class ContratacaoFreelance(models.Model):
+class ContratoFreelance(models.Model):
     """
     Registro de um freelance já aprovado para uma vaga.
     """
