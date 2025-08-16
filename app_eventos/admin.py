@@ -100,12 +100,7 @@ class FreelanceAdmin(admin.ModelAdmin):
                 "cep", "logradouro", "numero", "complemento", "bairro", "cidade", "uf"
             )
         }),
-        ("Vínculo", {
-            "fields": (
-                "tipo_vinculo", "data_admissao", "data_rescisao", "cargo", "departamento",
-                "valor_hora", "carga_horaria", "escala_trabalho"
-            )
-        }),
+        
         ("Documentos Extras", {
             "fields": (
                 "pis_pasep", "carteira_trabalho_numero", "carteira_trabalho_serie",
