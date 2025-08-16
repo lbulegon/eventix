@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Eventix{% endblock %}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    header {
+      background: #0d6efd;
+      color: #fff;
+      padding: 1rem;
+      margin-bottom: 2rem;
+    }
+    footer {
+      background: #212529;
+      color: #bbb;
+      text-align: center;
+      padding: 1rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>🎟️ Eventix</h1>
+      <p class="lead">Gerenciamento de eventos e freelances</p>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>© {{ now|date:"Y" }} Eventix — Todos os direitos reservados</p>
+  </footer>
+</body>
+</html>

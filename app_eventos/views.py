@@ -1,6 +1,9 @@
-# views.py
 from django.shortcuts import render
-from django.http import HttpResponse
+from .models import Evento
 
-def health_check(request):
-    return HttpResponse("✅ Aplicação rodando OK 🚀")
+def home(request):
+    return render(request, "home.html")
+
+def evento_list(request):
+    eventos = Evento.objects.all()
+    return render(request, "evento_list.html", {"eventos": eventos})

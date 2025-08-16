@@ -1,6 +1,6 @@
 # app_eventos/admin.py
 from .models import User, Empresa, LocalEvento, Evento, SetorEvento, Vaga,Funcao, TipoFuncao
-from .models import Freelance, Candidatura, ContratoFreelance
+from .models import Freelance, Candidatura, ContratoFreelance, TipoEmpresa
 from django.contrib import admin, messages
 
 
@@ -77,10 +77,6 @@ class FuncaoAdmin(admin.ModelAdmin):
     list_filter = ('tipo_funcao',)
     search_fields = ('nome',)
 
-
-
-
-
 @admin.register(Freelance)
 class FreelanceAdmin(admin.ModelAdmin):
     list_display = ("nome_completo", "cpf", "telefone", "cadastro_completo", "atualizado_em")
@@ -129,3 +125,5 @@ class FreelanceAdmin(admin.ModelAdmin):
     )
 
     readonly_fields = ("cadastro_completo", "atualizado_em")
+
+

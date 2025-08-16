@@ -7,17 +7,10 @@ from django.conf.urls.static import static
 
 from app_eventos import views  
 
+
 urlpatterns = [
-   # path("", views.health_check, name="health_check"),
     path("admin/", admin.site.urls),
-
-    # JWT
-    # path("auth/jwt/create/", TokenObtainPairView.as_view(), name="jwt-create"),
-    # path("auth/jwt/refresh/", TokenRefreshView.as_view(), name="jwt-refresh"),
-
-    # API v1 (negócio + auth de signup)
-    # path("api/", include("api_v01.urls")),
+    path("", views.home, name="home"),
 ]
-
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

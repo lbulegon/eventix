@@ -28,11 +28,6 @@ class TipoEmpresa(models.Model):
 
 
 class Empresa(models.Model):
-    usuario = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="empresas"
-    )
     nome = models.CharField(max_length=255)
     cnpj = models.CharField(max_length=18, blank=True, null=True)
     tipo_empresa = models.ForeignKey(
@@ -42,8 +37,8 @@ class Empresa(models.Model):
         blank=True,
         related_name="empresas"
     )
-    telefone = models.CharField(max_length=20, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
+    telefone   = models.CharField(max_length=20, blank=True, null=True)
+    email      = models.EmailField(blank=True, null=True)
 
     class Meta:
         verbose_name = "Empresa"
