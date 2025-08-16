@@ -4,6 +4,8 @@ from datetime import timedelta
 # ============== BASE ==============
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # ---- Static files
 STATIC_URL = "/static/"
@@ -12,14 +14,19 @@ STATICFILES_DIRS = [BASE_DIR / "static"]  # opcional, só se você tiver pasta /
 # onde o collectstatic vai juntar TUDO (use em produção)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# gzip/brotli para estáticos (opcional, bom em produção)
 STORAGES = {
+    # Arquivos de mídia enviados pelo usuário
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": MEDIA_ROOT,
+        },
+    },
+    # Arquivos estáticos coletados (collectstatic)
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },
 }
-
-
 
 
 
