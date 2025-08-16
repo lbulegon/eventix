@@ -193,16 +193,6 @@ class Freelance(models.Model):
     cidade = models.CharField(max_length=100, blank=True, null=True)
     uf = models.CharField(max_length=2, blank=True, null=True)
 
-    # Vínculo
-    tipo_vinculo = models.CharField(max_length=20, choices=VINCULO_CHOICES, blank=True, null=True)
-    data_admissao = models.DateField(blank=True, null=True)
-    data_rescisao = models.DateField(blank=True, null=True)
-    cargo = models.CharField(max_length=100, blank=True, null=True)
-    departamento = models.CharField(max_length=100, blank=True, null=True)
-    valor_hora = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True)
-    carga_horaria = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)  # horas
-    escala_trabalho = models.TextField(blank=True, null=True)
-
     # Documentos extras
     pis_pasep = models.CharField(max_length=20, blank=True, null=True)
     carteira_trabalho_numero = models.CharField(max_length=20, blank=True, null=True)
