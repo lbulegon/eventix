@@ -30,12 +30,7 @@ PATCH /api/candidaturas/<id>/status/ (com Bearer do empregador)
 
 POST /api/alocacoes/criar/
 
-
-
-
 - python -m venv .venv
-
-
 - git pull origin main
 Windows
 - .venv\Scripts\activate  
