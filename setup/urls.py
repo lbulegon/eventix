@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 
 from app_eventos import views  
 
@@ -16,3 +18,6 @@ urlpatterns = [
     # API v1 (negócio + auth de signup)
     # path("api/", include("api_v01.urls")),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

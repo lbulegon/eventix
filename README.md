@@ -34,6 +34,9 @@ POST /api/alocacoes/criar/
 
 
 - python -m venv .venv
+
+
+- git pull origin main
 Windows
 - .venv\Scripts\activate  
 Linux

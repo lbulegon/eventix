@@ -4,6 +4,25 @@ from datetime import timedelta
 # ============== BASE ==============
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+
+# ---- Static files
+STATIC_URL = "/static/"
+# onde você guarda seus arquivos estáticos do projeto (css/js/imagens próprios)
+STATICFILES_DIRS = [BASE_DIR / "static"]  # opcional, só se você tiver pasta /static no projeto
+# onde o collectstatic vai juntar TUDO (use em produção)
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# gzip/brotli para estáticos (opcional, bom em produção)
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
+
+
+
+
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
@@ -39,11 +58,18 @@ INSTALLED_APPS = [
     "api_v01",
 ]
 
+# IMPORTANTÍSSIMO: não remova os finders padrão
+STATICFILES_FINDERS = [
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",  # <- necessário para achar /admin
+]
+
 AUTH_USER_MODEL = "app_eventos.User"
 
 # ========== MIDDLEWARE ==========
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # <- antes de CommonMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     # "corsheaders.middleware.CorsMiddleware",  # se usar CORS, deixe antes de CommonMiddleware
     "django.middleware.common.CommonMiddleware",
