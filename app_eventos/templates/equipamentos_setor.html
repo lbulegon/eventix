@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Equipamentos do Setor - {{ setor.nome }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>Equipamentos do Setor: {{ setor.nome }}</h2>
+            <p class="text-muted">Evento: {{ setor.evento.nome }}</p>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <a href="{% url 'admin:app_eventos_equipamentosetor_add' %}?setor={{ setor.id }}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Adicionar Equipamento
+                    </a>
+                </div>
+                <div class="col-md-6 text-end">
+                    <a href="{% url 'admin:app_eventos_setorevento_change' setor.id %}" 
+                       class="btn btn-secondary">
+                        <i class="fas fa-edit"></i> Editar Setor
+                    </a>
+                </div>
+            </div>
+
+            {% if equipamentos %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Código Patrimonial</th>
+                                <th>Categoria</th>
+                                <th>Necessário</th>
+                                <th>Disponível</th>
+                                <th>Faltante</th>
+                                <th>Cobertura</th>
+                                <th>Status</th>
+                                <th>Responsável</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for equip in equipamentos %}
+                            <tr>
+                                <td>
+                                    <strong>{{ equip.equipamento.codigo_patrimonial|default:"Sem código" }}</strong>
+                                    {% if equip.equipamento.marca %}
+                                        <br><small class="text-muted">{{ equip.equipamento.marca }} {{ equip.equipamento.modelo }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ equip.equipamento.categoria.nome }}</td>
+                                <td>{{ equip.quantidade_necessaria }}</td>
+                                <td>{{ equip.quantidade_disponivel }}</td>
+                                <td>
+                                    {% if equip.quantidade_faltante > 0 %}
+                                        <span class="badge bg-warning">{{ equip.quantidade_faltante }}</span>
+                                    {% else %}
+                                        <span class="badge bg-success">0</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if equip.percentual_cobertura < 50 %}bg-danger{% elif equip.percentual_cobertura < 80 %}bg-warning{% else %}bg-success{% endif %}" 
+                                             role="progressbar" 
+                                             style="width: {{ equip.percentual_cobertura }}%">
+                                            {{ equip.percentual_cobertura|floatformat:0 }}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if equip.status == 'disponivel' %}
+                                        <span class="badge bg-success">Disponível</span>
+                                    {% elif equip.status == 'em_uso' %}
+                                        <span class="badge bg-primary">Em Uso</span>
+                                    {% elif equip.status == 'manutencao' %}
+                                        <span class="badge bg-warning">Manutenção</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Indisponível</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if equip.responsavel_equipamento %}
+                                        {{ equip.responsavel_equipamento.nome_completo }}
+                                    {% else %}
+                                        <span class="text-muted">Não definido</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'admin:app_eventos_equipamentosetor_change' equip.id %}" 
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'admin:app_eventos_equipamento_change' equip.equipamento.id %}" 
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-info"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Resumo -->
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ total_equipamentos }}</h5>
+                                <p class="card-text">Total de Equipamentos</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ total_necessario }}</h5>
+                                <p class="card-text">Total Necessário</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ total_disponivel }}</h5>
+                                <p class="card-text">Total Disponível</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ percentual_cobertura|floatformat:1 }}%</h5>
+                                <p class="card-text">Cobertura Geral</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Nenhum equipamento cadastrado para este setor ainda.
+                    <a href="{% url 'admin:app_eventos_equipamentosetor_add' %}?setor={{ setor.id }}" 
+                       class="alert-link">Clique aqui para adicionar o primeiro equipamento</a>.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

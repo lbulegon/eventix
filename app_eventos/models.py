@@ -4,15 +4,97 @@ from django.db import models
 from django.conf import settings
 
 class User(AbstractUser):
+    """
+    Usuário do sistema com controle multi-empresas
+    """
     TIPO_USUARIO_CHOICES = [
+        ('admin_empresa', 'Administrador da Empresa'),
+        ('operador_empresa', 'Operador da Empresa'),
         ('freelancer', 'Freelancer'),
-        ('eventix', 'Eventix'),
-        ('empresa', 'Empresa'),
+        ('admin_sistema', 'Administrador do Sistema'),
     ]
+    
     tipo_usuario = models.CharField(max_length=20, choices=TIPO_USUARIO_CHOICES, default='freelancer')
+    empresa_contratante = models.ForeignKey(
+        'EmpresaContratante',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="usuarios",
+        verbose_name="Empresa Contratante"
+    )
+    ativo = models.BooleanField(default=True)
+    data_ultimo_acesso = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Usuário"
+        verbose_name_plural = "Usuários"
 
     def __str__(self):
+        if self.empresa_contratante:
+            return f"{self.username} - {self.empresa_contratante.nome}"
         return self.username
+
+    @property
+    def pode_gerenciar_empresa(self):
+        """Verifica se o usuário pode gerenciar a empresa"""
+        return self.tipo_usuario in ['admin_empresa', 'admin_sistema']
+
+    @property
+    def pode_operar_sistema(self):
+        """Verifica se o usuário pode operar o sistema"""
+        return self.tipo_usuario in ['admin_empresa', 'operador_empresa', 'admin_sistema']
+
+
+class EmpresaContratante(models.Model):
+    """
+    Empresa que contratou o sistema Eventix
+    """
+    nome = models.CharField(max_length=255, verbose_name="Nome da Empresa")
+    cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
+    razao_social = models.CharField(max_length=255, verbose_name="Razão Social")
+    nome_fantasia = models.CharField(max_length=255, verbose_name="Nome Fantasia")
+    
+    # Contato
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(verbose_name="E-mail")
+    website = models.URLField(blank=True, null=True)
+    
+    # Endereço
+    cep = models.CharField(max_length=9, blank=True, null=True)
+    logradouro = models.CharField(max_length=255, blank=True, null=True)
+    numero = models.CharField(max_length=10, blank=True, null=True)
+    complemento = models.CharField(max_length=100, blank=True, null=True)
+    bairro = models.CharField(max_length=100, blank=True, null=True)
+    cidade = models.CharField(max_length=100, blank=True, null=True)
+    uf = models.CharField(max_length=2, blank=True, null=True)
+    
+    # Contrato
+    data_contratacao = models.DateField(auto_now_add=True, verbose_name="Data de Contratação")
+    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
+    plano_contratado = models.CharField(max_length=50, verbose_name="Plano Contratado")
+    valor_mensal = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor Mensal")
+    
+    # Status
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    data_atualizacao = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Empresa Contratante"
+        verbose_name_plural = "Empresas Contratantes"
+
+    def __str__(self):
+        return f"{self.nome_fantasia} ({self.cnpj})"
+
+    @property
+    def usuarios_ativos(self):
+        """Retorna usuários ativos da empresa"""
+        return self.usuarios.filter(ativo=True)
+
+    @property
+    def eventos_ativos(self):
+        """Retorna eventos ativos da empresa"""
+        return self.eventos.filter(ativo=True)
 
 
 class TipoEmpresa(models.Model):
@@ -28,6 +110,17 @@ class TipoEmpresa(models.Model):
 
 
 class Empresa(models.Model):
+    """
+    Empresas parceiras (locais, fornecedores, etc.)
+    """
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="empresas_parceiras",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
     nome = models.CharField(max_length=255)
     cnpj = models.CharField(max_length=18, blank=True, null=True)
     tipo_empresa = models.ForeignKey(
@@ -37,92 +130,309 @@ class Empresa(models.Model):
         blank=True,
         related_name="empresas"
     )
-    telefone   = models.CharField(max_length=20, blank=True, null=True)
-    email      = models.EmailField(blank=True, null=True)
+    telefone = models.CharField(max_length=20, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    ativo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Empresa"
         verbose_name_plural = "Empresas"
+        unique_together = ['empresa_contratante', 'cnpj']
 
     def __str__(self):
-        return self.nome
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
 
 
 class LocalEvento(models.Model):
-    nome        = models.CharField(max_length=200)
-    endereco    = models.CharField(max_length=255)
-    capacidade  = models.IntegerField()
+    nome = models.CharField(max_length=200)
+    endereco = models.CharField(max_length=255)
+    capacidade = models.IntegerField()
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="locais_eventos",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
     empresa_proprietaria = models.ForeignKey(
         Empresa,
         on_delete=models.CASCADE,
-        limit_choices_to={'tipo': 'proprietaria'},
-        related_name="locais"
+        related_name="locais",
+        verbose_name="Empresa Proprietária"
     )
+    ativo = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.nome} - {self.empresa_proprietaria.nome}"
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
 
 
 class Evento(models.Model):
-    nome              = models.CharField(max_length=200)
-    data_inicio       = models.DateField()
-    data_fim          = models.DateField()
-    descricao         = models.TextField(blank=True, null=True)
-    local             = models.ForeignKey(LocalEvento, on_delete=models.CASCADE, related_name="eventos")
-    empresa_produtora = models.ForeignKey(
-    Empresa,
-    on_delete=models.SET_NULL,
-    null=True, blank=True,
-    limit_choices_to={'tipo_empresa': 'produtora'},
-    related_name="eventos_produzidos"
-)
-
     empresa_contratante = models.ForeignKey(
-    Empresa,
-    on_delete=models.CASCADE,
-    limit_choices_to={'tipo_empresa': 'contratante_mao_obra'},
-    related_name="eventos_cadastrados"
-)
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="eventos",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    nome = models.CharField(max_length=200)
+    data_inicio = models.DateField()
+    data_fim = models.DateField()
+    descricao = models.TextField(blank=True, null=True)
+    local = models.ForeignKey(LocalEvento, on_delete=models.CASCADE, related_name="eventos")
+    empresa_produtora = models.ForeignKey(
+        Empresa,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="eventos_produzidos"
+    )
+    empresa_contratante_mao_obra = models.ForeignKey(
+        Empresa,
+        on_delete=models.CASCADE,
+        related_name="eventos_contratados",
+        verbose_name="Empresa Contratante de Mão de Obra"
+    )
+    ativo = models.BooleanField(default=True)
+    data_criacao = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
     def __str__(self):
-        return self.nome
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
 
 
 class SetorEvento(models.Model):
-    evento     = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name="setores")
-    nome       = models.CharField(max_length=100)
-    descricao  = models.TextField(blank=True, null=True)
+    evento = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name="setores")
+    nome = models.CharField(max_length=100)
+    descricao = models.TextField(blank=True, null=True)
+    ativo = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.nome} - {self.evento.nome}"
 
 
+class CategoriaEquipamento(models.Model):
+    """
+    Categorias de equipamentos (ex: Áudio, Iluminação, Segurança, etc.)
+    """
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="categorias_equipamentos",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    nome = models.CharField(max_length=100)
+    descricao = models.TextField(blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = "Categoria de Equipamento"
+        verbose_name_plural = "Categorias de Equipamentos"
+        unique_together = ['empresa_contratante', 'nome']
+    
+    def __str__(self):
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+
+
+class Equipamento(models.Model):
+    """
+    Equipamentos que podem ser utilizados nos setores dos eventos
+    """
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="equipamentos",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    empresa_proprietaria = models.ForeignKey(
+        Empresa,
+        on_delete=models.CASCADE,
+        related_name="equipamentos",
+        verbose_name="Empresa Proprietária"
+    )
+    codigo_patrimonial = models.CharField(max_length=200, verbose_name="Código Patrimonial", blank=True, null=True)
+    categoria = models.ForeignKey(CategoriaEquipamento, on_delete=models.CASCADE, related_name="equipamentos")
+    descricao = models.TextField(blank=True, null=True)
+    especificacoes_tecnicas = models.TextField(blank=True, null=True)
+    marca = models.CharField(max_length=100, blank=True, null=True)
+    modelo = models.CharField(max_length=100, blank=True, null=True)
+    numero_serie = models.CharField(max_length=100, blank=True, null=True)
+    data_aquisicao = models.DateField(blank=True, null=True)
+    valor_aquisicao = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    estado_conservacao = models.CharField(max_length=20, choices=[
+        ('excelente', 'Excelente'),
+        ('bom', 'Bom'),
+        ('regular', 'Regular'),
+        ('ruim', 'Ruim'),
+        ('inutilizavel', 'Inutilizável'),
+    ], default='bom')
+    foto = models.ImageField(upload_to='equipamentos/fotos/', blank=True, null=True)
+    manual_instrucoes = models.FileField(upload_to='equipamentos/manuais/', blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Equipamento"
+        verbose_name_plural = "Equipamentos"
+    
+    def __str__(self):
+        codigo = self.codigo_patrimonial or "Sem código"
+        return f"{codigo} - {self.empresa_contratante.nome_fantasia} ({self.categoria.nome})"
+
+
+class EquipamentoSetor(models.Model):
+    """
+    Relacionamento entre equipamentos e setores de eventos
+    """
+    setor = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="equipamentos_setor")
+    equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name="setores_utilizacao")
+    quantidade_necessaria = models.PositiveIntegerField(default=1)
+    quantidade_disponivel = models.PositiveIntegerField(default=0)
+    observacoes = models.TextField(blank=True, null=True)
+    data_inicio_uso = models.DateTimeField(blank=True, null=True)
+    data_fim_uso = models.DateTimeField(blank=True, null=True)
+    responsavel_equipamento = models.ForeignKey(
+        'Freelance',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="equipamentos_responsavel"
+    )
+    status = models.CharField(max_length=20, choices=[
+        ('disponivel', 'Disponível'),
+        ('em_uso', 'Em Uso'),
+        ('manutencao', 'Em Manutenção'),
+        ('indisponivel', 'Indisponível'),
+    ], default='disponivel')
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+    
+    def clean(self):
+        """Validação personalizada para garantir que equipamento e setor sejam da mesma empresa"""
+        from django.core.exceptions import ValidationError
+        
+        if self.equipamento and self.setor:
+            # Verifica se o equipamento pertence à mesma empresa contratante do evento do setor
+            empresa_equipamento = self.equipamento.empresa_contratante
+            empresa_evento = self.setor.evento.empresa_contratante
+            
+            if empresa_equipamento != empresa_evento:
+                codigo = self.equipamento.codigo_patrimonial or "Sem código"
+                raise ValidationError({
+                    'equipamento': f'O equipamento "{codigo}" pertence à empresa "{empresa_equipamento.nome_fantasia}", mas o setor pertence ao evento da empresa "{empresa_evento.nome_fantasia}". Só é possível associar equipamentos da mesma empresa.'
+                })
+    
+    def save(self, *args, **kwargs):
+        """Executa validação antes de salvar"""
+        self.clean()
+        super().save(*args, **kwargs)
+    
+    class Meta:
+        verbose_name = "Equipamento do Setor"
+        verbose_name_plural = "Equipamentos do Setor"
+        unique_together = ['setor', 'equipamento']
+    
+    def __str__(self):
+        codigo = self.equipamento.codigo_patrimonial or "Sem código"
+        return f"{codigo} - {self.setor.nome} ({self.quantidade_necessaria})"
+    
+    @property
+    def quantidade_faltante(self):
+        """Retorna a quantidade que ainda falta para completar o necessário"""
+        return max(0, self.quantidade_necessaria - self.quantidade_disponivel)
+    
+    @property
+    def percentual_cobertura(self):
+        """Retorna o percentual de cobertura do equipamento no setor"""
+        if self.quantidade_necessaria == 0:
+            return 100
+        return min(100, (self.quantidade_disponivel / self.quantidade_necessaria) * 100)
+
+
+class ManutencaoEquipamento(models.Model):
+    """
+    Registro de manutenções realizadas nos equipamentos
+    """
+    equipamento = models.ForeignKey(Equipamento, on_delete=models.CASCADE, related_name="manutencoes")
+    tipo_manutencao = models.CharField(max_length=20, choices=[
+        ('preventiva', 'Preventiva'),
+        ('corretiva', 'Corretiva'),
+        ('calibracao', 'Calibração'),
+    ])
+    descricao = models.TextField()
+    data_inicio = models.DateField()
+    data_fim = models.DateField(blank=True, null=True)
+    custo = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    fornecedor = models.CharField(max_length=200, blank=True, null=True)
+    responsavel = models.ForeignKey(
+        'Freelance',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="manutencoes_realizadas"
+    )
+    status = models.CharField(max_length=20, choices=[
+        ('agendada', 'Agendada'),
+        ('em_andamento', 'Em Andamento'),
+        ('concluida', 'Concluída'),
+        ('cancelada', 'Cancelada'),
+    ], default='agendada')
+    observacoes = models.TextField(blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = "Manutenção de Equipamento"
+        verbose_name_plural = "Manutenções de Equipamentos"
+    
+    def __str__(self):
+        codigo = self.equipamento.codigo_patrimonial or "Sem código"
+        return f"{codigo} - {self.tipo_manutencao} ({self.status})"
+
+
 class Vaga(models.Model):
-    setor         = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="vagas")
-    titulo        = models.CharField(max_length=100)
-    quantidade    = models.PositiveIntegerField()
-    remuneracao   = models.DecimalField(max_digits=10, decimal_places=2)
-    descricao     = models.TextField(blank=True, null=True)
+    setor = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="vagas")
+    titulo = models.CharField(max_length=100)
+    quantidade = models.PositiveIntegerField()
+    remuneracao = models.DecimalField(max_digits=10, decimal_places=2)
+    descricao = models.TextField(blank=True, null=True)
+    ativa = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.titulo} ({self.setor.evento.nome})"
 
 
 class TipoFuncao(models.Model):
-    nome      = models.CharField(max_length=80, unique=True)  # Ex: Atendimento, Segurança, Produção, Limpeza
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="tipos_funcao",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    nome = models.CharField(max_length=80)
     descricao = models.TextField(blank=True, null=True)
+    ativo = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ['empresa_contratante', 'nome']
 
     def __str__(self):
-        return self.nome
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
 
 
 class Funcao(models.Model):
     tipo_funcao = models.ForeignKey(TipoFuncao, on_delete=models.CASCADE, related_name="funcoes")
-    nome        = models.CharField(max_length=80)  # ex.: Cachorrista, Chapista, Atendente, Caixa, Segurança
-    descricao   = models.TextField(blank=True, null=True)
+    nome = models.CharField(max_length=80)
+    descricao = models.TextField(blank=True, null=True)
+    ativo = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.nome} ({self.tipo_funcao.nome})"
-
 
 
 class Freelance(models.Model):
@@ -157,7 +467,7 @@ class Freelance(models.Model):
     # Dados pessoais
     nome_completo = models.CharField(max_length=255)
     telefone = models.CharField(max_length=20, blank=True, null=True)
-    documento = models.CharField(max_length=50, blank=True, null=True)  # pode ser CPF
+    documento = models.CharField(max_length=50, blank=True, null=True)
     habilidades = models.TextField(blank=True, null=True)
 
     cpf = models.CharField(max_length=14, unique=True, blank=True, null=True)
@@ -208,9 +518,8 @@ class Freelance(models.Model):
     observacoes = models.TextField(blank=True, null=True)
     observacoes_medicas = models.TextField(blank=True, null=True)
 
-   # criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-    cadastro_completo = models.BooleanField(default=False)  # Status do cadastro
+    cadastro_completo = models.BooleanField(default=False)
     
     def verificar_cadastro_completo(self):
         """

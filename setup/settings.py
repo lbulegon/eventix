@@ -84,6 +84,9 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Middleware customizado para controle multi-empresas
+    "app_eventos.middleware.EmpresaContratanteMiddleware",
+    "app_eventos.middleware.EmpresaContextMiddleware",
 ]
 
 # CORS (opcional)
