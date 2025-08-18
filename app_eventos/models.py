@@ -36,6 +36,35 @@ class User(AbstractUser):
         return self.username
 
     @property
+    def is_freelancer(self):
+        """Verifica se o usuário é freelancer"""
+        return self.tipo_usuario == 'freelancer'
+
+    @property
+    def is_empresa_user(self):
+        """Verifica se o usuário é da empresa (admin ou operador)"""
+        return self.tipo_usuario in ['admin_empresa', 'operador_empresa']
+
+    @property
+    def is_admin_sistema(self):
+        """Verifica se o usuário é administrador do sistema"""
+        return self.tipo_usuario == 'admin_sistema'
+
+    @property
+    def empresa_owner(self):
+        """
+        Retorna a empresa proprietária do usuário.
+        Para freelancers, sempre retorna a Eventix.
+        Para usuários de empresa, retorna sua empresa contratante.
+        """
+        if self.is_freelancer:
+            # Sempre retorna a Eventix para freelancers
+            return EmpresaContratante.objects.filter(nome_fantasia__icontains='Eventix').first()
+        elif self.is_empresa_user:
+            return self.empresa_contratante
+        return None
+
+    @property
     def pode_gerenciar_empresa(self):
         """Verifica se o usuário pode gerenciar a empresa"""
         return self.tipo_usuario in ['admin_empresa', 'admin_sistema']
@@ -44,6 +73,26 @@ class User(AbstractUser):
     def pode_operar_sistema(self):
         """Verifica se o usuário pode operar o sistema"""
         return self.tipo_usuario in ['admin_empresa', 'operador_empresa', 'admin_sistema']
+
+    def get_dashboard_url(self):
+        """Retorna a URL do dashboard baseada no tipo de usuário"""
+        if self.is_admin_sistema:
+            return '/admin/'
+        elif self.is_empresa_user:
+            return '/empresa/dashboard/'
+        elif self.is_freelancer:
+            return '/freelancer/dashboard/'
+        return '/'
+
+    def get_user_type_display_name(self):
+        """Retorna o nome amigável do tipo de usuário"""
+        type_names = {
+            'admin_empresa': 'Administrador da Empresa',
+            'operador_empresa': 'Operador da Empresa', 
+            'freelancer': 'Freelancer',
+            'admin_sistema': 'Administrador do Sistema'
+        }
+        return type_names.get(self.tipo_usuario, self.tipo_usuario)
 
 
 class EmpresaContratante(models.Model):

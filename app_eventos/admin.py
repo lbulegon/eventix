@@ -9,6 +9,16 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from .mixins import EmpresaContratanteMixin
 
+class ScopedAdmin(admin.ModelAdmin):
+    """Filtra por empresa_contratante para usuários de empresa."""
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        u = request.user
+        if getattr(u, "is_admin_sistema", False):
+            return qs
+        if getattr(u, "is_empresa_user", False) and hasattr(self.model, "empresa_contratante"):
+            return qs.filter(empresa_contratante=u.empresa_contratante)
+        return qs.none() if not u.is_superuser else qs
 
 @admin.register(EmpresaContratante)
 class EmpresaContratanteAdmin(admin.ModelAdmin):
