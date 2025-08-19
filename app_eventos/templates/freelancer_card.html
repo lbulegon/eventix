@@ -1,0 +1,21 @@
+<div class="card">
+  <h2>📅 {{ evento.nome }}</h2>
+  <div class="meta">
+    📍 {{ evento.local.nome }} — {{ evento.data_inicio|date:"d/m/Y" }}
+  </div>
+
+  <ul>
+    <li><span>⏰ Horário:</span> {{ evento.freelancer_info.horario_inicio }} → {{ evento.freelancer_info.horario_fim }}</li>
+    <li><span>💰 Cachê:</span> R${{ evento.freelancer_info.cache }} (pagamento {{ evento.freelancer_info.prazo_pagamento }})</li>
+    <li><span>🍔 Benefícios:</span> {{ evento.freelancer_info.beneficios }}</li>
+    <li><span>📌 Função:</span> {{ evento.freelancer_info.funcao }}</li>
+  </ul>
+
+  {% if evento.freelancer_info.observacoes %}
+    <div class="observacoes">
+      Observações: {{ evento.freelancer_info.observacoes }}
+    </div>
+  {% endif %}
+
+  <a href="{% url 'candidatar_evento' evento.id %}" class="btn">👉 CANDIDATAR-SE</a>
+</div>

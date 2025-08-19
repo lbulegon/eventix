@@ -249,6 +249,47 @@ class Evento(models.Model):
         return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
 
 
+class EventoFreelancerInfo(models.Model):
+    """
+    Informações específicas do freelancer dentro de um Evento
+    """
+    evento = models.OneToOneField(
+        "Evento",
+        on_delete=models.CASCADE,
+        related_name="freelancer_info"
+    )
+
+    horario_inicio = models.TimeField(help_text="Horário de chegada")
+    horario_fim = models.TimeField(help_text="Horário de saída")
+
+    cache = models.DecimalField(max_digits=8, decimal_places=2, help_text="Valor do cachê")
+    prazo_pagamento = models.CharField(
+        max_length=100,
+        default="até 7 dias após o evento",
+        help_text="Prazo de pagamento"
+    )
+
+    beneficios = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Ex.: Lanche incluso, transporte"
+    )
+
+    funcao = models.CharField(
+        max_length=100,
+        help_text="Função do freelancer, ex.: Garçom, Bar, Caixa"
+    )
+
+    observacoes = models.TextField(blank=True, null=True, help_text="Observações adicionais")
+
+    def __str__(self):
+        return f"Info Freelancer - {self.evento.nome}"
+
+
+
+
+
 class SetorEvento(models.Model):
     evento = models.ForeignKey(Evento, on_delete=models.CASCADE, related_name="setores")
     nome = models.CharField(max_length=100)
