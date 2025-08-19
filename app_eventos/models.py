@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 
 class User(AbstractUser):
     """
@@ -247,6 +248,75 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+    
+    # Métodos para fluxo de caixa
+    @property
+    def total_despesas(self):
+        """Retorna o total de despesas do evento"""
+        return self.despesas.aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def total_receitas(self):
+        """Retorna o total de receitas do evento"""
+        return self.receitas.aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def saldo_financeiro(self):
+        """Retorna o saldo financeiro (receitas - despesas)"""
+        return self.total_receitas - self.total_despesas
+    
+    @property
+    def despesas_pagas(self):
+        """Retorna o total de despesas pagas"""
+        return self.despesas.filter(status='pago').aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def receitas_recebidas(self):
+        """Retorna o total de receitas recebidas"""
+        return self.receitas.filter(status='recebido').aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def saldo_realizado(self):
+        """Retorna o saldo realizado (receitas recebidas - despesas pagas)"""
+        return self.receitas_recebidas - self.despesas_pagas
+    
+    @property
+    def despesas_pendentes(self):
+        """Retorna o total de despesas pendentes"""
+        return self.despesas.filter(status='pendente').aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def receitas_pendentes(self):
+        """Retorna o total de receitas pendentes"""
+        return self.receitas.filter(status='pendente').aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def despesas_atrasadas(self):
+        """Retorna despesas atrasadas"""
+        return self.despesas.filter(
+            status='pendente',
+            data_vencimento__lt=timezone.now().date()
+        )
+    
+    @property
+    def receitas_atrasadas(self):
+        """Retorna receitas atrasadas"""
+        return self.receitas.filter(
+            status='pendente',
+            data_vencimento__lt=timezone.now().date()
+        )
 
 
 class EventoFreelancerInfo(models.Model):
@@ -287,7 +357,261 @@ class EventoFreelancerInfo(models.Model):
         return f"Info Freelancer - {self.evento.nome}"
 
 
+class CategoriaFinanceira(models.Model):
+    """
+    Categorias para classificar despesas e receitas
+    """
+    TIPO_CHOICES = [
+        ('despesa', 'Despesa'),
+        ('receita', 'Receita'),
+        ('ambos', 'Ambos'),
+    ]
+    
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="categorias_financeiras",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    nome = models.CharField(max_length=100, verbose_name="Nome da Categoria")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ambos', verbose_name="Tipo")
+    cor = models.CharField(max_length=7, default="#007bff", help_text="Cor em formato hexadecimal (#RRGGBB)")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    
+    class Meta:
+        verbose_name = "Categoria Financeira"
+        verbose_name_plural = "Categorias Financeiras"
+        unique_together = ['empresa_contratante', 'nome']
+    
+    def __str__(self):
+        return f"{self.nome} ({self.get_tipo_display()})"
 
+
+class Fornecedor(models.Model):
+    """
+    Fornecedores de serviços e produtos para eventos
+    """
+    TIPO_FORNECEDOR_CHOICES = [
+        ('equipamentos', 'Equipamentos'),
+        ('alimentacao', 'Alimentação'),
+        ('decoracao', 'Decoração'),
+        ('seguranca', 'Segurança'),
+        ('transporte', 'Transporte'),
+        ('marketing', 'Marketing'),
+        ('infraestrutura', 'Infraestrutura'),
+        ('outros', 'Outros'),
+    ]
+    
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="fornecedores",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    nome_fantasia = models.CharField(max_length=200, verbose_name="Nome Fantasia")
+    razao_social = models.CharField(max_length=200, verbose_name="Razão Social")
+    cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
+    tipo_fornecedor = models.CharField(max_length=20, choices=TIPO_FORNECEDOR_CHOICES, verbose_name="Tipo de Fornecedor")
+    
+    # Contato
+    telefone = models.CharField(max_length=20, verbose_name="Telefone")
+    email = models.EmailField(verbose_name="E-mail")
+    website = models.URLField(blank=True, null=True, verbose_name="Website")
+    
+    # Endereço
+    cep = models.CharField(max_length=9, blank=True, null=True, verbose_name="CEP")
+    logradouro = models.CharField(max_length=255, blank=True, null=True, verbose_name="Logradouro")
+    numero = models.CharField(max_length=10, blank=True, null=True, verbose_name="Número")
+    complemento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Complemento")
+    bairro = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bairro")
+    cidade = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
+    uf = models.CharField(max_length=2, blank=True, null=True, verbose_name="UF")
+    
+    # Informações financeiras
+    banco = models.CharField(max_length=100, blank=True, null=True, verbose_name="Banco")
+    agencia = models.CharField(max_length=10, blank=True, null=True, verbose_name="Agência")
+    conta = models.CharField(max_length=20, blank=True, null=True, verbose_name="Conta")
+    pix = models.CharField(max_length=100, blank=True, null=True, verbose_name="Chave PIX")
+    
+    # Observações e status
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    
+    class Meta:
+        verbose_name = "Fornecedor"
+        verbose_name_plural = "Fornecedores"
+        ordering = ['nome_fantasia']
+    
+    def __str__(self):
+        return f"{self.nome_fantasia} - {self.get_tipo_fornecedor_display()}"
+    
+    @property
+    def endereco_completo(self):
+        """Retorna o endereço completo formatado"""
+        partes = []
+        if self.logradouro:
+            partes.append(self.logradouro)
+        if self.numero:
+            partes.append(self.numero)
+        if self.complemento:
+            partes.append(self.complemento)
+        if self.bairro:
+            partes.append(self.bairro)
+        if self.cidade:
+            partes.append(self.cidade)
+        if self.uf:
+            partes.append(self.uf)
+        if self.cep:
+            partes.append(f"CEP: {self.cep}")
+        
+        return ", ".join(partes) if partes else "Endereço não informado"
+    
+    @property
+    def total_despesas(self):
+        """Retorna o total de despesas com este fornecedor"""
+        return self.despesas.aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def despesas_pagas(self):
+        """Retorna o total de despesas pagas com este fornecedor"""
+        return self.despesas.filter(status='pago').aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+    
+    @property
+    def despesas_pendentes(self):
+        """Retorna o total de despesas pendentes com este fornecedor"""
+        return self.despesas.filter(status='pendente').aggregate(
+            total=models.Sum('valor')
+        )['total'] or 0
+
+
+class DespesaEvento(models.Model):
+    """
+    Despesas associadas a um evento
+    """
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('pago', 'Pago'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    evento = models.ForeignKey(
+        Evento,
+        on_delete=models.CASCADE,
+        related_name="despesas",
+        verbose_name="Evento"
+    )
+    categoria = models.ForeignKey(
+        CategoriaFinanceira,
+        on_delete=models.PROTECT,
+        related_name="despesas",
+        verbose_name="Categoria"
+    )
+    descricao = models.CharField(max_length=255, verbose_name="Descrição")
+    valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
+    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
+    data_pagamento = models.DateField(blank=True, null=True, verbose_name="Data de Pagamento")
+    fornecedor = models.ForeignKey(
+        Fornecedor,
+        on_delete=models.SET_NULL,
+        related_name="despesas",
+        verbose_name="Fornecedor",
+        null=True,
+        blank=True
+    )
+    numero_documento = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número do Documento")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status")
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    
+    class Meta:
+        verbose_name = "Despesa do Evento"
+        verbose_name_plural = "Despesas do Evento"
+        ordering = ['-data_vencimento']
+    
+    def __str__(self):
+        return f"{self.descricao} - R$ {self.valor} ({self.evento.nome})"
+    
+    @property
+    def atrasada(self):
+        """Verifica se a despesa está atrasada"""
+        if self.status == 'pendente' and self.data_vencimento < timezone.now().date():
+            return True
+        return False
+    
+    @property
+    def dias_atraso(self):
+        """Retorna o número de dias de atraso"""
+        if self.atrasada:
+            return (timezone.now().date() - self.data_vencimento).days
+        return 0
+
+
+class ReceitaEvento(models.Model):
+    """
+    Receitas associadas a um evento
+    """
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('recebido', 'Recebido'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    evento = models.ForeignKey(
+        Evento,
+        on_delete=models.CASCADE,
+        related_name="receitas",
+        verbose_name="Evento"
+    )
+    categoria = models.ForeignKey(
+        CategoriaFinanceira,
+        on_delete=models.PROTECT,
+        related_name="receitas",
+        verbose_name="Categoria"
+    )
+    descricao = models.CharField(max_length=255, verbose_name="Descrição")
+    valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
+    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
+    data_recebimento = models.DateField(blank=True, null=True, verbose_name="Data de Recebimento")
+    cliente = models.CharField(max_length=200, blank=True, null=True, verbose_name="Cliente")
+    numero_documento = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número do Documento")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status")
+    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    
+    class Meta:
+        verbose_name = "Receita do Evento"
+        verbose_name_plural = "Receitas do Evento"
+        ordering = ['-data_vencimento']
+    
+    def __str__(self):
+        return f"{self.descricao} - R$ {self.valor} ({self.evento.nome})"
+    
+    @property
+    def atrasada(self):
+        """Verifica se a receita está atrasada"""
+        if self.status == 'pendente' and self.data_vencimento < timezone.now().date():
+            return True
+        return False
+    
+    @property
+    def dias_atraso(self):
+        """Retorna o número de dias de atraso"""
+        if self.atrasada:
+            return (timezone.now().date() - self.data_vencimento).days
+        return 0
 
 
 class SetorEvento(models.Model):

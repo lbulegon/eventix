@@ -1,0 +1,1 @@
+path("webhook/mercadopago/", views.webhook_mp, name="webhook_mp")

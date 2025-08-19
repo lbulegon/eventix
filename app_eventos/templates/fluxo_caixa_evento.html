@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block title %}Fluxo de Caixa - {{ evento.nome }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-chart-line text-primary"></i>
+                Fluxo de Caixa - {{ evento.nome }}
+            </h2>
+            
+            <!-- Resumo Financeiro -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Receitas</h5>
+                            <h3 class="card-text">R$ {{ evento.total_receitas|floatformat:2 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Total Despesas</h5>
+                            <h3 class="card-text">R$ {{ evento.total_despesas|floatformat:2 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card {% if evento.saldo_financeiro >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Saldo Financeiro</h5>
+                            <h3 class="card-text">R$ {{ evento.saldo_financeiro|floatformat:2 }}</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card {% if evento.saldo_realizado >= 0 %}bg-info{% else %}bg-secondary{% endif %} text-white">
+                        <div class="card-body">
+                            <h5 class="card-title">Saldo Realizado</h5>
+                            <h3 class="card-text">R$ {{ evento.saldo_realizado|floatformat:2 }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alertas -->
+            {% if evento.despesas_atrasadas.count > 0 or evento.receitas_atrasadas.count > 0 %}
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Atenção!</strong>
+                {% if evento.despesas_atrasadas.count > 0 %}
+                    {{ evento.despesas_atrasadas.count }} despesa(s) atrasada(s)
+                {% endif %}
+                {% if evento.receitas_atrasadas.count > 0 %}
+                    {% if evento.despesas_atrasadas.count > 0 %} e {% endif %}
+                    {{ evento.receitas_atrasadas.count }} receita(s) atrasada(s)
+                {% endif %}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <!-- Abas para Despesas e Receitas -->
+            <ul class="nav nav-tabs" id="fluxoCaixaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="despesas-tab" data-bs-toggle="tab" data-bs-target="#despesas" type="button" role="tab">
+                        <i class="fas fa-arrow-down text-danger"></i> Despesas ({{ evento.despesas.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="receitas-tab" data-bs-toggle="tab" data-bs-target="#receitas" type="button" role="tab">
+                        <i class="fas fa-arrow-up text-success"></i> Receitas ({{ evento.receitas.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="resumo-tab" data-bs-toggle="tab" data-bs-target="#resumo" type="button" role="tab">
+                        <i class="fas fa-chart-pie text-primary"></i> Resumo
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="fluxoCaixaTabsContent">
+                <!-- Aba Despesas -->
+                <div class="tab-pane fade show active" id="despesas" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Despesas do Evento</h5>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovaDespesa">
+                                <i class="fas fa-plus"></i> Nova Despesa
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {% if evento.despesas.all %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th>Categoria</th>
+                                            <th>Valor</th>
+                                            <th>Vencimento</th>
+                                            <th>Status</th>
+                                            <th>Fornecedor</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for despesa in evento.despesas.all %}
+                                        <tr class="{% if despesa.atrasada %}table-warning{% endif %}">
+                                            <td>{{ despesa.descricao }}</td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ despesa.categoria.cor }};">
+                                                    {{ despesa.categoria.nome }}
+                                                </span>
+                                            </td>
+                                            <td>R$ {{ despesa.valor|floatformat:2 }}</td>
+                                            <td>
+                                                {{ despesa.data_vencimento|date:"d/m/Y" }}
+                                                {% if despesa.atrasada %}
+                                                    <span class="badge bg-danger">{{ despesa.dias_atraso }} dias atrasado</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if despesa.status == 'pago' %}
+                                                    <span class="badge bg-success">Pago</span>
+                                                {% elif despesa.status == 'pendente' %}
+                                                    <span class="badge bg-warning">Pendente</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Cancelado</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ despesa.fornecedor|default:"-" }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="editarDespesa({{ despesa.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Nenhuma despesa registrada para este evento.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Receitas -->
+                <div class="tab-pane fade" id="receitas" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Receitas do Evento</h5>
+                            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovaReceita">
+                                <i class="fas fa-plus"></i> Nova Receita
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {% if evento.receitas.all %}
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Descrição</th>
+                                            <th>Categoria</th>
+                                            <th>Valor</th>
+                                            <th>Vencimento</th>
+                                            <th>Status</th>
+                                            <th>Cliente</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for receita in evento.receitas.all %}
+                                        <tr class="{% if receita.atrasada %}table-warning{% endif %}">
+                                            <td>{{ receita.descricao }}</td>
+                                            <td>
+                                                <span class="badge" style="background-color: {{ receita.categoria.cor }};">
+                                                    {{ receita.categoria.nome }}
+                                                </span>
+                                            </td>
+                                            <td>R$ {{ receita.valor|floatformat:2 }}</td>
+                                            <td>
+                                                {{ receita.data_vencimento|date:"d/m/Y" }}
+                                                {% if receita.atrasada %}
+                                                    <span class="badge bg-danger">{{ receita.dias_atraso }} dias atrasado</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if receita.status == 'recebido' %}
+                                                    <span class="badge bg-success">Recebido</span>
+                                                {% elif receita.status == 'pendente' %}
+                                                    <span class="badge bg-warning">Pendente</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Cancelado</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ receita.cliente|default:"-" }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-success" onclick="editarReceita({{ receita.id }})">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-money-bill-wave fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">Nenhuma receita registrada para este evento.</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba Resumo -->
+                <div class="tab-pane fade" id="resumo" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5 class="mb-0">Resumo Financeiro</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Receitas</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>Total Receitas:</span>
+                                            <strong class="text-success">R$ {{ evento.total_receitas|floatformat:2 }}</strong>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>Receitas Recebidas:</span>
+                                            <strong class="text-success">R$ {{ evento.receitas_recebidas|floatformat:2 }}</strong>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>Receitas Pendentes:</span>
+                                            <strong class="text-warning">R$ {{ evento.receitas_pendentes|floatformat:2 }}</strong>
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Despesas</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>Total Despesas:</span>
+                                            <strong class="text-danger">R$ {{ evento.total_despesas|floatformat:2 }}</strong>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>Despesas Pagas:</span>
+                                            <strong class="text-success">R$ {{ evento.despesas_pagas|floatformat:2 }}</strong>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span>Despesas Pendentes:</span>
+                                            <strong class="text-warning">R$ {{ evento.despesas_pendentes|floatformat:2 }}</strong>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>Saldo Financeiro</h6>
+                                    <div class="alert {% if evento.saldo_financeiro >= 0 %}alert-success{% else %}alert-danger{% endif %}">
+                                        <strong>R$ {{ evento.saldo_financeiro|floatformat:2 }}</strong>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>Saldo Realizado</h6>
+                                    <div class="alert {% if evento.saldo_realizado >= 0 %}alert-info{% else %}alert-warning{% endif %}">
+                                        <strong>R$ {{ evento.saldo_realizado|floatformat:2 }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Despesa -->
+<div class="modal fade" id="modalNovaDespesa" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Despesa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovaDespesa">
+                <div class="modal-body">
+                    <!-- Formulário será carregado via AJAX -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Despesa</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nova Receita -->
+<div class="modal fade" id="modalNovaReceita" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Receita</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNovaReceita">
+                <div class="modal-body">
+                    <!-- Formulário será carregado via AJAX -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Salvar Receita</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Funções JavaScript para interação com as APIs
+function editarDespesa(despesaId) {
+    // Implementar edição de despesa
+    console.log('Editar despesa:', despesaId);
+}
+
+function editarReceita(receitaId) {
+    // Implementar edição de receita
+    console.log('Editar receita:', receitaId);
+}
+
+// Carregar formulários via AJAX quando os modais forem abertos
+document.addEventListener('DOMContentLoaded', function() {
+    // Implementar carregamento dos formulários
+});
+</script>
+{% endblock %}

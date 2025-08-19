@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from app_eventos.models import (
     Evento, Vaga, Candidatura, ContratoFreelance, 
-    EquipamentoSetor, ManutencaoEquipamento, EmpresaContratante, Freelance
+    EquipamentoSetor, ManutencaoEquipamento, EmpresaContratante, Freelance, Fornecedor
 )
 
 
@@ -114,45 +114,52 @@ def dashboard_freelancer(request):
         return redirect('home')
     
     try:
-        freelance = request.user.freelance
-    except:
+        freelance = Freelance.objects.get(usuario=request.user)
+    except Freelance.DoesNotExist:
         messages.error(request, 'Perfil de freelancer não encontrado.')
         return redirect('home')
     
-    # Candidaturas
-    candidaturas = Candidatura.objects.filter(freelance=freelance).order_by('-data_candidatura')
-    candidaturas_pendentes = candidaturas.filter(status='pendente').count()
-    candidaturas_aprovadas = candidaturas.filter(status='aprovada').count()
-    candidaturas_rejeitadas = candidaturas.filter(status='rejeitada').count()
+    # Estatísticas dos últimos 30 dias
+    data_inicio = timezone.now() - timedelta(days=30)
     
-    # Contratos ativos
-    contratos_ativos = ContratoFreelance.objects.filter(
+    # Candidaturas
+    candidaturas_recentes = Candidatura.objects.filter(
         freelance=freelance,
+        data_candidatura__gte=data_inicio
+    ).order_by('-data_candidatura')[:5]
+    
+    candidaturas_pendentes = Candidatura.objects.filter(
+        freelance=freelance,
+        status='pendente'
+    ).count()
+    
+    candidaturas_aprovadas = Candidatura.objects.filter(
+        freelance=freelance,
+        status='aprovada'
+    ).count()
+    
+    # Contratos
+    contratos_ativos = ContratoFreelance.objects.filter(
+        vaga__candidaturas__freelance=freelance,
         status='ativo'
     ).count()
     
-    # Eventos recentes onde trabalhou
-    eventos_recentes = Evento.objects.filter(
-        setores__vagas__contratos__freelance=freelance
-    ).distinct().order_by('-data_inicio')[:5]
-    
-    # Equipamentos responsável
-    equipamentos_responsavel = EquipamentoSetor.objects.filter(
-        responsavel_equipamento=freelance
+    # Vagas disponíveis
+    vagas_disponiveis = Vaga.objects.filter(
+        ativa=True,
+        setor__evento__ativo=True
     ).count()
     
     context = {
         'freelance': freelance,
-        'candidaturas': candidaturas[:10],  # Últimas 10
+        'candidaturas_recentes': candidaturas_recentes,
         'candidaturas_pendentes': candidaturas_pendentes,
         'candidaturas_aprovadas': candidaturas_aprovadas,
-        'candidaturas_rejeitadas': candidaturas_rejeitadas,
         'contratos_ativos': contratos_ativos,
-        'eventos_recentes': eventos_recentes,
-        'equipamentos_responsavel': equipamentos_responsavel,
+        'vagas_disponiveis': vagas_disponiveis,
     }
     
-    return render(request, 'app_eventos/dashboard_freelancer.html', context)
+    return render(request, 'freelancer_dashboard.html', context)
 
 
 @login_required
@@ -201,3 +208,70 @@ def dashboard_admin_sistema(request):
     }
     
     return render(request, 'app_eventos/dashboard_admin_sistema.html', context)
+
+
+@login_required
+def fluxo_caixa_evento(request, evento_id):
+    """
+    View para visualizar o fluxo de caixa de um evento específico
+    """
+    try:
+        evento = Evento.objects.get(id=evento_id)
+    except Evento.DoesNotExist:
+        messages.error(request, 'Evento não encontrado.')
+        return redirect('dashboard_empresa')
+    
+    # Verificar permissão de acesso
+    user = request.user
+    if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+        messages.error(request, 'Acesso negado a este evento.')
+        return redirect('dashboard_empresa')
+    
+    # Carregar despesas e receitas com suas categorias
+    despesas = evento.despesas.select_related('categoria').all()
+    receitas = evento.receitas.select_related('categoria').all()
+    
+    context = {
+        'evento': evento,
+        'despesas': despesas,
+        'receitas': receitas,
+    }
+    
+    return render(request, 'fluxo_caixa_evento.html', context)
+
+
+@login_required
+def fornecedores_list(request):
+    """
+    View para listar fornecedores da empresa
+    """
+    if not request.user.is_empresa_user:
+        messages.error(request, 'Acesso negado.')
+        return redirect('home')
+    
+    empresa = request.user.empresa_owner
+    if not empresa:
+        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
+        return redirect('home')
+    
+    # Filtros
+    tipo_fornecedor = request.GET.get('tipo_fornecedor')
+    ativo = request.GET.get('ativo')
+    
+    fornecedores = Fornecedor.objects.filter(empresa_contratante=empresa)
+    
+    if tipo_fornecedor:
+        fornecedores = fornecedores.filter(tipo_fornecedor=tipo_fornecedor)
+    
+    if ativo is not None:
+        fornecedores = fornecedores.filter(ativo=ativo.lower() == 'true')
+    
+    # Ordenar por nome
+    fornecedores = fornecedores.order_by('nome_fantasia')
+    
+    context = {
+        'fornecedores': fornecedores,
+        'empresa': empresa,
+    }
+    
+    return render(request, 'fornecedores_list.html', context)

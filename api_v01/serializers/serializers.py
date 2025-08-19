@@ -1,7 +1,10 @@
 # api_v01/serializers/serializers.py
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from app_eventos.models import EmpresaContratante, Freelance, Vaga, Candidatura, ContratoFreelance
+from app_eventos.models import (
+    EmpresaContratante, Freelance, Vaga, Candidatura, ContratoFreelance,
+    CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor
+)
 
 User = get_user_model()
 
@@ -296,3 +299,111 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         if User.objects.exclude(id=user.id).filter(email=value).exists():
             raise serializers.ValidationError("Este email já está em uso.")
         return value
+
+
+# Serializers para o sistema financeiro
+class CategoriaFinanceiraSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoriaFinanceira
+        fields = [
+            'id', 'nome', 'descricao', 'tipo', 'cor', 'ativo'
+        ]
+
+
+class DespesaEventoSerializer(serializers.ModelSerializer):
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
+    evento_nome = serializers.CharField(source='evento.nome', read_only=True)
+    atrasada = serializers.BooleanField(read_only=True)
+    dias_atraso = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = DespesaEvento
+        fields = [
+            'id', 'evento', 'evento_nome', 'categoria', 'categoria_nome',
+            'descricao', 'valor', 'data_vencimento', 'data_pagamento',
+            'fornecedor', 'numero_documento', 'status', 'observacoes',
+            'atrasada', 'dias_atraso', 'data_criacao', 'data_atualizacao'
+        ]
+        read_only_fields = ['data_criacao', 'data_atualizacao']
+
+
+class ReceitaEventoSerializer(serializers.ModelSerializer):
+    categoria_nome = serializers.CharField(source='categoria.nome', read_only=True)
+    evento_nome = serializers.CharField(source='evento.nome', read_only=True)
+    atrasada = serializers.BooleanField(read_only=True)
+    dias_atraso = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = ReceitaEvento
+        fields = [
+            'id', 'evento', 'evento_nome', 'categoria', 'categoria_nome',
+            'descricao', 'valor', 'data_vencimento', 'data_recebimento',
+            'cliente', 'numero_documento', 'status', 'observacoes',
+            'atrasada', 'dias_atraso', 'data_criacao', 'data_atualizacao'
+        ]
+        read_only_fields = ['data_criacao', 'data_atualizacao']
+
+
+class FluxoCaixaEventoSerializer(serializers.Serializer):
+    """Serializer para resumo do fluxo de caixa de um evento"""
+    evento_id = serializers.IntegerField()
+    evento_nome = serializers.CharField()
+    total_despesas = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_receitas = serializers.DecimalField(max_digits=10, decimal_places=2)
+    saldo_financeiro = serializers.DecimalField(max_digits=10, decimal_places=2)
+    despesas_pagas = serializers.DecimalField(max_digits=10, decimal_places=2)
+    receitas_recebidas = serializers.DecimalField(max_digits=10, decimal_places=2)
+    saldo_realizado = serializers.DecimalField(max_digits=10, decimal_places=2)
+    despesas_pendentes = serializers.DecimalField(max_digits=10, decimal_places=2)
+    receitas_pendentes = serializers.DecimalField(max_digits=10, decimal_places=2)
+    despesas_atrasadas_count = serializers.IntegerField()
+    receitas_atrasadas_count = serializers.IntegerField()
+
+
+# Serializers para Fornecedores
+class FornecedorSerializer(serializers.ModelSerializer):
+    endereco_completo = serializers.CharField(read_only=True)
+    total_despesas = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    despesas_pagas = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    despesas_pendentes = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    
+    class Meta:
+        model = Fornecedor
+        fields = [
+            'id', 'nome_fantasia', 'razao_social', 'cnpj', 'tipo_fornecedor',
+            'telefone', 'email', 'website', 'endereco_completo',
+            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
+            'banco', 'agencia', 'conta', 'pix', 'observacoes', 'ativo',
+            'data_cadastro', 'data_atualizacao',
+            'total_despesas', 'despesas_pagas', 'despesas_pendentes'
+        ]
+        read_only_fields = ['data_cadastro', 'data_atualizacao']
+
+
+class FornecedorCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fornecedor
+        fields = [
+            'nome_fantasia', 'razao_social', 'cnpj', 'tipo_fornecedor',
+            'telefone', 'email', 'website',
+            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
+            'banco', 'agencia', 'conta', 'pix', 'observacoes', 'ativo'
+        ]
+    
+    def create(self, validated_data):
+        # Associar automaticamente à empresa do usuário
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            validated_data['empresa_contratante'] = request.user.empresa_owner
+        return super().create(validated_data)
+
+
+class FornecedorUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Fornecedor
+        fields = [
+            'nome_fantasia', 'razao_social', 'cnpj', 'tipo_fornecedor',
+            'telefone', 'email', 'website',
+            'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
+            'banco', 'agencia', 'conta', 'pix', 'observacoes', 'ativo'
+        ]

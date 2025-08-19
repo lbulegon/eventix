@@ -176,3 +176,6 @@ LOGGING = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+MERCADOPAGO_ACCESS_TOKEN = "SEU_ACCESS_TOKEN_AQUI"  # do painel Mercado Pago

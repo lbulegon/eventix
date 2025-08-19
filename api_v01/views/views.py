@@ -9,12 +9,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.utils import timezone
-from app_eventos.models import Vaga, Candidatura, ContratoFreelance, Freelance, User, EmpresaContratante
+from app_eventos.models import Vaga, Candidatura, ContratoFreelance, Freelance, User, EmpresaContratante, Evento, CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor
 from ..serializers.serializers import (
     VagaSerializer, CandidaturaCreateSerializer, CandidaturaListSerializer,
     ContratoFreelanceSerializer, LoginSerializer,
     UserRegistrationSerializer, UserProfileSerializer, EmpresaRegistrationSerializer,
-    RegistroUnicoSerializer
+    RegistroUnicoSerializer, CategoriaFinanceiraSerializer, DespesaEventoSerializer, ReceitaEventoSerializer, FluxoCaixaEventoSerializer,
+    FornecedorSerializer, FornecedorCreateSerializer, FornecedorUpdateSerializer
 )
 from ..permissions import IsFreelancer, IsEmpresaUser, IsAdminSistema
 from ..filters import EmpresaScopeFilterBackend
@@ -394,23 +395,514 @@ def verificar_tipo_usuario(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def listar_empresas(request):
-    """
-    Lista empresas disponíveis para vínculo de usuários
-    """
+    """Lista empresas ativas para seleção"""
+    empresas = EmpresaContratante.objects.filter(ativo=True)
+    data = []
+    
+    for empresa in empresas:
+        data.append({
+            'id': empresa.id,
+            'nome_fantasia': empresa.nome_fantasia,
+            'razao_social': empresa.razao_social,
+            'cnpj': empresa.cnpj,
+            'email': empresa.email
+        })
+    
+    return Response({
+        'success': True,
+        'empresas': data
+    })
+
+
+# Views para o sistema financeiro
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def categorias_financeiras(request):
+    """Lista categorias financeiras da empresa do usuário"""
+    user = request.user
+    empresa = user.empresa_owner
+    
+    if not empresa:
+        return Response({
+            'success': False,
+            'message': 'Usuário não possui empresa associada.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    categorias = CategoriaFinanceira.objects.filter(
+        empresa_contratante=empresa,
+        ativo=True
+    )
+    
+    serializer = CategoriaFinanceiraSerializer(categorias, many=True)
+    
+    return Response({
+        'success': True,
+        'categorias': serializer.data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def despesas_evento(request, evento_id):
+    """Lista despesas de um evento específico"""
     try:
-        empresas = EmpresaContratante.objects.filter(ativo=True).values(
-            'id', 'nome_fantasia', 'razao_social', 'cnpj', 'email'
-        )
+        evento = Evento.objects.get(id=evento_id)
+        
+        # Verificar permissão de acesso ao evento
+        user = request.user
+        if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a este evento.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        despesas = evento.despesas.all()
+        serializer = DespesaEventoSerializer(despesas, many=True)
         
         return Response({
             'success': True,
-            'empresas': list(empresas)
+            'despesas': serializer.data
         })
-    except Exception as e:
+        
+    except Evento.DoesNotExist:
         return Response({
             'success': False,
-            'message': f'Erro ao listar empresas: {str(e)}'
+            'message': 'Evento não encontrado.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_despesa(request):
+    """Cria uma nova despesa para um evento"""
+    serializer = DespesaEventoSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        try:
+            evento = Evento.objects.get(id=serializer.validated_data['evento'].id)
+            
+            # Verificar permissão de acesso ao evento
+            user = request.user
+            if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+                return Response({
+                    'success': False,
+                    'message': 'Acesso negado a este evento.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            despesa = serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Despesa criada com sucesso.',
+                'despesa': DespesaEventoSerializer(despesa).data
+            }, status=status.HTTP_201_CREATED)
+            
+        except Evento.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Evento não encontrado.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    return Response({
+        'success': False,
+        'message': 'Dados inválidos.',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def atualizar_despesa(request, despesa_id):
+    """Atualiza uma despesa existente"""
+    try:
+        despesa = DespesaEvento.objects.get(id=despesa_id)
+        
+        # Verificar permissão de acesso
+        user = request.user
+        if not user.is_admin_sistema and despesa.evento.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a esta despesa.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = DespesaEventoSerializer(despesa, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            despesa = serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Despesa atualizada com sucesso.',
+                'despesa': DespesaEventoSerializer(despesa).data
+            })
+        
+        return Response({
+            'success': False,
+            'message': 'Dados inválidos.',
+            'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
+        
+    except DespesaEvento.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Despesa não encontrada.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def receitas_evento(request, evento_id):
+    """Lista receitas de um evento específico"""
+    try:
+        evento = Evento.objects.get(id=evento_id)
+        
+        # Verificar permissão de acesso ao evento
+        user = request.user
+        if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a este evento.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        receitas = evento.receitas.all()
+        serializer = ReceitaEventoSerializer(receitas, many=True)
+        
+        return Response({
+            'success': True,
+            'receitas': serializer.data
+        })
+        
+    except Evento.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Evento não encontrado.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_receita(request):
+    """Cria uma nova receita para um evento"""
+    serializer = ReceitaEventoSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        try:
+            evento = Evento.objects.get(id=serializer.validated_data['evento'].id)
+            
+            # Verificar permissão de acesso ao evento
+            user = request.user
+            if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+                return Response({
+                    'success': False,
+                    'message': 'Acesso negado a este evento.'
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            receita = serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Receita criada com sucesso.',
+                'receita': ReceitaEventoSerializer(receita).data
+            }, status=status.HTTP_201_CREATED)
+            
+        except Evento.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Evento não encontrado.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    return Response({
+        'success': False,
+        'message': 'Dados inválidos.',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def atualizar_receita(request, receita_id):
+    """Atualiza uma receita existente"""
+    try:
+        receita = ReceitaEvento.objects.get(id=receita_id)
+        
+        # Verificar permissão de acesso
+        user = request.user
+        if not user.is_admin_sistema and receita.evento.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a esta receita.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = ReceitaEventoSerializer(receita, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            receita = serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Receita atualizada com sucesso.',
+                'receita': ReceitaEventoSerializer(receita).data
+            })
+        
+        return Response({
+            'success': False,
+            'message': 'Dados inválidos.',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    except ReceitaEvento.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Receita não encontrada.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def fluxo_caixa_evento(request, evento_id):
+    """Retorna o resumo do fluxo de caixa de um evento"""
+    try:
+        evento = Evento.objects.get(id=evento_id)
+        
+        # Verificar permissão de acesso ao evento
+        user = request.user
+        if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a este evento.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        data = {
+            'evento_id': evento.id,
+            'evento_nome': evento.nome,
+            'total_despesas': evento.total_despesas,
+            'total_receitas': evento.total_receitas,
+            'saldo_financeiro': evento.saldo_financeiro,
+            'despesas_pagas': evento.despesas_pagas,
+            'receitas_recebidas': evento.receitas_recebidas,
+            'saldo_realizado': evento.saldo_realizado,
+            'despesas_pendentes': evento.despesas_pendentes,
+            'receitas_pendentes': evento.receitas_pendentes,
+            'despesas_atrasadas_count': evento.despesas_atrasadas.count(),
+            'receitas_atrasadas_count': evento.receitas_atrasadas.count(),
+        }
+        
+        serializer = FluxoCaixaEventoSerializer(data)
+        
+        return Response({
+            'success': True,
+            'fluxo_caixa': serializer.data
+        })
+        
+    except Evento.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Evento não encontrado.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def fluxo_caixa_empresa(request):
+    """Retorna o resumo do fluxo de caixa de todos os eventos da empresa"""
+    user = request.user
+    empresa = user.empresa_owner
+    
+    if not empresa:
+        return Response({
+            'success': False,
+            'message': 'Usuário não possui empresa associada.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    eventos = Evento.objects.filter(empresa_contratante=empresa, ativo=True)
+    resumos = []
+    
+    for evento in eventos:
+        data = {
+            'evento_id': evento.id,
+            'evento_nome': evento.nome,
+            'total_despesas': evento.total_despesas,
+            'total_receitas': evento.total_receitas,
+            'saldo_financeiro': evento.saldo_financeiro,
+            'despesas_pagas': evento.despesas_pagas,
+            'receitas_recebidas': evento.receitas_recebidas,
+            'saldo_realizado': evento.saldo_realizado,
+            'despesas_pendentes': evento.despesas_pendentes,
+            'receitas_pendentes': evento.receitas_pendentes,
+            'despesas_atrasadas_count': evento.despesas_atrasadas.count(),
+            'receitas_atrasadas_count': evento.receitas_atrasadas.count(),
+        }
+        resumos.append(data)
+    
+    # Calcular totais da empresa
+    total_despesas = sum(r['total_despesas'] for r in resumos)
+    total_receitas = sum(r['total_receitas'] for r in resumos)
+    total_saldo = sum(r['saldo_financeiro'] for r in resumos)
+    
+    return Response({
+        'success': True,
+        'eventos': resumos,
+        'totais_empresa': {
+            'total_despesas': total_despesas,
+            'total_receitas': total_receitas,
+            'saldo_financeiro': total_saldo,
+        }
+    })
+
+
+# Views para Fornecedores
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def listar_fornecedores(request):
+    """Lista fornecedores da empresa do usuário"""
+    user = request.user
+    empresa = user.empresa_owner
+    
+    if not empresa:
+        return Response({
+            'success': False,
+            'message': 'Usuário não possui empresa associada.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Filtros opcionais
+    tipo_fornecedor = request.GET.get('tipo_fornecedor')
+    ativo = request.GET.get('ativo')
+    
+    fornecedores = Fornecedor.objects.filter(empresa_contratante=empresa)
+    
+    if tipo_fornecedor:
+        fornecedores = fornecedores.filter(tipo_fornecedor=tipo_fornecedor)
+    
+    if ativo is not None:
+        fornecedores = fornecedores.filter(ativo=ativo.lower() == 'true')
+    
+    serializer = FornecedorSerializer(fornecedores, many=True)
+    
+    return Response({
+        'success': True,
+        'fornecedores': serializer.data
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def detalhes_fornecedor(request, fornecedor_id):
+    """Retorna detalhes de um fornecedor específico"""
+    try:
+        fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+        
+        # Verificar permissão de acesso
+        user = request.user
+        if not user.is_admin_sistema and fornecedor.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a este fornecedor.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = FornecedorSerializer(fornecedor)
+        
+        return Response({
+            'success': True,
+            'fornecedor': serializer.data
+        })
+        
+    except Fornecedor.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Fornecedor não encontrado.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_fornecedor(request):
+    """Cria um novo fornecedor"""
+    serializer = FornecedorCreateSerializer(data=request.data, context={'request': request})
+    
+    if serializer.is_valid():
+        fornecedor = serializer.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Fornecedor criado com sucesso.',
+            'fornecedor': FornecedorSerializer(fornecedor).data
+        }, status=status.HTTP_201_CREATED)
+    
+    return Response({
+        'success': False,
+        'message': 'Dados inválidos.',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def atualizar_fornecedor(request, fornecedor_id):
+    """Atualiza um fornecedor existente"""
+    try:
+        fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+        
+        # Verificar permissão de acesso
+        user = request.user
+        if not user.is_admin_sistema and fornecedor.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a este fornecedor.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = FornecedorUpdateSerializer(fornecedor, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            fornecedor = serializer.save()
+            
+            return Response({
+                'success': True,
+                'message': 'Fornecedor atualizado com sucesso.',
+                'fornecedor': FornecedorSerializer(fornecedor).data
+            })
+        
+        return Response({
+            'success': False,
+            'message': 'Dados inválidos.',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Fornecedor.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Fornecedor não encontrado.'
+        }, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def fornecedor_despesas(request, fornecedor_id):
+    """Lista despesas de um fornecedor específico"""
+    try:
+        fornecedor = Fornecedor.objects.get(id=fornecedor_id)
+        
+        # Verificar permissão de acesso
+        user = request.user
+        if not user.is_admin_sistema and fornecedor.empresa_contratante != user.empresa_owner:
+            return Response({
+                'success': False,
+                'message': 'Acesso negado a este fornecedor.'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        despesas = fornecedor.despesas.all()
+        serializer = DespesaEventoSerializer(despesas, many=True)
+        
+        return Response({
+            'success': True,
+            'fornecedor': FornecedorSerializer(fornecedor).data,
+            'despesas': serializer.data
+        })
+        
+    except Fornecedor.DoesNotExist:
+        return Response({
+            'success': False,
+            'message': 'Fornecedor não encontrado.'
+        }, status=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(['POST'])

@@ -2,7 +2,8 @@
 from .models import (
     User, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
-    CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento
+    CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
+    CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor
 )
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
@@ -295,5 +296,148 @@ class ManutencaoEquipamentoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
         }),
     )
     readonly_fields = ("criado_em",)
+
+
+@admin.register(CategoriaFinanceira)
+class CategoriaFinanceiraAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome', 'tipo', 'empresa_contratante', 'ativo', 'cor_display')
+    list_filter = ('tipo', 'ativo', 'empresa_contratante')
+    search_fields = ('nome', 'descricao')
+    
+    fieldsets = (
+        ("Informações Básicas", {
+            "fields": ("nome", "descricao", "tipo")
+        }),
+        ("Aparência", {
+            "fields": ("cor",)
+        }),
+        ("Status", {
+            "fields": ("ativo",)
+        }),
+    )
+    
+    def cor_display(self, obj):
+        return format_html(
+            '<span style="background-color: {}; color: white; padding: 2px 8px; border-radius: 3px;">{}</span>',
+            obj.cor, obj.cor
+        )
+    cor_display.short_description = "Cor"
+
+
+@admin.register(Fornecedor)
+class FornecedorAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome_fantasia', 'tipo_fornecedor', 'cnpj', 'telefone', 'email', 'ativo', 'total_despesas_display')
+    list_filter = ('tipo_fornecedor', 'ativo', 'empresa_contratante', 'data_cadastro')
+    search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email', 'telefone')
+    readonly_fields = ('data_cadastro', 'data_atualizacao', 'total_despesas', 'despesas_pagas', 'despesas_pendentes')
+    
+    fieldsets = (
+        ("Informações Básicas", {
+            "fields": ("nome_fantasia", "razao_social", "cnpj", "tipo_fornecedor")
+        }),
+        ("Contato", {
+            "fields": ("telefone", "email", "website")
+        }),
+        ("Endereço", {
+            "fields": ("cep", "logradouro", "numero", "complemento", "bairro", "cidade", "uf")
+        }),
+        ("Informações Financeiras", {
+            "fields": ("banco", "agencia", "conta", "pix")
+        }),
+        ("Observações", {
+            "fields": ("observacoes",)
+        }),
+        ("Status", {
+            "fields": ("ativo",)
+        }),
+        ("Timestamps", {
+            "fields": ("data_cadastro", "data_atualizacao")
+        }),
+        ("Estatísticas", {
+            "fields": ("total_despesas", "despesas_pagas", "despesas_pendentes")
+        }),
+    )
+    
+    def total_despesas_display(self, obj):
+        return f"R$ {obj.total_despesas:,.2f}"
+    total_despesas_display.short_description = "Total Despesas"
+
+
+@admin.register(DespesaEvento)
+class DespesaEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('descricao', 'evento', 'categoria', 'valor', 'data_vencimento', 'status', 'fornecedor', 'atrasada_display')
+    list_filter = ('status', 'categoria', 'data_vencimento', 'evento__empresa_contratante')
+    search_fields = ('descricao', 'fornecedor', 'numero_documento', 'evento__nome')
+    autocomplete_fields = ('evento', 'categoria', 'fornecedor')
+    readonly_fields = ('data_criacao', 'data_atualizacao')
+    
+    fieldsets = (
+        ("Evento e Categoria", {
+            "fields": ("evento", "categoria")
+        }),
+        ("Informações da Despesa", {
+            "fields": ("descricao", "valor", "fornecedor", "numero_documento")
+        }),
+        ("Datas", {
+            "fields": ("data_vencimento", "data_pagamento")
+        }),
+        ("Status", {
+            "fields": ("status",)
+        }),
+        ("Observações", {
+            "fields": ("observacoes",)
+        }),
+        ("Timestamps", {
+            "fields": ("data_criacao", "data_atualizacao")
+        }),
+    )
+    
+    def atrasada_display(self, obj):
+        if obj.atrasada:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">ATRASADA ({})</span>',
+                f"{obj.dias_atraso} dias"
+            )
+        return "Em dia"
+    atrasada_display.short_description = "Status de Vencimento"
+
+
+@admin.register(ReceitaEvento)
+class ReceitaEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('descricao', 'evento', 'categoria', 'valor', 'data_vencimento', 'status', 'cliente', 'atrasada_display')
+    list_filter = ('status', 'categoria', 'data_vencimento', 'evento__empresa_contratante')
+    search_fields = ('descricao', 'cliente', 'numero_documento', 'evento__nome')
+    autocomplete_fields = ('evento', 'categoria')
+    readonly_fields = ('data_criacao', 'data_atualizacao')
+    
+    fieldsets = (
+        ("Evento e Categoria", {
+            "fields": ("evento", "categoria")
+        }),
+        ("Informações da Receita", {
+            "fields": ("descricao", "valor", "cliente", "numero_documento")
+        }),
+        ("Datas", {
+            "fields": ("data_vencimento", "data_recebimento")
+        }),
+        ("Status", {
+            "fields": ("status",)
+        }),
+        ("Observações", {
+            "fields": ("observacoes",)
+        }),
+        ("Timestamps", {
+            "fields": ("data_criacao", "data_atualizacao")
+        }),
+    )
+    
+    def atrasada_display(self, obj):
+        if obj.atrasada:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">ATRASADA ({})</span>',
+                f"{obj.dias_atraso} dias"
+            )
+        return "Em dia"
+    atrasada_display.short_description = "Status de Vencimento"
 
 
