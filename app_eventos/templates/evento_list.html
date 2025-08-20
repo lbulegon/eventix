@@ -1,11 +1,54 @@
 {% extends "base.html" %}
+{% block title %}Eventos — Eventix{% endblock %}
 
 {% block content %}
-  <h1>Eventos Disponíveis</h1>
-
-  {% for evento in eventos %}
-    {% include "freelancer_card.html" %}
-  {% empty %}
-    <p>Nenhum evento disponível no momento.</p>
-  {% endfor %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2>📅 Eventos</h2>
+            <p class="text-muted">Lista de todos os eventos cadastrados no sistema.</p>
+            
+            {% if eventos %}
+                <div class="row">
+                    {% for evento in eventos %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ evento.nome }}</h5>
+                                <p class="card-text text-muted">
+                                    <small>
+                                        📅 {{ evento.data_inicio|date:"d/m/Y" }}
+                                        {% if evento.data_fim %}
+                                            - {{ evento.data_fim|date:"d/m/Y" }}
+                                        {% endif %}
+                                    </small>
+                                </p>
+                                {% if evento.descricao %}
+                                    <p class="card-text">{{ evento.descricao|truncatewords:20 }}</p>
+                                {% endif %}
+                                <p class="card-text">
+                                    <span class="badge bg-primary">{{ evento.status }}</span>
+                                </p>
+                            </div>
+                            <div class="card-footer">
+                                <small class="text-muted">
+                                    📍 {{ evento.local|default:"Local não informado" }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-calendar-times fa-3x text-muted"></i>
+                    </div>
+                    <h4 class="text-muted">Nenhum evento encontrado</h4>
+                    <p class="text-muted">Não há eventos cadastrados no sistema ainda.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 {% endblock %}

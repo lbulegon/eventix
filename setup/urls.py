@@ -16,6 +16,7 @@ from app_eventos.views.views_dashboard import (
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", views.home, name="home"),
+    path("eventos/", views.evento_list, name="evento_list"),
     
     # Sistema de autenticação única
     path("api/auth/", include("api_v01.urls.urls")),
