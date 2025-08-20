@@ -820,23 +820,16 @@ class Vaga(models.Model):
 
 
 class TipoFuncao(models.Model):
-    empresa_contratante = models.ForeignKey(
-        EmpresaContratante,
-        on_delete=models.CASCADE,
-        related_name="tipos_funcao",
-        verbose_name="Empresa Contratante",
-        null=True,
-        blank=True
-    )
-    nome = models.CharField(max_length=80)
+    nome = models.CharField(max_length=80, unique=True)
     descricao = models.TextField(blank=True, null=True)
     ativo = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ['empresa_contratante', 'nome']
+        verbose_name = "Tipo de Função"
+        verbose_name_plural = "Tipos de Função"
 
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        return self.nome
 
 
 class Funcao(models.Model):

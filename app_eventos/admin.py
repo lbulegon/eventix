@@ -117,16 +117,16 @@ class VagaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
 
 
 @admin.register(TipoFuncao)
-class TipoFuncaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('nome', 'empresa_contratante', 'ativo')
-    list_filter = ('ativo', 'empresa_contratante')
+class TipoFuncaoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'ativo')
+    list_filter = ('ativo',)
     search_fields = ('nome',)
 
 
 @admin.register(Funcao)
-class FuncaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+class FuncaoAdmin(admin.ModelAdmin):
     list_display = ('nome', 'tipo_funcao', 'ativo')
-    list_filter = ('ativo', 'tipo_funcao__empresa_contratante')
+    list_filter = ('ativo', 'tipo_funcao')
     search_fields = ('nome',)
     autocomplete_fields = ('tipo_funcao',)
 
