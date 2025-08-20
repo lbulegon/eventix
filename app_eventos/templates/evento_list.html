@@ -27,7 +27,9 @@
                                     <p class="card-text">{{ evento.descricao|truncatewords:20 }}</p>
                                 {% endif %}
                                 <p class="card-text">
-                                    <span class="badge bg-primary">{{ evento.status }}</span>
+                                    <span class="badge {% if evento.ativo %}bg-success{% else %}bg-secondary{% endif %}">
+                                        {% if evento.ativo %}Ativo{% else %}Inativo{% endif %}
+                                    </span>
                                 </p>
                             </div>
                             <div class="card-footer">
