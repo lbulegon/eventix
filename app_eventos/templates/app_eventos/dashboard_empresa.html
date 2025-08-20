@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard da Empresa{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Dashboard da Empresa</h1>
+            <p class="text-muted">Bem-vindo, {{ empresa.nome_fantasia }}!</p>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Eventos Ativos</h5>
+                    <h2 class="card-text">{{ eventos_ativos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Vagas Ativas</h5>
+                    <h2 class="card-text">{{ vagas_ativas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Candidaturas Pendentes</h5>
+                    <h2 class="card-text">{{ candidaturas_pendentes }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Contratos Ativos</h5>
+                    <h2 class="card-text">{{ contratos_ativos }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eventos Recentes -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Eventos Recentes</h5>
+                </div>
+                <div class="card-body">
+                    {% if eventos_recentes %}
+                        <div class="list-group">
+                            {% for evento in eventos_recentes %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ evento.nome }}</h6>
+                                    <small class="text-muted">{{ evento.data_inicio|date:"d/m/Y" }}</small>
+                                </div>
+                                <p class="mb-1">{{ evento.descricao|truncatewords:20 }}</p>
+                                <small class="text-muted">Status: 
+                                    {% if evento.ativo %}
+                                        <span class="badge bg-success">Ativo</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inativo</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Nenhum evento recente encontrado.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Resumo</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>Candidaturas (30 dias):</strong> {{ candidaturas_recentes }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Equipamentos em Manutenção:</strong> {{ equipamentos_em_manutencao }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

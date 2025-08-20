@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard do Freelancer{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">Dashboard do Freelancer</h1>
+            <p class="text-muted">Bem-vindo, {{ freelance.nome_completo }}!</p>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Candidaturas Pendentes</h5>
+                    <h2 class="card-text">{{ candidaturas_pendentes }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Candidaturas Aprovadas</h5>
+                    <h2 class="card-text">{{ candidaturas_aprovadas }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Contratos Ativos</h5>
+                    <h2 class="card-text">{{ contratos_ativos }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Vagas Disponíveis</h5>
+                    <h2 class="card-text">{{ vagas_disponiveis }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Candidaturas Recentes -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Candidaturas Recentes</h5>
+                </div>
+                <div class="card-body">
+                    {% if candidaturas_recentes %}
+                        <div class="list-group">
+                            {% for candidatura in candidaturas_recentes %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ candidatura.vaga.titulo }}</h6>
+                                    <small class="text-muted">{{ candidatura.data_candidatura|date:"d/m/Y" }}</small>
+                                </div>
+                                <p class="mb-1">{{ candidatura.vaga.descricao|truncatewords:15 }}</p>
+                                <small class="text-muted">Status: 
+                                    {% if candidatura.status == 'pendente' %}
+                                        <span class="badge bg-warning">Pendente</span>
+                                    {% elif candidatura.status == 'aprovada' %}
+                                        <span class="badge bg-success">Aprovada</span>
+                                    {% elif candidatura.status == 'rejeitada' %}
+                                        <span class="badge bg-danger">Rejeitada</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ candidatura.status }}</span>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Nenhuma candidatura recente encontrada.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Informações do Perfil</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>Nome:</strong> {{ freelance.nome_completo }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Email:</strong> {{ freelance.usuario.email }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Telefone:</strong> {{ freelance.telefone|default:"Não informado" }}
+                        </li>
+                        <li class="mb-2">
+                            <strong>Especialidade:</strong> {{ freelance.especialidade|default:"Não informada" }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
