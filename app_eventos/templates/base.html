@@ -12,34 +12,9 @@
 </head>
 <body>
   <header>
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
-      <div class="container">
-        <a class="navbar-brand" href="{% url 'home' %}">
-          <h1 class="h3 mb-0">🎟️ Eventix</h1>
-        </a>
-        
-        <div class="navbar-nav ms-auto">
-          {% if user.is_authenticated %}
-            <span class="navbar-text me-3">
-              Olá, {{ user.get_full_name|default:user.username }}!
-            </span>
-            <a class="nav-link" href="{% url 'admin:index' %}">
-              <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-            </a>
-            <a class="nav-link" href="{% url 'admin:logout' %}">
-              <i class="fas fa-sign-out-alt me-1"></i>Sair
-            </a>
-          {% else %}
-            <a class="nav-link" href="{% url 'admin:login' %}">
-              <i class="fas fa-sign-in-alt me-1"></i>Entrar
-            </a>
-          {% endif %}
-        </div>
-      </div>
-    </nav>
-    
-    <div class="container text-center py-3">
-      <p class="lead mb-0">A organização é o espetáculo.</p>
+    <div class="container">
+      <h1>🎟️ Eventix</h1>
+      <p class="lead">A organização é o espetáculo.</p>
     </div>
   </header>
 
