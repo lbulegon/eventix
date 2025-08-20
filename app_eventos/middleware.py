@@ -14,6 +14,8 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
     def process_request(self, request):
         # URLs que não precisam de verificação de empresa
         urls_publicas = [
+            '/',  # Página inicial
+            '/eventos/',  # Lista de eventos
             '/admin/login/',
             '/admin/logout/',
             '/accounts/login/',

@@ -33,15 +33,24 @@ STORAGES = {
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+# Configuração para produção
+if not DEBUG:
+    # Configurações específicas para produção
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+
 # Ajuste para seu domínio no Railway e uso local
 ALLOWED_HOSTS = [
     "eventix-development.up.railway.app",  # seu domínio Railway
+    "*.up.railway.app",  # qualquer subdomínio do Railway
     "localhost",
     "127.0.0.1",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://eventix-development.up.railway.app",
+    "https://*.up.railway.app",
     # se for usar outro domínio custom depois, add aqui também
 ]
 
@@ -98,7 +107,7 @@ ROOT_URLCONF = "setup.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],  # opcional
+        "DIRS": [BASE_DIR / "templates", BASE_DIR / "app_eventos" / "templates"],  # inclui templates do app
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -158,10 +167,18 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"      # útil no Railway (collectstatic)
 STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
+# Configuração do WhiteNoise
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# Configuração adicional para produção
+if not DEBUG:
+    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
+
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # ========== LOGIN REDIRECTS ==========
+LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
