@@ -194,10 +194,10 @@ class Empresa(models.Model):
 
 
 class LocalEvento(models.Model):
-    nome = models.CharField(max_length=200)
-    endereco = models.CharField(max_length=255)
-    capacidade = models.IntegerField()
-    empresa_contratante = models.ForeignKey(
+    nome                 = models.CharField(max_length=200)
+    endereco             = models.CharField(max_length=255)
+    capacidade           = models.IntegerField()
+    empresa_contratante  = models.ForeignKey(
         EmpresaContratante,
         on_delete=models.CASCADE,
         related_name="locais_eventos",
@@ -226,11 +226,11 @@ class Evento(models.Model):
         null=True,
         blank=True
     )
-    nome = models.CharField(max_length=200)
-    data_inicio = models.DateField()
-    data_fim = models.DateField()
-    descricao = models.TextField(blank=True, null=True)
-    local = models.ForeignKey(LocalEvento, on_delete=models.CASCADE, related_name="eventos")
+    nome              = models.CharField(max_length=200)
+    data_inicio       = models.DateField()
+    data_fim          = models.DateField()
+    descricao         = models.TextField(blank=True, null=True)
+    local             = models.ForeignKey(LocalEvento, on_delete=models.CASCADE, related_name="eventos")
     empresa_produtora = models.ForeignKey(
         Empresa,
         on_delete=models.SET_NULL,
@@ -243,8 +243,8 @@ class Evento(models.Model):
         related_name="eventos_contratados",
         verbose_name="Empresa Contratante de Mão de Obra"
     )
-    ativo = models.BooleanField(default=True)
-    data_criacao = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    ativo         = models.BooleanField(default=True)
+    data_criacao  = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     def __str__(self):
         return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
@@ -329,10 +329,10 @@ class EventoFreelancerInfo(models.Model):
         related_name="freelancer_info"
     )
 
-    horario_inicio = models.TimeField(help_text="Horário de chegada")
-    horario_fim = models.TimeField(help_text="Horário de saída")
+    horario_inicio  = models.TimeField(help_text="Horário de chegada")
+    horario_fim     = models.TimeField(help_text="Horário de saída")
 
-    cache = models.DecimalField(max_digits=8, decimal_places=2, help_text="Valor do cachê")
+    cache           = models.DecimalField(max_digits=8, decimal_places=2, help_text="Valor do cachê")
     prazo_pagamento = models.CharField(
         max_length=100,
         default="até 7 dias após o evento",
@@ -375,11 +375,11 @@ class CategoriaFinanceira(models.Model):
         null=True,
         blank=True
     )
-    nome = models.CharField(max_length=100, verbose_name="Nome da Categoria")
+    nome      = models.CharField(max_length=100, verbose_name="Nome da Categoria")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
-    tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ambos', verbose_name="Tipo")
-    cor = models.CharField(max_length=7, default="#007bff", help_text="Cor em formato hexadecimal (#RRGGBB)")
-    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    tipo      = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ambos', verbose_name="Tipo")
+    cor       = models.CharField(max_length=7, default="#007bff", help_text="Cor em formato hexadecimal (#RRGGBB)")
+    ativo     = models.BooleanField(default=True, verbose_name="Ativo")
     
     class Meta:
         verbose_name = "Categoria Financeira"
@@ -413,35 +413,35 @@ class Fornecedor(models.Model):
         null=True,
         blank=True
     )
-    nome_fantasia = models.CharField(max_length=200, verbose_name="Nome Fantasia")
-    razao_social = models.CharField(max_length=200, verbose_name="Razão Social")
-    cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
+    nome_fantasia   = models.CharField(max_length=200, verbose_name="Nome Fantasia")
+    razao_social    = models.CharField(max_length=200, verbose_name="Razão Social")
+    cnpj            = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
     tipo_fornecedor = models.CharField(max_length=20, choices=TIPO_FORNECEDOR_CHOICES, verbose_name="Tipo de Fornecedor")
     
     # Contato
-    telefone = models.CharField(max_length=20, verbose_name="Telefone")
-    email = models.EmailField(verbose_name="E-mail")
-    website = models.URLField(blank=True, null=True, verbose_name="Website")
+    telefone        = models.CharField(max_length=20, verbose_name="Telefone")
+    email           = models.EmailField(verbose_name="E-mail")
+    website         = models.URLField(blank=True, null=True, verbose_name="Website")
     
     # Endereço
-    cep = models.CharField(max_length=9, blank=True, null=True, verbose_name="CEP")
-    logradouro = models.CharField(max_length=255, blank=True, null=True, verbose_name="Logradouro")
-    numero = models.CharField(max_length=10, blank=True, null=True, verbose_name="Número")
-    complemento = models.CharField(max_length=100, blank=True, null=True, verbose_name="Complemento")
-    bairro = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bairro")
-    cidade = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
-    uf = models.CharField(max_length=2, blank=True, null=True, verbose_name="UF")
+    cep             = models.CharField(max_length=9, blank=True, null=True, verbose_name="CEP")
+    logradouro      = models.CharField(max_length=255, blank=True, null=True, verbose_name="Logradouro")
+    numero          = models.CharField(max_length=10, blank=True, null=True, verbose_name="Número")
+    complemento     = models.CharField(max_length=100, blank=True, null=True, verbose_name="Complemento")
+    bairro          = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bairro")
+    cidade          = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
+    uf              = models.CharField(max_length=2, blank=True, null=True, verbose_name="UF")
     
     # Informações financeiras
-    banco = models.CharField(max_length=100, blank=True, null=True, verbose_name="Banco")
-    agencia = models.CharField(max_length=10, blank=True, null=True, verbose_name="Agência")
-    conta = models.CharField(max_length=20, blank=True, null=True, verbose_name="Conta")
-    pix = models.CharField(max_length=100, blank=True, null=True, verbose_name="Chave PIX")
+    banco           = models.CharField(max_length=100, blank=True, null=True, verbose_name="Banco")
+    agencia         = models.CharField(max_length=10, blank=True, null=True, verbose_name="Agência")
+    conta           = models.CharField(max_length=20, blank=True, null=True, verbose_name="Conta")
+    pix             = models.CharField(max_length=100, blank=True, null=True, verbose_name="Chave PIX")
     
     # Observações e status
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    ativo = models.BooleanField(default=True, verbose_name="Ativo")
-    data_cadastro = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
+    observacoes      = models.TextField(blank=True, null=True, verbose_name="Observações")
+    ativo            = models.BooleanField(default=True, verbose_name="Ativo")
+    data_cadastro    = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
     
     class Meta:
@@ -517,11 +517,11 @@ class DespesaEvento(models.Model):
         related_name="despesas",
         verbose_name="Categoria"
     )
-    descricao = models.CharField(max_length=255, verbose_name="Descrição")
-    valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
-    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
-    data_pagamento = models.DateField(blank=True, null=True, verbose_name="Data de Pagamento")
-    fornecedor = models.ForeignKey(
+    descricao        = models.CharField(max_length=255, verbose_name="Descrição")
+    valor            = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
+    data_vencimento  = models.DateField(verbose_name="Data de Vencimento")
+    data_pagamento   = models.DateField(blank=True, null=True, verbose_name="Data de Pagamento")
+    fornecedor       = models.ForeignKey(
         Fornecedor,
         on_delete=models.SET_NULL,
         related_name="despesas",
@@ -530,9 +530,9 @@ class DespesaEvento(models.Model):
         blank=True
     )
     numero_documento = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número do Documento")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status")
-    observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
-    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    status           = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status")
+    observacoes      = models.TextField(blank=True, null=True, verbose_name="Observações")
+    data_criacao     = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
     data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
     
     class Meta:
