@@ -220,6 +220,21 @@ cp .env.example .env
 # Edite o arquivo .env com suas configurações
 ```
 
+Variáveis esperadas no `.env` (exemplo no `.env.example`):
+
+- `DJANGO_SECRET_KEY`
+- `DEBUG` (True/False)
+- `ALLOWED_HOSTS` (separados por vírgula)
+- `CSRF_TRUSTED_ORIGINS` (URLs completas separadas por vírgula)
+- `DATABASE_ENGINE` (ex.: `django.db.backends.postgresql` ou `django.db.backends.sqlite3`)
+- `DATABASE_NAME`
+- `DATABASE_USER`
+- `DATABASE_PASSWORD`
+- `DATABASE_HOST`
+- `DATABASE_PORT`
+- `MERCADOPAGO_ACCESS_TOKEN`
+- (Opcional) `CORS_ALLOWED_ORIGINS` (separados por vírgula)
+
 6. Execute as migrações:
 ```bash
 python manage.py makemigrations app_eventos
@@ -272,23 +287,38 @@ railway run python manage.py collectstatic
 
 ## API Endpoints
 
-### Autenticação
-- `POST /auth/jwt/create/` - Login
-- `POST /api/signup/freelancer/` - Cadastro de freelancer
-- `POST /api/signup/empresa/` - Cadastro de empresa
+Todas as rotas de API abaixo estão sob o prefixo `/api/auth/` conforme `setup/urls.py` e `api_v01/urls/urls.py`.
 
-### Eventos
-- `POST /api/eventos/criar/` - Criar evento
-- `GET /api/eventos/<id>/vagas/` - Vagas do evento
+### Autenticação e Perfil
+- `POST /api/auth/login/` — Login único (gera tokens JWT)
+- `POST /api/auth/refresh/` — Refresh do token JWT
+- `POST /api/auth/logout/` — Logout com blacklist de refresh token
+- `GET /api/auth/perfil/` — Perfil do usuário logado
+- `GET /api/auth/tipo-usuario/` — Informações do tipo de usuário e contexto
 
-### Vagas e Candidaturas
-- `POST /api/vagas/criar/` - Criar vaga
-- `POST /api/vagas/candidatar/` - Candidatar-se
-- `GET /api/candidaturas/minhas/` - Minhas candidaturas
-- `PATCH /api/candidaturas/<id>/status/` - Atualizar status
+### Registro
+- `POST /api/auth/registro/` — Registro unificado (fluxo geral)
+- `POST /api/auth/registro/freelancer/` — Registro de freelancer
+- `POST /api/auth/registro/empresa/` — Registro de empresa contratante
+- `GET /api/auth/empresas/` — Listar empresas ativas
 
-### Alocações
-- `POST /api/alocacoes/criar/` - Criar alocação
+### Sistema Financeiro
+- `GET /api/auth/categorias-financeiras/` — Listar categorias financeiras
+- `GET /api/auth/eventos/<evento_id>/despesas/` — Listar despesas do evento
+- `POST /api/auth/despesas/` — Criar despesa
+- `PUT /api/auth/despesas/<despesa_id>/` — Atualizar despesa
+- `GET /api/auth/eventos/<evento_id>/receitas/` — Listar receitas do evento
+- `POST /api/auth/receitas/` — Criar receita
+- `PUT /api/auth/receitas/<receita_id>/` — Atualizar receita
+- `GET /api/auth/eventos/<evento_id>/fluxo-caixa/` — Resumo do fluxo de caixa do evento
+- `GET /api/auth/fluxo-caixa-empresa/` — Resumo agregado da empresa
+
+### Fornecedores
+- `GET /api/auth/fornecedores/` — Listar fornecedores (filtros opcionais)
+- `GET /api/auth/fornecedores/<fornecedor_id>/` — Detalhes do fornecedor
+- `POST /api/auth/fornecedores/criar/` — Criar fornecedor
+- `PUT /api/auth/fornecedores/<fornecedor_id>/atualizar/` — Atualizar fornecedor
+- `GET /api/auth/fornecedores/<fornecedor_id>/despesas/` — Despesas relacionadas ao fornecedor
 
 ## Comandos de Gerenciamento
 

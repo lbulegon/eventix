@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Q, F
 
 class User(AbstractUser):
     """
@@ -24,7 +25,7 @@ class User(AbstractUser):
         related_name="usuarios",
         verbose_name="Empresa Contratante"
     )
-    ativo = models.BooleanField(default=True)
+    ativo = models.BooleanField(default=True, db_index=True)
     data_ultimo_acesso = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -101,7 +102,7 @@ class EmpresaContratante(models.Model):
     Empresa que contratou o sistema Eventix
     """
     nome = models.CharField(max_length=255, verbose_name="Nome da Empresa")
-    cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
+    cnpj = models.CharField(max_length=18, verbose_name="CNPJ")
     razao_social = models.CharField(max_length=255, verbose_name="Razão Social")
     nome_fantasia = models.CharField(max_length=255, verbose_name="Nome Fantasia")
     
@@ -121,7 +122,7 @@ class EmpresaContratante(models.Model):
     
     # Contrato
     data_contratacao = models.DateField(auto_now_add=True, verbose_name="Data de Contratação")
-    data_vencimento = models.DateField(verbose_name="Data de Vencimento")
+    data_vencimento = models.DateField(verbose_name="Data de Vencimento", db_index=True)
     plano_contratado = models.CharField(max_length=50, verbose_name="Plano Contratado")
     valor_mensal = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor Mensal")
     
@@ -187,10 +188,13 @@ class Empresa(models.Model):
     class Meta:
         verbose_name = "Empresa"
         verbose_name_plural = "Empresas"
-        unique_together = ['empresa_contratante', 'cnpj']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'cnpj'], name='uniq_empresa_cnpj_por_tenant')
+        ]
 
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class LocalEvento(models.Model):
@@ -214,7 +218,8 @@ class LocalEvento(models.Model):
     ativo = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class Evento(models.Model):
@@ -227,8 +232,8 @@ class Evento(models.Model):
         blank=True
     )
     nome = models.CharField(max_length=200)
-    data_inicio = models.DateField()
-    data_fim = models.DateField()
+    data_inicio = models.DateField(db_index=True)
+    data_fim = models.DateField(db_index=True)
     descricao = models.TextField(blank=True, null=True)
     local = models.ForeignKey(LocalEvento, on_delete=models.CASCADE, related_name="eventos")
     empresa_produtora = models.ForeignKey(
@@ -246,8 +251,16 @@ class Evento(models.Model):
     ativo = models.BooleanField(default=True)
     data_criacao = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
+    class Meta:
+        verbose_name = "Evento"
+        verbose_name_plural = "Eventos"
+        constraints = [
+            models.CheckConstraint(check=Q(data_fim__gte=F('data_inicio')), name='evento_fim_gte_inicio')
+        ]
+
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
     
     # Métodos para fluxo de caixa
     @property
@@ -384,7 +397,9 @@ class CategoriaFinanceira(models.Model):
     class Meta:
         verbose_name = "Categoria Financeira"
         verbose_name_plural = "Categorias Financeiras"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_categoria_financeira_por_tenant')
+        ]
     
     def __str__(self):
         return f"{self.nome} ({self.get_tipo_display()})"
@@ -415,7 +430,7 @@ class Fornecedor(models.Model):
     )
     nome_fantasia = models.CharField(max_length=200, verbose_name="Nome Fantasia")
     razao_social = models.CharField(max_length=200, verbose_name="Razão Social")
-    cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
+    cnpj = models.CharField(max_length=18, verbose_name="CNPJ")
     tipo_fornecedor = models.CharField(max_length=20, choices=TIPO_FORNECEDOR_CHOICES, verbose_name="Tipo de Fornecedor")
     
     # Contato
@@ -448,6 +463,9 @@ class Fornecedor(models.Model):
         verbose_name = "Fornecedor"
         verbose_name_plural = "Fornecedores"
         ordering = ['nome_fantasia']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'cnpj'], name='uniq_fornecedor_por_tenant')
+        ]
     
     def __str__(self):
         return f"{self.nome_fantasia} - {self.get_tipo_fornecedor_display()}"
@@ -530,7 +548,7 @@ class DespesaEvento(models.Model):
         blank=True
     )
     numero_documento = models.CharField(max_length=50, blank=True, null=True, verbose_name="Número do Documento")
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pendente', verbose_name="Status", db_index=True)
     observacoes = models.TextField(blank=True, null=True, verbose_name="Observações")
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
     data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
@@ -539,6 +557,10 @@ class DespesaEvento(models.Model):
         verbose_name = "Despesa do Evento"
         verbose_name_plural = "Despesas do Evento"
         ordering = ['-data_vencimento']
+        constraints = [
+            models.CheckConstraint(check=Q(status='pago', data_pagamento__isnull=False) | ~Q(status='pago'), name='despesa_pago_tem_data'),
+            models.CheckConstraint(check=Q(valor__gte=0), name='despesa_valor_nao_negativo')
+        ]
     
     def __str__(self):
         return f"{self.descricao} - R$ {self.valor} ({self.evento.nome})"
@@ -595,6 +617,10 @@ class ReceitaEvento(models.Model):
         verbose_name = "Receita do Evento"
         verbose_name_plural = "Receitas do Evento"
         ordering = ['-data_vencimento']
+        constraints = [
+            models.CheckConstraint(check=Q(status='recebido', data_recebimento__isnull=False) | ~Q(status='recebido'), name='receita_recebido_tem_data'),
+            models.CheckConstraint(check=Q(valor__gte=0), name='receita_valor_nao_negativo')
+        ]
     
     def __str__(self):
         return f"{self.descricao} - R$ {self.valor} ({self.evento.nome})"
@@ -643,10 +669,13 @@ class CategoriaEquipamento(models.Model):
     class Meta:
         verbose_name = "Categoria de Equipamento"
         verbose_name_plural = "Categorias de Equipamentos"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_categoria_equipamento_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class Equipamento(models.Model):
@@ -667,7 +696,7 @@ class Equipamento(models.Model):
         related_name="equipamentos",
         verbose_name="Empresa Proprietária"
     )
-    codigo_patrimonial = models.CharField(max_length=200, verbose_name="Código Patrimonial", blank=True, null=True)
+    codigo_patrimonial = models.CharField(max_length=200, verbose_name="Código Patrimonial", blank=True, null=True, db_index=True)
     categoria = models.ForeignKey(CategoriaEquipamento, on_delete=models.CASCADE, related_name="equipamentos")
     descricao = models.TextField(blank=True, null=True)
     especificacoes_tecnicas = models.TextField(blank=True, null=True)
@@ -695,7 +724,8 @@ class Equipamento(models.Model):
     
     def __str__(self):
         codigo = self.codigo_patrimonial or "Sem código"
-        return f"{codigo} - {self.empresa_contratante.nome_fantasia} ({self.categoria.nome})"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{codigo} - {empresa} ({self.categoria.nome})"
 
 
 class EquipamentoSetor(models.Model):
@@ -721,7 +751,7 @@ class EquipamentoSetor(models.Model):
         ('em_uso', 'Em Uso'),
         ('manutencao', 'Em Manutenção'),
         ('indisponivel', 'Indisponível'),
-    ], default='disponivel')
+    ], default='disponivel', db_index=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
@@ -748,7 +778,9 @@ class EquipamentoSetor(models.Model):
     class Meta:
         verbose_name = "Equipamento do Setor"
         verbose_name_plural = "Equipamentos do Setor"
-        unique_together = ['setor', 'equipamento']
+        constraints = [
+            models.UniqueConstraint(fields=['setor', 'equipamento'], name='uniq_equipamento_por_setor')
+        ]
     
     def __str__(self):
         codigo = self.equipamento.codigo_patrimonial or "Sem código"
@@ -794,7 +826,7 @@ class ManutencaoEquipamento(models.Model):
         ('em_andamento', 'Em Andamento'),
         ('concluida', 'Concluída'),
         ('cancelada', 'Cancelada'),
-    ], default='agendada')
+    ], default='agendada', db_index=True)
     observacoes = models.TextField(blank=True, null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     
@@ -1026,10 +1058,13 @@ class CanalComunicacao(models.Model):
     class Meta:
         verbose_name = "Canal de Comunicação"
         verbose_name_plural = "Canais de Comunicação"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_canal_comunicacao_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class Mensagem(models.Model):
@@ -1262,10 +1297,13 @@ class TemplateDocumento(models.Model):
     class Meta:
         verbose_name = "Template de Documento"
         verbose_name_plural = "Templates de Documentos"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_template_documento_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class DocumentoGerado(models.Model):
@@ -1339,10 +1377,13 @@ class IntegracaoAPI(models.Model):
     class Meta:
         verbose_name = "Integração de API"
         verbose_name_plural = "Integrações de API"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_integracao_api_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class LogIntegracao(models.Model):
@@ -1417,7 +1458,8 @@ class BackupSistema(models.Model):
         ordering = ['-data_inicio']
     
     def __str__(self):
-        return f"Backup {self.tipo_backup} - {self.empresa_contratante.nome_fantasia} - {self.data_inicio}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"Backup {self.tipo_backup} - {empresa} - {self.data_inicio}"
 
 
 class VersaoSistema(models.Model):
@@ -1463,10 +1505,13 @@ class CategoriaInsumo(models.Model):
     class Meta:
         verbose_name = "Categoria de Insumo"
         verbose_name_plural = "Categorias de Insumos"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_categoria_insumo_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class Insumo(models.Model):
@@ -1500,7 +1545,7 @@ class Insumo(models.Model):
         related_name="insumos_fornecidos",
         verbose_name="Empresa Fornecedora"
     )
-    codigo = models.CharField(max_length=50, verbose_name="Código do Insumo", blank=True, null=True)
+    codigo = models.CharField(max_length=50, verbose_name="Código do Insumo", blank=True, null=True, db_index=True)
     categoria = models.ForeignKey(CategoriaInsumo, on_delete=models.CASCADE, related_name="insumos")
     nome = models.CharField(max_length=200)
     descricao = models.TextField(blank=True, null=True)
@@ -1522,7 +1567,8 @@ class Insumo(models.Model):
     
     def __str__(self):
         codigo = self.codigo or "Sem código"
-        return f"{codigo} - {self.nome} ({self.empresa_contratante.nome_fantasia})"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{codigo} - {self.nome} ({empresa})"
     
     @property
     def estoque_disponivel(self):
@@ -1613,7 +1659,9 @@ class InsumoEvento(models.Model):
     class Meta:
         verbose_name = "Insumo do Evento"
         verbose_name_plural = "Insumos do Evento"
-        unique_together = ['evento', 'insumo']
+        constraints = [
+            models.UniqueConstraint(fields=['evento', 'insumo'], name='uniq_insumo_por_evento')
+        ]
     
     def __str__(self):
         codigo = self.insumo.codigo or "Sem código"
@@ -1682,7 +1730,9 @@ class InsumoSetor(models.Model):
     class Meta:
         verbose_name = "Insumo do Setor"
         verbose_name_plural = "Insumos do Setor"
-        unique_together = ['setor', 'insumo_evento']
+        constraints = [
+            models.UniqueConstraint(fields=['setor', 'insumo_evento'], name='uniq_insumo_evento_por_setor')
+        ]
     
     def __str__(self):
         codigo = self.insumo_evento.insumo.codigo or "Sem código"
@@ -1754,10 +1804,13 @@ class TipoVeiculo(models.Model):
     class Meta:
         verbose_name = "Tipo de Veículo"
         verbose_name_plural = "Tipos de Veículos"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_tipo_veiculo_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class Veiculo(models.Model):
@@ -1806,7 +1859,8 @@ class Veiculo(models.Model):
         verbose_name_plural = "Veículos"
     
     def __str__(self):
-        return f"{self.placa} - {self.modelo} ({self.empresa_contratante.nome_fantasia})"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.placa} - {self.modelo} ({empresa})"
 
 
 class RotaTransporte(models.Model):
@@ -1943,10 +1997,13 @@ class StatusEquipamento(models.Model):
     class Meta:
         verbose_name = "Status de Equipamento"
         verbose_name_plural = "Status de Equipamentos"
-        unique_together = ['empresa_contratante', 'nome']
+        constraints = [
+            models.UniqueConstraint(fields=['empresa_contratante', 'nome'], name='uniq_status_equipamento_por_tenant')
+        ]
     
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.nome} - {empresa}"
 
 
 class ControleEquipamento(models.Model):
@@ -1998,7 +2055,9 @@ class ControleEquipamento(models.Model):
     class Meta:
         verbose_name = "Controle de Equipamento"
         verbose_name_plural = "Controles de Equipamentos"
-        unique_together = ['equipamento', 'tipo_controle']
+        constraints = [
+            models.UniqueConstraint(fields=['equipamento', 'tipo_controle'], name='uniq_controle_por_equipamento')
+        ]
     
     def __str__(self):
         return f"{self.equipamento.codigo_patrimonial} - {self.tipo_controle} ({self.status_equipamento.nome})"
@@ -2191,7 +2250,8 @@ class RelatorioEstoque(models.Model):
         verbose_name_plural = "Relatórios de Estoque"
     
     def __str__(self):
-        return f"{self.titulo} - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"{self.titulo} - {empresa}"
 
 
 class DashboardEstoque(models.Model):
@@ -2221,7 +2281,8 @@ class DashboardEstoque(models.Model):
         verbose_name_plural = "Dashboards de Estoque"
     
     def __str__(self):
-        return f"Dashboard - {self.empresa_contratante.nome_fantasia}"
+        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
+        return f"Dashboard - {empresa}"
     
     @property
     def percentual_equipamentos_disponiveis(self):

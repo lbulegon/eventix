@@ -1,37 +1,24 @@
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
+
 # ============== BASE ==============
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load .env from project root
+load_dotenv(BASE_DIR / ".env")
+
+# ================== STATIC / MEDIA ==================
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# ---- Static files
-STATIC_URL = "/static/"
-# onde você guarda seus arquivos estáticos do projeto (css/js/imagens próprios)
-STATICFILES_DIRS = [BASE_DIR / "static"]  # opcional, só se você tiver pasta /static no projeto
-# onde o collectstatic vai juntar TUDO (use em produção)
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
-STORAGES = {
-    # Arquivos de mídia enviados pelo usuário
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-        "OPTIONS": {
-            "location": MEDIA_ROOT,
-        },
-    },
-    # Arquivos estáticos coletados (collectstatic)
-    "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
-    },
-}
-
-
-
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "dev-secret-key-change-me")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = os.getenv("DEBUG", "True") == "True"
 
 # Configuração para produção
 if not DEBUG:
@@ -40,19 +27,9 @@ if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = 'DENY'
 
-# Ajuste para seu domínio no Railway e uso local
-ALLOWED_HOSTS = [
-    "eventix-development.up.railway.app",  # seu domínio Railway
-    "*.up.railway.app",  # qualquer subdomínio do Railway
-    "localhost",
-    "127.0.0.1",
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    "https://eventix-development.up.railway.app",
-    "https://*.up.railway.app",
-    # se for usar outro domínio custom depois, add aqui também
-]
+# Hosts e CSRF por env
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
 
 # ============ APPS ============
 INSTALLED_APPS = [
@@ -67,7 +44,8 @@ INSTALLED_APPS = [
     # Terceiros
     "rest_framework",
     "rest_framework_simplejwt",
-    # "corsheaders",  # opcional
+    "rest_framework_simplejwt.token_blacklist",
+    "corsheaders",
 
     # Seus apps
     "app_eventos",
@@ -87,7 +65,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # <- antes de CommonMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
-    # "corsheaders.middleware.CorsMiddleware",  # se usar CORS, deixe antes de CommonMiddleware
+    "corsheaders.middleware.CorsMiddleware",  # CORS antes de CommonMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -124,16 +102,25 @@ WSGI_APPLICATION = "setup.wsgi.application"
 # ASGI_APPLICATION = "setup.asgi.application"  # se for usar channels
 
 # ========== DATABASE ==========
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": "eventix",
-        "USER": "postgres",
-        "PASSWORD": "MaHppemIkAJjTyCADpUGOIBqqOKtsVfS",
-        "HOST": "trolley.proxy.rlwy.net",
-        "PORT": "23534",
+DB_ENGINE = os.getenv("DATABASE_ENGINE", "django.db.backends.sqlite3")
+if DB_ENGINE.endswith("sqlite3"):
+    DATABASES = {
+        "default": {
+            "ENGINE": DB_ENGINE,
+            "NAME": os.getenv("DATABASE_NAME", str(BASE_DIR / "db.sqlite3")),
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": DB_ENGINE,
+            "NAME": os.getenv("DATABASE_NAME", "eventix"),
+            "USER": os.getenv("DATABASE_USER", "postgres"),
+            "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
+            "HOST": os.getenv("DATABASE_HOST", "localhost"),
+            "PORT": os.getenv("DATABASE_PORT", "5432"),
+        }
+    }
 
 # ========== AUTH / DRF / JWT ==========
 REST_FRAMEWORK = {
@@ -148,6 +135,9 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
         "rest_framework.filters.OrderingFilter",
     ),
+    # Paginação padrão
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
 }
 
 SIMPLE_JWT = {
@@ -162,20 +152,9 @@ TIME_ZONE = "America/Sao_Paulo"
 USE_I18N = True
 USE_TZ = True
 
-# ========== STATIC / MEDIA ==========
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"      # útil no Railway (collectstatic)
-STATICFILES_DIRS = [BASE_DIR / "static"] if (BASE_DIR / "static").exists() else []
-
-# Configuração do WhiteNoise
+# ========== STATIC / MEDIA (final) ==========
+# WhiteNoise storage
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-# Configuração adicional para produção
-if not DEBUG:
-    STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
 # ========== LOGIN REDIRECTS ==========
 LOGIN_URL = "/admin/login/"
@@ -190,9 +169,12 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "INFO"},
 }
 
+# CORS
+if not os.getenv("CORS_ALLOWED_ORIGINS") and DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+CORS_ALLOW_CREDENTIALS = True
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-
-MERCADOPAGO_ACCESS_TOKEN = "SEU_ACCESS_TOKEN_AQUI"  # do painel Mercado Pago
+# Integrações
+MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")  # do painel Mercado Pago
