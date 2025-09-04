@@ -28,8 +28,27 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
 
 # Hosts e CSRF por env
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,eventix-development.up.railway.app").split(",") if h.strip()]
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "https://eventix-development.up.railway.app").split(",") if o.strip()]
+# Detectar se está rodando no Railway
+IS_RAILWAY = (
+    os.getenv("RAILWAY_ENVIRONMENT") is not None or 
+    "railway.app" in os.getenv("HOST", "") or
+    os.getenv("RAILWAY_ENVIRONMENT") == "production"
+)
+
+# Configurações base
+if IS_RAILWAY:
+    # Configurações específicas para Railway
+    default_allowed_hosts = "localhost,127.0.0.1,eventix-development.up.railway.app,railway.app"
+    default_csrf_origins = "https://eventix-development.up.railway.app,http://eventix-development.up.railway.app"
+else:
+    # Configurações para desenvolvimento local
+    default_allowed_hosts = "localhost,127.0.0.1"
+    default_csrf_origins = "http://localhost:8000"
+
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", default_allowed_hosts).split(",") if h.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", default_csrf_origins).split(",") if o.strip()]
+
+# Configurações aplicadas
 
 # ============ APPS ============
 INSTALLED_APPS = [
@@ -170,10 +189,16 @@ LOGGING = {
 }
 
 # CORS
-if not os.getenv("CORS_ALLOWED_ORIGINS") and DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
+if IS_RAILWAY:
+    if not os.getenv("CORS_ALLOWED_ORIGINS") and DEBUG:
+        CORS_ALLOW_ALL_ORIGINS = True
+    else:
+        CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "https://eventix-development.up.railway.app,http://eventix-development.up.railway.app").split(",") if o.strip()]
 else:
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "https://eventix-development.up.railway.app").split(",") if o.strip()]
+    if not os.getenv("CORS_ALLOWED_ORIGINS") and DEBUG:
+        CORS_ALLOW_ALL_ORIGINS = True
+    else:
+        CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
 # Integrações

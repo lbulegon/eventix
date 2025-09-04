@@ -203,7 +203,7 @@ python -m venv .venv
 3. Ative o ambiente virtual:
 ```bash
 # Windows
-.venv\Scripts\activate
+o modelo
 
 # Linux/Mac
 source .venv/bin/activate

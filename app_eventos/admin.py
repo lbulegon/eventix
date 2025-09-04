@@ -3,7 +3,23 @@ from .models import (
     User, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
-    CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor
+    CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
+    # Analytics e Business Intelligence
+    MetricaEvento, RelatorioAnalytics, DashboardPersonalizado, ComparativoEventos,
+    # Gestão de Qualidade e Satisfação
+    AvaliacaoEvento, IndicadorQualidade, PesquisaSatisfacao, FeedbackFreelancer,
+    # Automação e Workflows
+    WorkflowEvento, RegraNegocio, NotificacaoAutomatica, IntegracaoERP,
+    # Mobilidade e Field Management
+    ChecklistMobile, ItemChecklistMobile, GeolocalizacaoEquipamento, QRCodeEquipamento, ScanQRCode, AppFieldWorker,
+    # Gestão de Riscos e Compliance
+    RiscoEvento, PlanoContingencia, ComplianceEvento, SeguroEvento,
+    # Inteligência Artificial e Predição
+    PrevisaoDemanda, OtimizacaoRecursos, DeteccaoAnomalias, RecomendacaoInteligente,
+    # Marketplace e Networking
+    MarketplaceFreelancer, RedeFornecedores, AvaliacaoFornecedor, ContratoInteligente,
+    # Gestão de Crescimento e Expansão
+    FranchiseEvento, Licenciamento, ExpansaoMercado, ParceriaEstrategica
 )
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
