@@ -117,25 +117,17 @@ WSGI_APPLICATION = "setup.wsgi.application"
 # ASGI_APPLICATION = "setup.asgi.application"  # se for usar channels
 
 # ========== DATABASE ==========
-DB_ENGINE = os.getenv("DATABASE_ENGINE", "django.db.backends.sqlite3")
-if DB_ENGINE.endswith("sqlite3"):
-    DATABASES = {
-        "default": {
-            "ENGINE": DB_ENGINE,
-            "NAME": os.getenv("DATABASE_NAME", str(BASE_DIR / "db.sqlite3")),
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'ItkhFBExHXIbdgfkxekghWeGzRElxQQa',
+        'HOST': 'yamanote.proxy.rlwy.net',
+        'PORT': '28520',
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": DB_ENGINE,
-            "NAME": os.getenv("DATABASE_NAME", "eventix"),
-            "USER": os.getenv("DATABASE_USER", "postgres"),
-            "PASSWORD": os.getenv("DATABASE_PASSWORD", ""),
-            "HOST": os.getenv("DATABASE_HOST", "localhost"),
-            "PORT": os.getenv("DATABASE_PORT", "5432"),
-        }
-    }
+}
+
 
 # ========== AUTH / DRF / JWT ==========
 REST_FRAMEWORK = {
