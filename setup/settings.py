@@ -28,8 +28,8 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
 
 # Hosts e CSRF por env
-ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h.strip()]
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,eventix-development.up.railway.app").split(",") if h.strip()]
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "https://eventix-development.up.railway.app").split(",") if o.strip()]
 
 # ============ APPS ============
 INSTALLED_APPS = [
@@ -173,7 +173,7 @@ LOGGING = {
 if not os.getenv("CORS_ALLOWED_ORIGINS") and DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
 else:
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()]
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in os.getenv("CORS_ALLOWED_ORIGINS", "https://eventix-development.up.railway.app").split(",") if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
 # Integrações
