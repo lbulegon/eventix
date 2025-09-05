@@ -42,7 +42,7 @@ class EmpresaContratanteAdmin(admin.ModelAdmin):
     list_display = ('nome_fantasia', 'cnpj', 'plano_contratado', 'valor_mensal', 'ativo', 'data_vencimento')
     list_filter = ('ativo', 'plano_contratado', 'data_contratacao')
     search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email')
-    readonly_fields = ('data_atualizacao',)
+    readonly_fields = ('data_contratacao', 'data_atualizacao')
     
     fieldsets = (
         ("Informações Básicas", {
