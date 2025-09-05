@@ -101,7 +101,7 @@ def dashboard_empresa(request):
         'equipamentos_em_manutencao': equipamentos_em_manutencao,
     }
     
-    return render(request, 'app_eventos/dashboard_empresa.html', context)
+    return render(request, 'dashboard_principal.html', context)
 
 
 @login_required
@@ -159,7 +159,7 @@ def dashboard_freelancer(request):
         'vagas_disponiveis': vagas_disponiveis,
     }
     
-    return render(request, 'freelancer_dashboard.html', context)
+    return render(request, 'dashboard_principal.html', context)
 
 
 @login_required
@@ -207,7 +207,7 @@ def dashboard_admin_sistema(request):
         'equipamentos_manutencao': equipamentos_manutencao,
     }
     
-    return render(request, 'app_eventos/dashboard_admin_sistema.html', context)
+    return render(request, 'dashboard_principal.html', context)
 
 
 @login_required
