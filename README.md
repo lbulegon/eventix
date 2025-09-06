@@ -193,7 +193,7 @@ Consumo Real
 ```bash
 git clone <repository-url>
 cd eventix
-```
+```NSTALL 
 
 2. Crie um ambiente virtual:
 ```bash

@@ -21,6 +21,9 @@ urlpatterns = [
     # Sistema de autenticação única
     path("api/auth/", include("api_v01.urls.urls")),
     
+    # API Mobile
+    path("api/v1/", include("api_mobile.urls")),
+    
     # Dashboards
     path("dashboard/", dashboard_redirect, name="dashboard_redirect"),
     path("empresa/dashboard/", dashboard_empresa, name="dashboard_empresa"),
