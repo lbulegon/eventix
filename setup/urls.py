@@ -11,10 +11,6 @@ from app_eventos.views.views_dashboard import (
     dashboard_redirect, dashboard_empresa, 
     dashboard_freelancer, dashboard_admin_sistema, fluxo_caixa_evento, fornecedores_list
 )
-from app_eventos.views.views_auth import (
-    CustomLoginView, CustomLogoutView, area_restrita, 
-    perfil_usuario, alterar_senha, acesso_negado
-)
 
 
 urlpatterns = [
@@ -22,15 +18,7 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("eventos/", views.evento_list, name="evento_list"),
     
-    # Sistema de autenticação
-    path("login/", CustomLoginView.as_view(), name="login"),
-    path("logout/", CustomLogoutView.as_view(), name="logout"),
-    path("area-restrita/", area_restrita, name="area_restrita"),
-    path("perfil/", perfil_usuario, name="perfil_usuario"),
-    path("alterar-senha/", alterar_senha, name="alterar_senha"),
-    path("acesso-negado/", acesso_negado, name="acesso_negado"),
-    
-    # Sistema de autenticação única (API)
+    # Sistema de autenticação única
     path("api/auth/", include("api_v01.urls.urls")),
     
     # Dashboards

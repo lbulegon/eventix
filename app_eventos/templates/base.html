@@ -13,57 +13,8 @@
 <body>
   <header>
     <div class="container">
-      <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container-fluid">
-          <a class="navbar-brand" href="{% url 'home' %}">
-            <h1 class="mb-0">🎟️ Eventix</h1>
-          </a>
-          
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          
-          <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto">
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'home' %}">Início</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'evento_list' %}">Eventos</a>
-              </li>
-            </ul>
-            
-            <ul class="navbar-nav">
-              {% if user.is_authenticated %}
-                <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-user me-1"></i>{{ user.first_name|default:user.username }}
-                  </a>
-                  <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{% url 'area_restrita' %}">
-                      <i class="fas fa-tachometer-alt me-2"></i>Dashboard
-                    </a></li>
-                    <li><a class="dropdown-item" href="{% url 'perfil_usuario' %}">
-                      <i class="fas fa-user me-2"></i>Meu Perfil
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="{% url 'logout' %}">
-                      <i class="fas fa-sign-out-alt me-2"></i>Sair
-                    </a></li>
-                  </ul>
-                </li>
-              {% else %}
-                <li class="nav-item">
-                  <a class="nav-link" href="{% url 'login' %}">
-                    <i class="fas fa-sign-in-alt me-1"></i>Entrar
-                  </a>
-                </li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-      </nav>
-      <p class="lead text-center">Organização é o espetáculo.</p>
+      <h1>🎟️ Eventix</h1>
+      <p class="lead">Organização é o espetáculo.</p>
     </div>
   </header>
 
@@ -74,8 +25,5 @@
   <footer>
     <p>© {{ now|date:"Y" }} Eventix — Todos os direitos reservados</p>
   </footer>
-  
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
