@@ -5,19 +5,57 @@ import '../utils/app_logger.dart';
 import 'auth_service.dart';
 
 class FreelancersService {
-  static final Dio _dio = Dio();
+  static final Dio _dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
+    sendTimeout: const Duration(seconds: 30),
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+  ));
 
   /// Inicializa o serviço
   static void initialize() {
+    print('🔧 [FREELANCERS_SERVICE] Inicializando serviço...');
+    print('🌐 [FREELANCERS_SERVICE] Configurações do Dio:');
+    print('   - Connect Timeout: 30s');
+    print('   - Receive Timeout: 30s');
+    print('   - Send Timeout: 30s');
+
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
+        print('🚀 [DIO_INTERCEPTOR] Fazendo requisição para: ${options.uri}');
+        print('📋 [DIO_INTERCEPTOR] Método: ${options.method}');
+        print('📦 [DIO_INTERCEPTOR] Headers: ${options.headers}');
+        print('📄 [DIO_INTERCEPTOR] Dados: ${options.data}');
+
         if (AuthService.accessToken != null) {
           options.headers['Authorization'] =
               'Bearer ${AuthService.accessToken}';
+          print('🔑 [DIO_INTERCEPTOR] Token adicionado aos headers');
+        } else {
+          print('⚠️ [DIO_INTERCEPTOR] Nenhum token de acesso encontrado');
         }
         handler.next(options);
       },
+      onResponse: (response, handler) {
+        print('✅ [DIO_INTERCEPTOR] Resposta recebida: ${response.statusCode}');
+        print('📊 [DIO_INTERCEPTOR] Headers da resposta: ${response.headers}');
+        print('📄 [DIO_INTERCEPTOR] Dados da resposta: ${response.data}');
+        handler.next(response);
+      },
+      onError: (error, handler) {
+        print('❌ [DIO_INTERCEPTOR] Erro na requisição: ${error.message}');
+        print('🔍 [DIO_INTERCEPTOR] Tipo do erro: ${error.type}');
+        print(
+            '📊 [DIO_INTERCEPTOR] Status Code: ${error.response?.statusCode}');
+        print('📄 [DIO_INTERCEPTOR] Dados do erro: ${error.response?.data}');
+        handler.next(error);
+      },
     ));
+
+    print('✅ [FREELANCERS_SERVICE] Serviço inicializado com sucesso!');
   }
 
   /// Faz pré-cadastro de freelancer
@@ -32,6 +70,12 @@ class FreelancersService {
     String? habilidades,
   }) async {
     try {
+      print('🚀 [FREELANCERS_SERVICE] Iniciando pré-cadastro...');
+      print('📧 [FREELANCERS_SERVICE] Email: $email');
+      print('👤 [FREELANCERS_SERVICE] Nome: $nomeCompleto');
+      print('📱 [FREELANCERS_SERVICE] Telefone: $telefone');
+      print('🆔 [FREELANCERS_SERVICE] CPF: $cpf');
+
       AppLogger.info('Freelancer pre-cadastro started',
           category: LogCategory.api,
           data: {
@@ -40,21 +84,34 @@ class FreelancersService {
             'cpf': cpf,
           });
 
+      print('🌐 [FREELANCERS_SERVICE] URL da API: ${AppConfig.preCadastro}');
+      print('📦 [FREELANCERS_SERVICE] Preparando dados para envio...');
+
+      final requestData = {
+        'nome_completo': nomeCompleto, // Servidor espera nome_completo
+        'telefone': telefone,
+        'cpf': cpf,
+        'email': email,
+        'password': password,
+        if (dataNascimento != null && dataNascimento.isNotEmpty)
+          'data_nascimento': dataNascimento,
+        if (sexo != null && sexo.isNotEmpty) 'sexo': sexo,
+      };
+
+      print('📋 [FREELANCERS_SERVICE] Dados preparados: $requestData');
+      print('🔄 [FREELANCERS_SERVICE] Enviando requisição POST...');
+
       final response = await _dio.post(
         AppConfig.preCadastro,
-        data: {
-          'nome_completo': nomeCompleto,
-          'telefone': telefone,
-          'cpf': cpf,
-          'email': email,
-          'password': password,
-          if (dataNascimento != null) 'data_nascimento': dataNascimento,
-          if (sexo != null) 'sexo': sexo,
-          if (habilidades != null) 'habilidades': habilidades,
-        },
+        data: requestData,
       );
 
+      print('✅ [FREELANCERS_SERVICE] Resposta recebida!');
+      print('📊 [FREELANCERS_SERVICE] Status Code: ${response.statusCode}');
+      print('📄 [FREELANCERS_SERVICE] Dados da resposta: ${response.data}');
+
       if (response.statusCode == 201) {
+        print('🎉 [FREELANCERS_SERVICE] Pré-cadastro realizado com sucesso!');
         AppLogger.info('Freelancer pre-cadastro successful',
             category: LogCategory.api,
             data: {
@@ -66,14 +123,35 @@ class FreelancersService {
           'message': 'Pré-cadastro realizado com sucesso!',
           'data': response.data,
         };
+      } else {
+        print(
+            '⚠️ [FREELANCERS_SERVICE] Status code inesperado: ${response.statusCode}');
+        return {
+          'success': false,
+          'error': 'Status code inesperado: ${response.statusCode}',
+        };
       }
     } catch (e) {
+      print('❌ [FREELANCERS_SERVICE] ERRO CAPTURADO!');
+      print('🔍 [FREELANCERS_SERVICE] Tipo do erro: ${e.runtimeType}');
+      print('📝 [FREELANCERS_SERVICE] Mensagem do erro: ${e.toString()}');
+
       AppLogger.error('Freelancer pre-cadastro failed',
           category: LogCategory.api, error: e, data: {'email': email});
 
       if (e is DioException) {
+        print('🌐 [FREELANCERS_SERVICE] Erro é do tipo DioException');
         final response = e.response;
-        if (response?.statusCode == 400) {
+        final statusCode = response?.statusCode;
+
+        print('🔴 [FREELANCERS_SERVICE] Status Code: $statusCode');
+        print('🔴 [FREELANCERS_SERVICE] Dados da resposta: ${response?.data}');
+        print(
+            '🔴 [FREELANCERS_SERVICE] Headers da resposta: ${response?.headers}');
+        print('🔴 [FREELANCERS_SERVICE] Tipo do erro Dio: ${e.type}');
+        print('🔴 [FREELANCERS_SERVICE] Mensagem do erro Dio: ${e.message}');
+
+        if (statusCode == 400) {
           final data = response?.data;
           if (data is Map<String, dynamic>) {
             final errors = <String>[];
@@ -90,17 +168,59 @@ class FreelancersService {
               'error': errors.join(', '),
             };
           }
-        } else if (response?.statusCode == 409) {
+        } else if (statusCode == 409) {
           return {
             'success': false,
             'error': 'Email ou CPF já cadastrado',
           };
+        } else if (statusCode == 500) {
+          // Verifica se é erro de email duplicado
+          final responseData = response?.data;
+          print(
+              '🔍 [FREELANCERS_SERVICE] Resposta do servidor (500): $responseData');
+
+          if (responseData != null) {
+            final responseString = responseData.toString().toLowerCase();
+            if (responseString
+                .contains('duplicate key value violates unique constraint')) {
+              if (responseString.contains('username') ||
+                  responseString.contains('email')) {
+                return {
+                  'success': false,
+                  'error':
+                      'Este email já está cadastrado. Tente fazer login ou use outro email.',
+                };
+              } else if (responseString.contains('cpf')) {
+                return {
+                  'success': false,
+                  'error': 'Este CPF já está cadastrado.',
+                };
+              }
+            }
+          }
+          return {
+            'success': false,
+            'error': 'Erro interno do servidor. Tente novamente mais tarde.',
+          };
+        } else if (statusCode == null) {
+          // Erro de conexão (sem resposta do servidor)
+          return {
+            'success': false,
+            'error': 'Sem conexão com a internet. Verifique sua conexão.',
+          };
+        } else {
+          return {
+            'success': false,
+            'error': 'Erro do servidor (código $statusCode). Tente novamente.',
+          };
         }
       }
 
+      // Erro não relacionado ao Dio
+      print('🔴 Erro não relacionado ao Dio: $e');
       return {
         'success': false,
-        'error': 'Erro de conexão. Tente novamente.',
+        'error': 'Erro inesperado. Verifique sua conexão e tente novamente.',
       };
     }
 

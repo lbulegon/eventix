@@ -3,8 +3,6 @@ import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -53,28 +51,21 @@ class AppLogger {
     if (_isInitialized) return;
 
     try {
+      // Gera um ID de sessão único
+      _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+
       // Coleta informações do dispositivo
       await _collectDeviceInfo();
 
       // Coleta informações do app
       await _collectAppInfo();
 
-      // Gera ID da sessão
-      _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
-
       _isInitialized = true;
 
-      info(
-        'AppLogger initialized',
-        category: LogCategory.analytics,
-        data: {
-          'session_id': _sessionId,
-          'device_info': _deviceInfo,
-          'app_info': _appInfo,
-        },
-      );
+      // Log inicial
+      _logger.i('🚀 AppLogger initialized successfully');
     } catch (e) {
-      developer.log('Failed to initialize AppLogger: $e', name: 'AppLogger');
+      _logger.e('❌ Failed to initialize AppLogger: $e');
     }
   }
 
@@ -86,26 +77,23 @@ class AppLogger {
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
         _deviceInfo = {
-          'platform': 'android',
+          'platform': 'Android',
           'model': androidInfo.model,
           'brand': androidInfo.brand,
           'version': androidInfo.version.release,
-          'sdk_int': androidInfo.version.sdkInt,
-          'manufacturer': androidInfo.manufacturer,
+          'sdk': androidInfo.version.sdkInt,
         };
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfo.iosInfo;
         _deviceInfo = {
-          'platform': 'ios',
+          'platform': 'iOS',
           'model': iosInfo.model,
           'name': iosInfo.name,
-          'system_name': iosInfo.systemName,
-          'system_version': iosInfo.systemVersion,
-          'identifier_for_vendor': iosInfo.identifierForVendor,
+          'version': iosInfo.systemVersion,
         };
       }
     } catch (e) {
-      _deviceInfo = {'error': e.toString()};
+      _logger.w('⚠️ Failed to collect device info: $e');
     }
   }
 
@@ -114,28 +102,27 @@ class AppLogger {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       _appInfo = {
-        'app_name': packageInfo.appName,
-        'package_name': packageInfo.packageName,
+        'name': packageInfo.appName,
         'version': packageInfo.version,
-        'build_number': packageInfo.buildNumber,
+        'build': packageInfo.buildNumber,
+        'package': packageInfo.packageName,
       };
     } catch (e) {
-      _appInfo = {'error': e.toString()};
+      _logger.w('⚠️ Failed to collect app info: $e');
     }
   }
 
-  /// Define o ID do usuário para logs
+  /// Define o ID do usuário
   static void setUserId(String userId) {
     _userId = userId;
-    FirebaseCrashlytics.instance.setUserIdentifier(userId);
   }
 
   /// Log de debug
   static void debug(
     String message, {
-    LogCategory category = LogCategory.analytics,
+    LogCategory category = LogCategory.business,
     Map<String, dynamic>? data,
-    Object? error,
+    dynamic error,
     StackTrace? stackTrace,
   }) {
     _log(LogLevel.debug, message, category, data, error, stackTrace);
@@ -144,20 +131,20 @@ class AppLogger {
   /// Log de informação
   static void info(
     String message, {
-    LogCategory category = LogCategory.analytics,
+    LogCategory category = LogCategory.business,
     Map<String, dynamic>? data,
-    Object? error,
+    dynamic error,
     StackTrace? stackTrace,
   }) {
     _log(LogLevel.info, message, category, data, error, stackTrace);
   }
 
-  /// Log de warning
+  /// Log de aviso
   static void warning(
     String message, {
-    LogCategory category = LogCategory.analytics,
+    LogCategory category = LogCategory.business,
     Map<String, dynamic>? data,
-    Object? error,
+    dynamic error,
     StackTrace? stackTrace,
   }) {
     _log(LogLevel.warning, message, category, data, error, stackTrace);
@@ -166,9 +153,9 @@ class AppLogger {
   /// Log de erro
   static void error(
     String message, {
-    LogCategory category = LogCategory.analytics,
+    LogCategory category = LogCategory.business,
     Map<String, dynamic>? data,
-    Object? error,
+    dynamic error,
     StackTrace? stackTrace,
   }) {
     _log(LogLevel.error, message, category, data, error, stackTrace);
@@ -177,41 +164,49 @@ class AppLogger {
   /// Log fatal
   static void fatal(
     String message, {
-    LogCategory category = LogCategory.crash,
+    LogCategory category = LogCategory.business,
     Map<String, dynamic>? data,
-    Object? error,
+    dynamic error,
     StackTrace? stackTrace,
   }) {
     _log(LogLevel.fatal, message, category, data, error, stackTrace);
   }
 
-  /// Método principal de logging
+  /// Método interno de logging
   static void _log(
     LogLevel level,
     String message,
     LogCategory category,
     Map<String, dynamic>? data,
-    Object? error,
+    dynamic error,
     StackTrace? stackTrace,
   ) {
-    final timestamp = DateTime.now().toIso8601String();
-    final logData = {
-      'timestamp': timestamp,
-      'level': level.name,
-      'category': category.name,
+    if (!_isInitialized) {
+      print('⚠️ AppLogger not initialized. Message: $message');
+      return;
+    }
+
+    // Prepara dados do log
+    final logData = <String, dynamic>{
       'message': message,
-      'user_id': _userId,
+      'category': category.name,
+      'level': level.name,
+      'timestamp': DateTime.now().toIso8601String(),
       'session_id': _sessionId,
-      'data': data,
+      'user_id': _userId,
       'device_info': _deviceInfo,
       'app_info': _appInfo,
+      if (data != null) ...data,
     };
 
-    // Log no console (desenvolvimento)
-    if (kDebugMode) {
-      _logger.log(_getLogLevel(level), message,
-          error: error, stackTrace: stackTrace);
-    }
+    // Log no console usando o logger
+    final logLevel = _getLogLevel(level);
+    _logger.log(
+      logLevel,
+      message,
+      error: error,
+      stackTrace: stackTrace,
+    );
 
     // Log no developer console
     developer.log(
@@ -221,27 +216,7 @@ class AppLogger {
       stackTrace: stackTrace,
     );
 
-    // Log no Firebase Crashlytics (produção)
-    if (level == LogLevel.error || level == LogLevel.fatal) {
-      FirebaseCrashlytics.instance.recordError(
-        error ?? message,
-        stackTrace,
-        reason: message,
-        information: [logData],
-      );
-    }
-
-    // Log customizado no Firebase Analytics
-    if (level == LogLevel.info && category == LogCategory.analytics) {
-      FirebaseAnalytics.instance.logEvent(
-        name: 'app_log',
-        parameters: {
-          'category': category.name,
-          'message': message,
-          'user_id': _userId ?? 'anonymous',
-        },
-      );
-    }
+    // Firebase removido - usando apenas logs locais
   }
 
   /// Converte LogLevel para Level do logger
@@ -266,15 +241,43 @@ class AppLogger {
     Duration duration, {
     Map<String, dynamic>? additionalData,
   }) {
-    _log(
-      LogLevel.info,
+    info(
       'Performance: $operation took ${duration.inMilliseconds}ms',
-      LogCategory.performance,
-      {
+      category: LogCategory.performance,
+      data: {
         'operation': operation,
         'duration_ms': duration.inMilliseconds,
-        'duration_seconds': duration.inSeconds,
         ...?additionalData,
+      },
+    );
+  }
+
+  /// Log de API
+  static void logApiCall(
+    String method,
+    String url,
+    int? statusCode,
+    Duration? duration, {
+    Map<String, dynamic>? requestData,
+    Map<String, dynamic>? responseData,
+    String? error,
+  }) {
+    final level = statusCode != null && statusCode >= 400
+        ? LogLevel.error
+        : LogLevel.info;
+
+    _log(
+      level,
+      'API Call: $method $url',
+      LogCategory.api,
+      {
+        'method': method,
+        'url': url,
+        'status_code': statusCode,
+        'duration_ms': duration?.inMilliseconds,
+        'request_data': requestData,
+        'response_data': responseData,
+        'error': error,
       },
       null,
       null,
@@ -285,47 +288,12 @@ class AppLogger {
   static void logNavigation(
     String from,
     String to, {
-    Map<String, dynamic>? parameters,
+    Map<String, dynamic>? data,
   }) {
-    _log(
-      LogLevel.info,
+    info(
       'Navigation: $from -> $to',
-      LogCategory.navigation,
-      {
-        'from': from,
-        'to': to,
-        'parameters': parameters,
-      },
-      null,
-      null,
-    );
-  }
-
-  /// Log de API
-  static void logApi(
-    String method,
-    String url,
-    int statusCode, {
-    Map<String, dynamic>? requestData,
-    Map<String, dynamic>? responseData,
-    Duration? duration,
-  }) {
-    final level = statusCode >= 400 ? LogLevel.error : LogLevel.info;
-
-    _log(
-      level,
-      'API: $method $url - $statusCode',
-      LogCategory.api,
-      {
-        'method': method,
-        'url': url,
-        'status_code': statusCode,
-        'request_data': requestData,
-        'response_data': responseData,
-        'duration_ms': duration?.inMilliseconds,
-      },
-      null,
-      null,
+      category: LogCategory.navigation,
+      data: data,
     );
   }
 
@@ -337,14 +305,53 @@ class AppLogger {
     Map<String, dynamic>? data,
   }) {
     final level = success ? LogLevel.info : LogLevel.error;
-
     _log(
       level,
-      'Auth: $action ${success ? 'success' : 'failed'}',
+      'Auth: $action',
       LogCategory.auth,
       {
         'action': action,
         'success': success,
+        'error': error,
+        ...?data,
+      },
+      null,
+      null,
+    );
+  }
+
+  /// Log de erro de rede
+  static void logNetworkError(
+    String operation,
+    String error, {
+    Map<String, dynamic>? data,
+  }) {
+    _log(
+      LogLevel.error,
+      'Network Error: $operation',
+      LogCategory.network,
+      {
+        'operation': operation,
+        'error': error,
+        ...?data,
+      },
+      null,
+      null,
+    );
+  }
+
+  /// Log de erro de UI
+  static void logUIError(
+    String screen,
+    String error, {
+    Map<String, dynamic>? data,
+  }) {
+    _log(
+      LogLevel.error,
+      'UI Error: $screen',
+      LogCategory.ui,
+      {
+        'screen': screen,
         'error': error,
         ...?data,
       },
@@ -359,9 +366,68 @@ class AppLogger {
     Map<String, dynamic> data,
   ) {
     info(
-      'Business: $event',
+      'Business Event: $event',
       category: LogCategory.business,
       data: data,
     );
   }
+
+  /// Log de analytics (versão simplificada)
+  static void logAnalytics(
+    String event,
+    Map<String, dynamic>? parameters,
+  ) {
+    info(
+      'Analytics: $event',
+      category: LogCategory.analytics,
+      data: {
+        'event': event,
+        'parameters': parameters,
+      },
+    );
+  }
+
+  /// Log de crash (versão simplificada)
+  static void logCrash(
+    String error,
+    StackTrace? stackTrace, {
+    Map<String, dynamic>? data,
+  }) {
+    _log(
+      LogLevel.fatal,
+      'Crash: $error',
+      LogCategory.crash,
+      data,
+      error,
+      stackTrace,
+    );
+  }
+
+  /// Limpa logs antigos (implementação simplificada)
+  static void clearOldLogs() {
+    // Implementação simplificada - apenas log
+    info('Clearing old logs', category: LogCategory.storage);
+  }
+
+  /// Exporta logs (implementação simplificada)
+  static Future<String> exportLogs() async {
+    // Implementação simplificada - retorna mensagem
+    info('Exporting logs', category: LogCategory.storage);
+    return 'Logs exported successfully (simplified version)';
+  }
+
+  /// Verifica se está inicializado
+  static bool get isInitialized => _isInitialized;
+
+  /// Obtém informações do dispositivo
+  static Map<String, dynamic> get deviceInfo => Map.from(_deviceInfo);
+
+  /// Obtém informações do app
+  static Map<String, dynamic> get appInfo => Map.from(_appInfo);
+
+  /// Obtém ID da sessão
+  static String? get sessionId => _sessionId;
+
+  /// Obtém ID do usuário
+  static String? get userId => _userId;
 }

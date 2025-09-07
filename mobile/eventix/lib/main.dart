@@ -13,8 +13,7 @@ import 'package:eventix/services/auth_service.dart';
 import 'package:eventix/services/vagas_service.dart';
 import 'package:eventix/services/eventos_service.dart';
 import 'package:eventix/services/freelancers_service.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
+// Firebase removido
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:eventix/providers/user_provider.dart';
@@ -24,22 +23,37 @@ import 'package:eventix/pages/recuperar_senha_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Inicializa o app primeiro, depois os serviços em background
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => UserProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+
+  // Inicializa serviços em background (não bloqueia o app)
+  _initializeServicesInBackground();
+}
+
+Future<void> _initializeServicesInBackground() async {
   try {
-    // Inicializa Firebase
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
+    print('🚀 Inicializando serviços em background...');
+
+    // Firebase removido
 
     // Inicializa formatação de data
-    await initializeDateFormatting('pt_BR', null);
+    await initializeDateFormatting('pt_BR', null)
+        .timeout(const Duration(seconds: 5));
 
     // Inicializa serviços de logging
-    await AppLogger.initialize();
-    await CrashService.initialize();
-    await AnalyticsService.initialize();
+    await AppLogger.initialize().timeout(const Duration(seconds: 5));
+    await CrashService.initialize().timeout(const Duration(seconds: 5));
+    await AnalyticsService.initialize().timeout(const Duration(seconds: 5));
 
     // Inicializa serviços de API
-    await AuthService.initialize();
+    await AuthService.initialize().timeout(const Duration(seconds: 10));
     VagasService.initialize();
     EventosService.initialize();
     FreelancersService.initialize();
@@ -51,30 +65,25 @@ void main() async {
     );
 
     // Verifica se houve crash na execução anterior
-    final didCrash = await CrashService.didCrashOnPreviousExecution();
+    final didCrash = await CrashService.didCrashOnPreviousExecution()
+        .timeout(const Duration(seconds: 3));
     if (didCrash) {
       AppLogger.warning(
         'App crashed on previous execution',
         category: LogCategory.crash,
       );
     }
+
+    print('✅ Serviços inicializados com sucesso!');
   } catch (e) {
-    // Log de erro na inicialização
+    // Log de erro na inicialização (não trava o app)
+    print('❌ Erro na inicialização dos serviços: $e');
     AppLogger.fatal(
       'Failed to initialize app',
       category: LogCategory.crash,
       error: e,
     );
   }
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => UserProvider()),
-      ],
-      child: const MyApp(),
-    ),
-  );
 }
 
 class MyApp extends StatelessWidget {

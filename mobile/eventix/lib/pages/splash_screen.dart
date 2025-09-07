@@ -19,40 +19,89 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLogin() async {
-    // Lê token
-    final token = await LocalStorage.getAccessToken();
-    debugPrint('TOKEN DIRETO 1: $token');
-    print('🔑 Splash: Token encontrado: ${token != null ? "SIM" : "NÃO"}');
+    try {
+      print('🔑 Splash: Iniciando verificação de login...');
 
-    if (token != null && token.isNotEmpty) {
-      print('🔑 Splash: Token válido, carregando dados do usuário...');
-      // Pega também os dados salvos do freelancer
-      final id = await LocalStorage.getUserId();
-      final nome = await LocalStorage.getNome();
-      final email = await LocalStorage.getEmail();
-      final tipoUsuario = await LocalStorage.getTipoUsuario();
-
-      print(
-          '🔑 Splash: Dados carregados - ID: $id, Nome: $nome, Email: $email, Tipo: $tipoUsuario');
+      // Adiciona um delay mínimo para mostrar o splash
+      await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
 
-      // Atualiza o Provider
-      context.read<UserProvider>().setUserData(
-            id: id,
-            nome: nome,
-            email: email,
-            tipoUsuario: tipoUsuario,
-          );
+      // Lê token com timeout
+      final token = await LocalStorage.getAccessToken().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () {
+          print('🔑 Splash: Timeout ao ler token');
+          return null;
+        },
+      );
 
+      debugPrint('TOKEN DIRETO 1: $token');
+      print('🔑 Splash: Token encontrado: ${token != null ? "SIM" : "NÃO"}');
+
+      if (token != null && token.isNotEmpty) {
+        print('🔑 Splash: Token válido, carregando dados do usuário...');
+
+        // Pega também os dados salvos do freelancer com timeout
+        final id = await LocalStorage.getUserId().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            print('🔑 Splash: Timeout ao ler ID do usuário');
+            return 0;
+          },
+        );
+
+        final nome = await LocalStorage.getNome().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            print('🔑 Splash: Timeout ao ler nome');
+            return '';
+          },
+        );
+
+        final email = await LocalStorage.getEmail().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            print('🔑 Splash: Timeout ao ler email');
+            return '';
+          },
+        );
+
+        final tipoUsuario = await LocalStorage.getTipoUsuario().timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            print('🔑 Splash: Timeout ao ler tipo de usuário');
+            return '';
+          },
+        );
+
+        print(
+            '🔑 Splash: Dados carregados - ID: $id, Nome: $nome, Email: $email, Tipo: $tipoUsuario');
+
+        if (!mounted) return;
+
+        // Atualiza o Provider
+        context.read<UserProvider>().setUserData(
+              id: id,
+              nome: nome,
+              email: email,
+              tipoUsuario: tipoUsuario,
+            );
+
+        if (!mounted) return;
+        // Vai para Home
+        print('🔑 Splash: Navegando para /home');
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        if (!mounted) return;
+        // Vai para Login
+        print('🔑 Splash: Navegando para /login');
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } catch (e) {
+      print('🔑 Splash: Erro durante verificação: $e');
       if (!mounted) return;
-      // Vai para Home
-      print('🔑 Splash: Navegando para /home');
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      if (!mounted) return;
-      // Vai para Login
-      print('🔑 Splash: Navegando para /login');
+      // Em caso de erro, vai para login
       Navigator.pushReplacementNamed(context, '/login');
     }
   }

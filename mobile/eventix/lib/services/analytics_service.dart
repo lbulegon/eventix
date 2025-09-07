@@ -1,21 +1,18 @@
 // lib/services/analytics_service.dart
-import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:eventix/utils/app_logger.dart';
 
 class AnalyticsService {
-  static final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
   static bool _isInitialized = false;
 
-  /// Inicializa o serviço de analytics
+  /// Inicializa o serviço de analytics (versão simplificada sem Firebase)
   static Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      await _analytics.setAnalyticsCollectionEnabled(true);
       _isInitialized = true;
 
       AppLogger.info(
-        'Analytics service initialized',
+        'Analytics service initialized (simplified version)',
         category: LogCategory.analytics,
       );
     } catch (e) {
@@ -27,12 +24,11 @@ class AnalyticsService {
     }
   }
 
-  /// Define o ID do usuário
+  /// Define o ID do usuário (versão simplificada)
   static Future<void> setUserId(String userId) async {
     try {
-      await _analytics.setUserId(id: userId);
       AppLogger.info(
-        'Analytics user ID set',
+        'Analytics user ID set (simplified)',
         category: LogCategory.analytics,
         data: {'user_id': userId},
       );
@@ -45,27 +41,15 @@ class AnalyticsService {
     }
   }
 
-  /// Define propriedades do usuário
+  /// Define propriedades do usuário (versão simplificada)
   static Future<void> setUserProperties({
     String? userType,
     String? userStatus,
     String? registrationDate,
   }) async {
     try {
-      if (userType != null) {
-        await _analytics.setUserProperty(name: 'user_type', value: userType);
-      }
-      if (userStatus != null) {
-        await _analytics.setUserProperty(
-            name: 'user_status', value: userStatus);
-      }
-      if (registrationDate != null) {
-        await _analytics.setUserProperty(
-            name: 'registration_date', value: registrationDate);
-      }
-
       AppLogger.info(
-        'Analytics user properties set',
+        'Analytics user properties set (simplified)',
         category: LogCategory.analytics,
         data: {
           'user_type': userType,
@@ -82,19 +66,14 @@ class AnalyticsService {
     }
   }
 
-  /// Log de evento personalizado
+  /// Log de evento personalizado (versão simplificada)
   static Future<void> logEvent(
     String eventName, {
     Map<String, Object>? parameters,
   }) async {
     try {
-      await _analytics.logEvent(
-        name: eventName,
-        parameters: parameters,
-      );
-
       AppLogger.info(
-        'Analytics event logged',
+        'Analytics event logged (simplified)',
         category: LogCategory.analytics,
         data: {
           'event_name': eventName,

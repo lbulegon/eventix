@@ -69,12 +69,21 @@ class AuthService {
       AppLogger.info('Login attempt started',
           category: LogCategory.auth, data: {'email': email});
 
+      print('🔐 [AUTH_SERVICE] URL do login: ${AppConfig.login}');
+      print('📧 [AUTH_SERVICE] Email: $email');
+      print('🔑 [AUTH_SERVICE] Password: ${password.length} caracteres');
+
+      // Django pode esperar 'username' em vez de 'email'
+      final loginData = {
+        'username': email, // Tentar username primeiro
+        'password': password,
+      };
+
+      print('📦 [AUTH_SERVICE] Dados do login: $loginData');
+
       final response = await _dio.post(
         AppConfig.login,
-        data: {
-          'email': email,
-          'password': password,
-        },
+        data: loginData,
       );
 
       if (response.statusCode == 200) {
@@ -106,15 +115,35 @@ class AuthService {
 
       if (e is DioException) {
         final response = e.response;
-        if (response?.statusCode == 401) {
+        final statusCode = response?.statusCode;
+
+        print('🔴 [AUTH_SERVICE] Erro DioException');
+        print('🔴 [AUTH_SERVICE] Status Code: $statusCode');
+        print('🔴 [AUTH_SERVICE] Dados da resposta: ${response?.data}');
+        print('🔴 [AUTH_SERVICE] Headers da resposta: ${response?.headers}');
+
+        if (statusCode == 401) {
           return {'success': false, 'error': 'Credenciais inválidas'};
-        } else if (response?.statusCode == 400) {
+        } else if (statusCode == 400) {
           final data = response?.data;
+          print('🔍 [AUTH_SERVICE] Dados do erro 400: $data');
+
           if (data is Map<String, dynamic>) {
-            return {
-              'success': false,
-              'error': data['error'] ?? 'Erro no login'
-            };
+            // Verificar se há mensagens específicas de erro
+            if (data.containsKey('email')) {
+              return {'success': false, 'error': 'Email: ${data['email']}'};
+            } else if (data.containsKey('password')) {
+              return {'success': false, 'error': 'Senha: ${data['password']}'};
+            } else if (data.containsKey('non_field_errors')) {
+              return {'success': false, 'error': data['non_field_errors']};
+            } else {
+              return {
+                'success': false,
+                'error': data['error'] ?? 'Erro no login'
+              };
+            }
+          } else if (data is String) {
+            return {'success': false, 'error': data};
           }
         }
       }

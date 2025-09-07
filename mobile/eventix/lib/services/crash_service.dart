@@ -1,32 +1,40 @@
 // lib/services/crash_service.dart
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:eventix/utils/app_logger.dart';
 
 class CrashService {
-  static final FirebaseCrashlytics _crashlytics = FirebaseCrashlytics.instance;
   static bool _isInitialized = false;
 
-  /// Inicializa o serviço de crash reporting
+  /// Inicializa o serviço de crash reporting (versão simplificada sem Firebase)
   static Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
       // Captura erros do Flutter
       FlutterError.onError = (FlutterErrorDetails details) {
-        _crashlytics.recordFlutterFatalError(details);
+        AppLogger.fatal(
+          'Flutter Error: ${details.exception}',
+          category: LogCategory.crash,
+          error: details.exception,
+          stackTrace: details.stack,
+        );
       };
 
       // Captura erros assíncronos
       PlatformDispatcher.instance.onError = (error, stack) {
-        _crashlytics.recordError(error, stack, fatal: true);
+        AppLogger.fatal(
+          'Async Error: $error',
+          category: LogCategory.crash,
+          error: error,
+          stackTrace: stack,
+        );
         return true;
       };
 
       _isInitialized = true;
 
       AppLogger.info(
-        'Crash service initialized',
+        'Crash service initialized (simplified version)',
         category: LogCategory.crash,
       );
     } catch (e) {
@@ -38,12 +46,11 @@ class CrashService {
     }
   }
 
-  /// Define o ID do usuário
+  /// Define o ID do usuário (versão simplificada)
   static Future<void> setUserId(String userId) async {
     try {
-      await _crashlytics.setUserIdentifier(userId);
       AppLogger.info(
-        'Crash user ID set',
+        'Crash user ID set (simplified)',
         category: LogCategory.crash,
         data: {'user_id': userId},
       );
@@ -56,12 +63,11 @@ class CrashService {
     }
   }
 
-  /// Define dados customizados
+  /// Define dados customizados (versão simplificada)
   static Future<void> setCustomKey(String key, Object value) async {
     try {
-      await _crashlytics.setCustomKey(key, value);
       AppLogger.debug(
-        'Crash custom key set',
+        'Crash custom key set (simplified)',
         category: LogCategory.crash,
         data: {'key': key, 'value': value},
       );
@@ -74,15 +80,11 @@ class CrashService {
     }
   }
 
-  /// Define dados customizados em lote
+  /// Define dados customizados em lote (versão simplificada)
   static Future<void> setCustomKeys(Map<String, Object> keys) async {
     try {
-      for (final entry in keys.entries) {
-        await _crashlytics.setCustomKey(entry.key, entry.value);
-      }
-
       AppLogger.debug(
-        'Crash custom keys set',
+        'Crash custom keys set (simplified)',
         category: LogCategory.crash,
         data: {'keys': keys},
       );
@@ -95,7 +97,7 @@ class CrashService {
     }
   }
 
-  /// Registra um erro não fatal
+  /// Registra um erro não fatal (versão simplificada)
   static Future<void> recordError(
     dynamic exception,
     StackTrace? stackTrace, {
@@ -104,18 +106,8 @@ class CrashService {
     Map<String, dynamic>? information,
   }) async {
     try {
-      await _crashlytics.recordError(
-        exception,
-        stackTrace,
-        reason: reason,
-        fatal: fatal,
-        information:
-            information?.entries.map((e) => '${e.key}: ${e.value}').toList() ??
-                [],
-      );
-
       AppLogger.error(
-        'Crash error recorded',
+        'Crash error recorded (simplified)',
         category: LogCategory.crash,
         error: exception,
         stackTrace: stackTrace,
@@ -134,7 +126,7 @@ class CrashService {
     }
   }
 
-  /// Registra um erro fatal
+  /// Registra um erro fatal (versão simplificada)
   static Future<void> recordFatalError(
     dynamic exception,
     StackTrace? stackTrace, {
@@ -150,15 +142,13 @@ class CrashService {
     );
   }
 
-  /// Registra um erro do Flutter
+  /// Registra um erro do Flutter (versão simplificada)
   static Future<void> recordFlutterError(
     FlutterErrorDetails details,
   ) async {
     try {
-      await _crashlytics.recordFlutterFatalError(details);
-
       AppLogger.fatal(
-        'Flutter error recorded',
+        'Flutter error recorded (simplified)',
         category: LogCategory.crash,
         error: details.exception,
         stackTrace: details.stack,
@@ -176,13 +166,11 @@ class CrashService {
     }
   }
 
-  /// Registra um log
+  /// Registra um log (versão simplificada)
   static Future<void> log(String message) async {
     try {
-      await _crashlytics.log(message);
-
       AppLogger.debug(
-        'Crash log recorded',
+        'Crash log recorded (simplified)',
         category: LogCategory.crash,
         data: {'message': message},
       );
@@ -195,18 +183,15 @@ class CrashService {
     }
   }
 
-  /// Verifica se o app foi aberto após um crash
+  /// Verifica se o app foi aberto após um crash (versão simplificada)
   static Future<bool> didCrashOnPreviousExecution() async {
     try {
-      final didCrash = await _crashlytics.didCrashOnPreviousExecution();
-
       AppLogger.info(
-        'Crash check completed',
+        'Crash check completed (simplified)',
         category: LogCategory.crash,
-        data: {'did_crash': didCrash},
+        data: {'did_crash': false},
       );
-
-      return didCrash;
+      return false; // Sempre retorna false na versão simplificada
     } catch (e) {
       AppLogger.error(
         'Failed to check crash status',
@@ -220,7 +205,11 @@ class CrashService {
   /// Força um crash para teste (apenas em debug)
   static void crash() {
     if (kDebugMode) {
-      _crashlytics.crash();
+      AppLogger.warning(
+        'Crash test called (simplified version)',
+        category: LogCategory.crash,
+      );
+      throw Exception('Test crash - simplified version');
     } else {
       AppLogger.warning(
         'Crash test called in production',
@@ -229,7 +218,7 @@ class CrashService {
     }
   }
 
-  /// Configura dados do usuário para crash reporting
+  /// Configura dados do usuário para crash reporting (versão simplificada)
   static Future<void> setUserData({
     String? userId,
     String? userType,
@@ -253,7 +242,7 @@ class CrashService {
       }
 
       AppLogger.info(
-        'Crash user data set',
+        'Crash user data set (simplified)',
         category: LogCategory.crash,
         data: {
           'user_id': userId,

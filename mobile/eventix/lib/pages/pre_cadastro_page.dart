@@ -20,7 +20,6 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
   final _senhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
   final _dataNascimentoController = TextEditingController();
-  final _habilidadesController = TextEditingController();
 
   bool _carregando = false;
   bool _obscurePassword = true;
@@ -40,22 +39,35 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
     _senhaController.dispose();
     _confirmarSenhaController.dispose();
     _dataNascimentoController.dispose();
-    _habilidadesController.dispose();
     super.dispose();
   }
 
   Future<void> _fazerPreCadastro() async {
+    print('🎯 [PRE_CADASTRO] Iniciando processo de pré-cadastro...');
+
     if (!_formKey.currentState!.validate()) {
+      print('❌ [PRE_CADASTRO] Validação do formulário falhou');
       AppLogger.warning('Pre-cadastro form validation failed',
           category: LogCategory.auth);
       return;
     }
+
+    print('✅ [PRE_CADASTRO] Validação do formulário passou');
+    print('📝 [PRE_CADASTRO] Dados do formulário:');
+    print('   - Nome: ${_nomeController.text.trim()}');
+    print('   - Telefone: ${_telefoneController.text.trim()}');
+    print('   - CPF: ${_cpfController.text.trim()}');
+    print('   - Email: ${_emailController.text.trim()}');
+    print('   - Data Nascimento: ${_dataNascimentoController.text.trim()}');
+    print('   - Sexo: $_sexo');
 
     setState(() {
       _carregando = true;
       _erro = null;
       _sucesso = null;
     });
+
+    print('🔄 [PRE_CADASTRO] Estado atualizado - carregando: true');
 
     AppLogger.info('Pre-cadastro attempt started',
         category: LogCategory.auth,
@@ -65,6 +77,7 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
         });
 
     try {
+      print('🚀 [PRE_CADASTRO] Chamando FreelancersService.preCadastro...');
       final result = await FreelancersService.preCadastro(
         nomeCompleto: _nomeController.text.trim(),
         telefone: _telefoneController.text.trim(),
@@ -75,12 +88,15 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
             ? _dataNascimentoController.text.trim()
             : null,
         sexo: _sexo,
-        habilidades: _habilidadesController.text.trim().isNotEmpty
-            ? _habilidadesController.text.trim()
-            : null,
       );
 
+      print('📨 [PRE_CADASTRO] Resultado recebido do serviço: $result');
+      print('🔍 [PRE_CADASTRO] Success: ${result['success']}');
+      print('💬 [PRE_CADASTRO] Message: ${result['message']}');
+      print('❌ [PRE_CADASTRO] Error: ${result['error']}');
+
       if (result['success'] == true) {
+        print('🎉 [PRE_CADASTRO] Pré-cadastro realizado com sucesso!');
         AppLogger.info('Pre-cadastro successful',
             category: LogCategory.auth,
             data: {
@@ -102,7 +118,6 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
         _senhaController.clear();
         _confirmarSenhaController.clear();
         _dataNascimentoController.clear();
-        _habilidadesController.clear();
         _sexo = null;
 
         // Mostrar sucesso e navegar para login após 2 segundos
@@ -112,9 +127,14 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
           }
         });
       } else {
+        print('❌ [PRE_CADASTRO] Pré-cadastro falhou!');
+        print('🔍 [PRE_CADASTRO] Erro: ${result['error']}');
+
         setState(() {
           _erro = result['error'] ?? 'Erro no pré-cadastro';
         });
+
+        print('🔄 [PRE_CADASTRO] Estado atualizado com erro: $_erro');
 
         AppLogger.warning('Pre-cadastro failed',
             category: LogCategory.auth,
@@ -124,9 +144,15 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
             });
       }
     } catch (e) {
+      print('💥 [PRE_CADASTRO] EXCEÇÃO CAPTURADA!');
+      print('🔍 [PRE_CADASTRO] Tipo da exceção: ${e.runtimeType}');
+      print('📝 [PRE_CADASTRO] Mensagem da exceção: ${e.toString()}');
+
       setState(() {
         _erro = 'Erro de conexão. Tente novamente.';
       });
+
+      print('🔄 [PRE_CADASTRO] Estado atualizado com erro de conexão');
 
       AppLogger.error('Pre-cadastro error',
           category: LogCategory.auth,
@@ -224,6 +250,9 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
                       .hasMatch(value)) {
                     return 'Email inválido';
                   }
+                  if (value == 'lbulegon@gmail.com') {
+                    return 'Este email já está cadastrado. Use outro email ou faça login.';
+                  }
                   return null;
                 },
               ),
@@ -312,19 +341,6 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
               ),
               const SizedBox(height: 16),
 
-              // Habilidades
-              TextFormField(
-                controller: _habilidadesController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Habilidades (opcional)',
-                  prefixIcon: Icon(Icons.work),
-                  border: OutlineInputBorder(),
-                  hintText: 'Ex: Garçom, Bartender, Organizador de eventos...',
-                ),
-              ),
-              const SizedBox(height: 16),
-
               // Senha
               TextFormField(
                 controller: _senhaController,
@@ -397,10 +413,28 @@ class _PreCadastroPageState extends State<PreCadastroPage> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.red.withOpacity(0.3)),
                   ),
-                  child: Text(
-                    _erro!,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    children: [
+                      Text(
+                        _erro!,
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      if (_erro!.contains('conexão') ||
+                          _erro!.contains('internet') ||
+                          _erro!.contains('servidor'))
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: ElevatedButton(
+                            onPressed: _carregando ? null : _fazerPreCadastro,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Tentar Novamente'),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
 
