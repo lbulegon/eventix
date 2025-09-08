@@ -41,23 +41,49 @@ def _candidatura_aprovada_cria_contrato(sender, instance: Candidatura, **kwargs)
 
 
 @receiver(post_save, sender=User)
-def adicionar_freelancer_ao_grupo(sender, instance, created, **kwargs):
+def adicionar_usuario_ao_grupo_correto(sender, instance, created, **kwargs):
     """
-    Quando um usuário é criado ou seu tipo_usuario é alterado para 'freelancer',
-    adiciona automaticamente ao grupo global de freelancers.
+    Quando um usuário é criado ou seu tipo_usuario é alterado,
+    adiciona automaticamente ao grupo correto baseado no tipo.
     """
-    # Só processa se o usuário é freelancer
+    # Busca o grupo apropriado baseado no tipo de usuário
+    grupo = None
+    
     if instance.tipo_usuario == 'freelancer':
-        # Busca o grupo global de freelancers (sem empresa específica)
-        grupo_freelancers = GrupoUsuario.objects.filter(
+        # Grupo global de freelancers (sem empresa específica)
+        grupo = GrupoUsuario.objects.filter(
             nome='Freelancers Global',
             empresa_contratante=None,
             ativo=True
         ).first()
         
-        if grupo_freelancers:
-            # Adiciona o usuário ao grupo (ou reativa se já existir)
-            instance.adicionar_ao_grupo(grupo_freelancers, ativo=True)
+    elif instance.tipo_usuario == 'admin_sistema':
+        # Grupo de administrador do sistema
+        grupo = GrupoUsuario.objects.filter(
+            nome='Administrador do Sistema',
+            empresa_contratante=None,
+            ativo=True
+        ).first()
+        
+    elif instance.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+        # Grupos específicos da empresa
+        if instance.empresa_contratante:
+            if instance.tipo_usuario == 'admin_empresa':
+                grupo = GrupoUsuario.objects.filter(
+                    nome='Administrador da Empresa',
+                    empresa_contratante=instance.empresa_contratante,
+                    ativo=True
+                ).first()
+            elif instance.tipo_usuario == 'operador_empresa':
+                grupo = GrupoUsuario.objects.filter(
+                    nome='Operador da Empresa',
+                    empresa_contratante=instance.empresa_contratante,
+                    ativo=True
+                ).first()
+    
+    # Adiciona o usuário ao grupo se encontrado
+    if grupo:
+        instance.adicionar_ao_grupo(grupo, ativo=True)
 
 
 @receiver(pre_save, sender=User)
@@ -73,31 +99,22 @@ def verificar_mudanca_tipo_usuario(sender, instance, **kwargs):
     except User.DoesNotExist:
         return
     
-    # Se mudou de freelancer para outro tipo, remove do grupo global de freelancers
-    if (usuario_antigo.tipo_usuario == 'freelancer' and 
-        instance.tipo_usuario != 'freelancer'):
+    # Se o tipo mudou, remove de todos os grupos e deixa o post_save adicionar ao correto
+    if usuario_antigo.tipo_usuario != instance.tipo_usuario:
+        # Remove de todos os grupos ativos
+        grupos_ativos = instance.get_grupos_ativos()
+        for usuario_grupo in grupos_ativos:
+            instance.remover_do_grupo(usuario_grupo.grupo)
         
-        # Remove do grupo global de freelancers
-        grupo_freelancers = GrupoUsuario.objects.filter(
-            nome='Freelancers Global',
-            empresa_contratante=None,
-            ativo=True
-        ).first()
-        
-        if grupo_freelancers:
-            instance.remover_do_grupo(grupo_freelancers)
-    
-    # Se mudou para freelancer, adiciona ao grupo global
-    elif (usuario_antigo.tipo_usuario != 'freelancer' and 
-          instance.tipo_usuario == 'freelancer'):
-        
-        # Busca o grupo global de freelancers
-        grupo_freelancers = GrupoUsuario.objects.filter(
-            nome='Freelancers Global',
-            empresa_contratante=None,
-            ativo=True
-        ).first()
-        
-        if grupo_freelancers:
-            instance.adicionar_ao_grupo(grupo_freelancers, ativo=True)
+        # Se mudou a empresa contratante, também remove dos grupos da empresa antiga
+        if (usuario_antigo.empresa_contratante != instance.empresa_contratante and 
+            usuario_antigo.empresa_contratante):
+            
+            # Remove de grupos da empresa antiga
+            grupos_empresa_antiga = GrupoUsuario.objects.filter(
+                empresa_contratante=usuario_antigo.empresa_contratante,
+                ativo=True
+            )
+            for grupo in grupos_empresa_antiga:
+                instance.remover_do_grupo(grupo)
 
