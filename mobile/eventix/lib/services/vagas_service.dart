@@ -29,12 +29,26 @@ class VagasService {
     int page = 1,
   }) async {
     try {
+      // Verificar tipo de usuário
+      final userType = AuthService.userType;
+      final isLoggedIn = AuthService.isLoggedIn;
+      final hasToken = AuthService.accessToken != null;
+
+      print('🔍 [VAGAS_SERVICE] Usuário logado: $isLoggedIn');
+      print('🔍 [VAGAS_SERVICE] Tem token: $hasToken');
+      print('🔍 [VAGAS_SERVICE] Tipo de usuário: $userType');
+      print('🔍 [VAGAS_SERVICE] É freelancer: ${AuthService.isFreelancer}');
+      print('🔍 [VAGAS_SERVICE] É empresa: ${AuthService.isEmpresa}');
+      print('🔍 [VAGAS_SERVICE] Dados do usuário: ${AuthService.userData}');
+
       AppLogger.info('Fetching vagas', category: LogCategory.api, data: {
         'evento_id': eventoId,
         'funcao_id': funcaoId,
         'cidade': cidade,
         'search': search,
         'page': page,
+        'user_type': userType,
+        'is_freelancer': AuthService.isFreelancer,
       });
 
       final queryParams = <String, dynamic>{
@@ -54,6 +68,14 @@ class VagasService {
       if (response.statusCode == 200) {
         final data = response.data;
         final vagas = List<Map<String, dynamic>>.from(data['results'] ?? []);
+
+        print('📊 [VAGAS_SERVICE] Resposta do servidor: $data');
+        print('📊 [VAGAS_SERVICE] Total de vagas: ${data['count']}');
+        print('📊 [VAGAS_SERVICE] Vagas retornadas: ${vagas.length}');
+
+        if (vagas.isNotEmpty) {
+          print('📊 [VAGAS_SERVICE] Primeira vaga: ${vagas.first}');
+        }
 
         AppLogger.info('Vagas fetched successfully',
             category: LogCategory.api,
@@ -308,5 +330,203 @@ class VagasService {
       'success': false,
       'error': 'Erro desconhecido',
     };
+  }
+
+  /// Lista vagas recomendadas para o usuário
+  static Future<List<Map<String, dynamic>>> getVagasRecomendadas({
+    int page = 1,
+  }) async {
+    try {
+      AppLogger.info('Fetching recommended vagas',
+          category: LogCategory.api,
+          data: {
+            'page': page,
+          });
+
+      final response = await _dio.get(
+        AppConfig.vagasRecomendadas,
+        queryParameters: {'page': page},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final vagas = List<Map<String, dynamic>>.from(data['results'] ?? []);
+
+        AppLogger.info('Recommended vagas fetched successfully',
+            category: LogCategory.api,
+            data: {
+              'count': vagas.length,
+              'total': data['count'],
+            });
+
+        return vagas;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to fetch recommended vagas',
+          category: LogCategory.api, error: e);
+    }
+
+    return [];
+  }
+
+  /// Lista vagas trending
+  static Future<List<Map<String, dynamic>>> getVagasTrending({
+    int page = 1,
+  }) async {
+    try {
+      AppLogger.info('Fetching trending vagas',
+          category: LogCategory.api,
+          data: {
+            'page': page,
+          });
+
+      final response = await _dio.get(
+        AppConfig.vagasTrending,
+        queryParameters: {'page': page},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final vagas = List<Map<String, dynamic>>.from(data['results'] ?? []);
+
+        AppLogger.info('Trending vagas fetched successfully',
+            category: LogCategory.api,
+            data: {
+              'count': vagas.length,
+              'total': data['count'],
+            });
+
+        return vagas;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to fetch trending vagas',
+          category: LogCategory.api, error: e);
+    }
+
+    return [];
+  }
+
+  /// Lista vagas urgentes
+  static Future<List<Map<String, dynamic>>> getVagasUrgentes({
+    int page = 1,
+  }) async {
+    try {
+      AppLogger.info('Fetching urgent vagas', category: LogCategory.api, data: {
+        'page': page,
+      });
+
+      final response = await _dio.get(
+        AppConfig.vagasUrgentes,
+        queryParameters: {'page': page},
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final vagas = List<Map<String, dynamic>>.from(data['results'] ?? []);
+
+        AppLogger.info('Urgent vagas fetched successfully',
+            category: LogCategory.api,
+            data: {
+              'count': vagas.length,
+              'total': data['count'],
+            });
+
+        return vagas;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to fetch urgent vagas',
+          category: LogCategory.api, error: e);
+    }
+
+    return [];
+  }
+
+  /// Candidata-se a uma vaga com carta de apresentação
+  static Future<Map<String, dynamic>> candidatarVagaComCarta(
+    int vagaId,
+    String cartaApresentacao,
+  ) async {
+    try {
+      AppLogger.info('Candidating to vaga with cover letter',
+          category: LogCategory.api,
+          data: {
+            'vaga_id': vagaId,
+            'carta_length': cartaApresentacao.length,
+          });
+
+      final response = await _dio.post(
+        AppConfig.candidaturas,
+        data: {
+          'vaga_id': vagaId,
+          'carta_apresentacao': cartaApresentacao,
+        },
+      );
+
+      if (response.statusCode == 201) {
+        AppLogger.info('Successfully candidated to vaga with cover letter',
+            category: LogCategory.api, data: {'vaga_id': vagaId});
+        return {
+          'success': true,
+          'message': 'Candidatura realizada com sucesso!',
+          'data': response.data,
+        };
+      }
+    } catch (e) {
+      AppLogger.error('Failed to candidate to vaga with cover letter',
+          category: LogCategory.api, error: e, data: {'vaga_id': vagaId});
+
+      if (e is DioException) {
+        final response = e.response;
+        if (response?.statusCode == 400) {
+          final data = response?.data;
+          if (data is Map<String, dynamic>) {
+            return {
+              'success': false,
+              'error': data['error'] ?? 'Erro na candidatura',
+            };
+          }
+        } else if (response?.statusCode == 403) {
+          return {
+            'success': false,
+            'error': 'Você não tem permissão para se candidatar',
+          };
+        }
+      }
+
+      return {
+        'success': false,
+        'error': 'Erro de conexão. Tente novamente.',
+      };
+    }
+
+    return {
+      'success': false,
+      'error': 'Erro desconhecido',
+    };
+  }
+
+  /// Obtém estatísticas do freelancer
+  static Future<Map<String, dynamic>?> getEstatisticasFreelancer() async {
+    try {
+      AppLogger.info('Fetching freelancer statistics',
+          category: LogCategory.api);
+
+      final response =
+          await _dio.get('${AppConfig.freelancerProfile}estatisticas/');
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        AppLogger.info('Freelancer statistics fetched successfully',
+            category: LogCategory.api);
+
+        return data;
+      }
+    } catch (e) {
+      AppLogger.error('Failed to fetch freelancer statistics',
+          category: LogCategory.api, error: e);
+    }
+
+    return null;
   }
 }

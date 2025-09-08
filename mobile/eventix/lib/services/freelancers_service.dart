@@ -93,6 +93,7 @@ class FreelancersService {
         'cpf': cpf,
         'email': email,
         'password': password,
+        'tipo_usuario': 'freelancer', // Definir como freelancer
         if (dataNascimento != null && dataNascimento.isNotEmpty)
           'data_nascimento': dataNascimento,
         if (sexo != null && sexo.isNotEmpty) 'sexo': sexo,

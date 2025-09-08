@@ -6,6 +6,7 @@ from .views import (
     EmpresaViewSet, EmpresaContratanteViewSet, UserProfileView,
     TokenVerifyView, PasswordResetView, PasswordResetConfirmView
 )
+from .views_funcoes import FuncaoViewSet, FreelancerFuncaoViewSet
 
 router = DefaultRouter()
 router.register(r'vagas', VagaViewSet, basename='vaga')
@@ -14,6 +15,8 @@ router.register(r'eventos', EventoViewSet, basename='evento')
 router.register(r'freelancers', FreelanceViewSet, basename='freelancer')
 router.register(r'empresas', EmpresaViewSet, basename='empresa')
 router.register(r'empresas-contratantes', EmpresaContratanteViewSet, basename='empresa-contratante')
+router.register(r'funcoes', FuncaoViewSet, basename='funcao')
+router.register(r'freelancers/funcoes', FreelancerFuncaoViewSet, basename='freelancer-funcao')
 
 urlpatterns = [
     # URLs do router

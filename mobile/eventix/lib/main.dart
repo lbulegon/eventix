@@ -13,11 +13,20 @@ import 'package:eventix/services/auth_service.dart';
 import 'package:eventix/services/vagas_service.dart';
 import 'package:eventix/services/eventos_service.dart';
 import 'package:eventix/services/freelancers_service.dart';
+import 'package:eventix/services/notificacoes_service.dart';
+import 'package:eventix/services/funcoes_service.dart';
 // Firebase removido
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:eventix/providers/user_provider.dart';
 import 'package:eventix/pages/recuperar_senha_page.dart';
+import 'package:eventix/pages/vagas_page.dart';
+import 'package:eventix/pages/vagas_recomendadas_page.dart';
+import 'package:eventix/pages/minhas_candidaturas_page.dart';
+import 'package:eventix/pages/notificacoes_page.dart';
+import 'package:eventix/pages/dashboard_freelancer_page.dart';
+import 'package:eventix/pages/debug_user_page.dart';
+import 'package:eventix/pages/funcoes_page.dart';
 
 //ola mundo
 void main() async {
@@ -57,6 +66,8 @@ Future<void> _initializeServicesInBackground() async {
     VagasService.initialize();
     EventosService.initialize();
     FreelancersService.initialize();
+    NotificacoesService.initialize();
+    FuncoesService.initialize();
 
     AppLogger.info(
       'App started',
@@ -103,6 +114,13 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomePage(),
         '/pre-cadastro': (context) => const PreCadastroPage(),
         '/recuperar-senha': (context) => const RecuperarSenhaPage(),
+        '/vagas': (context) => const VagasPage(),
+        '/vagas_recomendadas': (context) => const VagasRecomendadasPage(),
+        '/minhas_candidaturas': (context) => const MinhasCandidaturasPage(),
+        '/notificacoes': (context) => const NotificacoesPage(),
+        '/dashboard_freelancer': (context) => const DashboardFreelancerPage(),
+        '/debug_user': (context) => const DebugUserPage(),
+        '/funcoes': (context) => const FuncoesPage(),
       },
     );
   }

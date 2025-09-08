@@ -93,6 +93,19 @@ class HomeContent extends StatelessWidget {
         title: const Text('Eventix'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notificacoes');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            onPressed: () {
+              Navigator.pushNamed(context, '/debug_user');
+            },
+            tooltip: 'Debug Usuário',
+          ),
+          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _showLogoutDialog(context),
           ),
@@ -155,22 +168,78 @@ class HomeContent extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildActionCard(
-                    icon: Icons.search,
-                    title: 'Buscar Vagas',
-                    subtitle: 'Encontre oportunidades',
+                    icon: Icons.recommend,
+                    title: 'Oportunidades',
+                    subtitle: 'Vagas para você',
                     onTap: () {
-                      // Navegar para vagas
+                      Navigator.pushNamed(context, '/vagas_recomendadas');
                     },
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildActionCard(
+                    icon: Icons.work,
+                    title: 'Todas as Vagas',
+                    subtitle: 'Buscar oportunidades',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/vagas');
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionCard(
                     icon: Icons.assignment,
                     title: 'Minhas Candidaturas',
                     subtitle: 'Acompanhe status',
                     onTap: () {
-                      // Navegar para candidaturas
+                      Navigator.pushNamed(context, '/minhas_candidaturas');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionCard(
+                    icon: Icons.dashboard,
+                    title: 'Dashboard',
+                    subtitle: 'Estatísticas',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/dashboard_freelancer');
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildActionCard(
+                    icon: Icons.security,
+                    title: 'Funções',
+                    subtitle: 'Configure suas especialidades',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/funcoes');
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildActionCard(
+                    icon: Icons.bug_report,
+                    title: 'Debug',
+                    subtitle: 'Diagnóstico',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/debug_user');
                     },
                   ),
                 ),

@@ -13,13 +13,26 @@ class AppConfig {
   // Endpoints de Freelancers
   static const String preCadastro = '$apiUrl/freelancers/pre_cadastro/';
   static const String freelancerProfile = '$apiUrl/freelancers/';
+  static const String freelancerFuncoes = '$apiUrl/freelancers/funcoes/';
+  static const String funcoes = '$apiUrl/funcoes/';
 
   // Endpoints de Vagas
   static const String vagasDisponiveis = '$apiUrl/vagas/';
+  static const String vagasRecomendadas = '$apiUrl/vagas/recomendadas/';
+  static const String vagasTrending = '$apiUrl/vagas/trending/';
+  static const String vagasUrgentes = '$apiUrl/vagas/urgentes/';
   static const String candidaturas = '$apiUrl/candidaturas/';
   static const String cancelarCandidatura = '$apiUrl/candidaturas/';
   static const String aprovarCandidatura = '$apiUrl/candidaturas/';
   static const String rejeitarCandidatura = '$apiUrl/candidaturas/';
+
+  // Sistema de Matching
+  static const String matchingVagas = '$apiUrl/matching/vagas/';
+  static const String matchingFreelancers = '$apiUrl/matching/freelancers/';
+
+  // Notificações
+  static const String notificacoes = '$apiUrl/notificacoes/';
+  static const String marcarNotificacaoLida = '$apiUrl/notificacoes/';
 
   // Endpoints de Eventos
   static const String eventos = '$apiUrl/eventos/';
