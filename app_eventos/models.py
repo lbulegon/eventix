@@ -4,6 +4,8 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.db.models import Q, F
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 class User(AbstractUser):
     """
@@ -95,6 +97,147 @@ class User(AbstractUser):
             'admin_sistema': 'Administrador do Sistema'
         }
         return type_names.get(self.tipo_usuario, self.tipo_usuario)
+    
+    def get_grupos_ativos(self):
+        """Retorna os grupos ativos do usuário"""
+        return UsuarioGrupo.objects.filter(usuario=self, ativo=True).select_related('grupo')
+    
+    def tem_permissao(self, codigo_permissao):
+        """Verifica se o usuário tem uma permissão específica através dos grupos"""
+        if self.is_superuser:
+            return True
+        
+        grupos_ativos = self.get_grupos_ativos()
+        for usuario_grupo in grupos_ativos:
+            if usuario_grupo.grupo.tem_permissao(codigo_permissao):
+                return True
+        return False
+    
+    def adicionar_ao_grupo(self, grupo, ativo=True):
+        """Adiciona o usuário a um grupo"""
+        usuario_grupo, created = UsuarioGrupo.objects.get_or_create(
+            usuario=self,
+            grupo=grupo,
+            defaults={'ativo': ativo}
+        )
+        if not created and not usuario_grupo.ativo:
+            usuario_grupo.ativo = ativo
+            usuario_grupo.save()
+        return usuario_grupo
+    
+    def remover_do_grupo(self, grupo):
+        """Remove o usuário de um grupo (desativa)"""
+        try:
+            usuario_grupo = UsuarioGrupo.objects.get(usuario=self, grupo=grupo)
+            usuario_grupo.ativo = False
+            usuario_grupo.save()
+            return True
+        except UsuarioGrupo.DoesNotExist:
+            return False
+    
+    def get_permissoes(self):
+        """Retorna todas as permissões do usuário através dos grupos"""
+        permissoes = set()
+        grupos_ativos = self.get_grupos_ativos()
+        for usuario_grupo in grupos_ativos:
+            for permissao in usuario_grupo.grupo.permissoes.filter(ativo=True):
+                permissoes.add(permissao.codigo)
+        return list(permissoes)
+
+
+class PermissaoSistema(models.Model):
+    """
+    Define as permissões específicas do sistema
+    """
+    codigo = models.CharField(max_length=100, unique=True, verbose_name="Código da Permissão")
+    nome = models.CharField(max_length=255, verbose_name="Nome da Permissão")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    modulo = models.CharField(max_length=50, verbose_name="Módulo")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    
+    class Meta:
+        verbose_name = "Permissão do Sistema"
+        verbose_name_plural = "Permissões do Sistema"
+        ordering = ['modulo', 'nome']
+    
+    def __str__(self):
+        return f"{self.modulo} - {self.nome}"
+
+
+class GrupoUsuario(models.Model):
+    """
+    Grupos de usuários com permissões específicas
+    """
+    TIPO_GRUPO_CHOICES = [
+        ('sistema', 'Grupo do Sistema'),
+        ('empresa', 'Grupo da Empresa'),
+        ('evento', 'Grupo de Evento'),
+    ]
+    
+    nome = models.CharField(max_length=255, verbose_name="Nome do Grupo")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    tipo_grupo = models.CharField(max_length=20, choices=TIPO_GRUPO_CHOICES, default='empresa')
+    empresa_contratante = models.ForeignKey(
+        'EmpresaContratante',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="grupos_usuarios",
+        verbose_name="Empresa Contratante"
+    )
+    permissoes = models.ManyToManyField(
+        PermissaoSistema,
+        blank=True,
+        related_name="grupos",
+        verbose_name="Permissões"
+    )
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    
+    class Meta:
+        verbose_name = "Grupo de Usuário"
+        verbose_name_plural = "Grupos de Usuários"
+        ordering = ['tipo_grupo', 'nome']
+        unique_together = ['nome', 'empresa_contratante']
+    
+    def __str__(self):
+        if self.empresa_contratante:
+            return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        return self.nome
+    
+    def tem_permissao(self, codigo_permissao):
+        """Verifica se o grupo tem uma permissão específica"""
+        return self.permissoes.filter(codigo=codigo_permissao, ativo=True).exists()
+
+
+class UsuarioGrupo(models.Model):
+    """
+    Relacionamento entre usuários e grupos
+    """
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="grupos_usuario",
+        verbose_name="Usuário"
+    )
+    grupo = models.ForeignKey(
+        GrupoUsuario,
+        on_delete=models.CASCADE,
+        related_name="usuarios_grupo",
+        verbose_name="Grupo"
+    )
+    data_entrada = models.DateTimeField(auto_now_add=True, verbose_name="Data de Entrada")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    
+    class Meta:
+        verbose_name = "Usuário no Grupo"
+        verbose_name_plural = "Usuários nos Grupos"
+        unique_together = ['usuario', 'grupo']
+        ordering = ['-data_entrada']
+    
+    def __str__(self):
+        return f"{self.usuario.username} - {self.grupo.nome}"
 
 
 class EmpresaContratante(models.Model):

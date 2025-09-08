@@ -4,6 +4,8 @@ from .models import (
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
+    # Sistema de Grupos e Permissões
+    PermissaoSistema, GrupoUsuario, UsuarioGrupo,
     # Analytics e Business Intelligence
     MetricaEvento, RelatorioAnalytics, DashboardPersonalizado, ComparativoEventos,
     # Gestão de Qualidade e Satisfação
@@ -25,6 +27,9 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.html import format_html
 from .mixins import EmpresaContratanteMixin
+
+# Importar admin dos grupos
+from . import admin_grupos
 
 class ScopedAdmin(admin.ModelAdmin):
     """Filtra por empresa_contratante para usuários de empresa."""
