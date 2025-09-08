@@ -207,8 +207,8 @@ python -m venv .venv
 3. Ative o ambiente virtual:
 ```bash
 # Windows
-o modeloA organização é o espetáculo.
 
+- .venv\Scripts\activate  
 # Linux/Mac
 source .venv/bin/activate
 ```
