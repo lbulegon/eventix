@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "app_eventos",
     "api_v01",
     "api_mobile",
+    "api_desktop",
 ]
 
 # IMPORTANTÍSSIMO: não remova os finders padrão

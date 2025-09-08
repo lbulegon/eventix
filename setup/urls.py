@@ -24,6 +24,9 @@ urlpatterns = [
     # API Mobile
     path("api/v1/", include("api_mobile.urls")),
     
+    # API Desktop
+    path("api/desktop/", include("api_desktop.urls")),
+    
     # Dashboards
     path("dashboard/", dashboard_redirect, name="dashboard_redirect"),
     path("empresa/dashboard/", dashboard_empresa, name="dashboard_empresa"),

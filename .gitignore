@@ -208,3 +208,24 @@ migrate_working_dir/
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+
+# Electron/Node.js related
+desktop/node_modules/
+desktop/dist/
+desktop/out/
+desktop/*.log
+desktop/npm-debug.log*
+desktop/yarn-debug.log*
+desktop/yarn-error.log*
+desktop/.npm
+desktop/.yarn-integrity
+desktop/.cache/
+desktop/.temp/
+desktop/.tmp/
+desktop/coverage/
+desktop/.nyc_output/
+desktop/.vscode-test/
+desktop/*.tgz
+desktop/*.tar.gz
+desktop/.DS_Store
+desktop/Thumbs.db
