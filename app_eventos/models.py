@@ -1008,16 +1008,105 @@ class Funcao(models.Model):
         return f"{self.nome} ({self.tipo_funcao.nome})"
 
 class Vaga(models.Model):
-    setor        = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="vagas")
-    titulo       = models.CharField(max_length=100)
-    funcao       = models.ForeignKey(Funcao, on_delete=models.CASCADE, related_name="vagas", verbose_name="Função", null=True, blank=True)
-    quantidade   = models.PositiveIntegerField()
-    remuneracao  = models.DecimalField(max_digits=10, decimal_places=2)
-    descricao    = models.TextField(blank=True, null=True)
-    ativa        = models.BooleanField(default=True)
-
+    """
+    Vagas disponíveis em eventos para freelancers
+    """
+    TIPO_REMUNERACAO_CHOICES = [
+        ('por_hora', 'Por Hora'),
+        ('por_dia', 'Por Dia'),
+        ('por_evento', 'Por Evento'),
+        ('fixo', 'Valor Fixo'),
+    ]
+    
+    NIVEL_EXPERIENCIA_CHOICES = [
+        ('iniciante', 'Iniciante'),
+        ('intermediario', 'Intermediário'),
+        ('avancado', 'Avançado'),
+        ('especialista', 'Especialista'),
+    ]
+    
+    setor = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="vagas")
+    titulo = models.CharField(max_length=200, verbose_name="Título da Vaga")
+    funcao = models.ForeignKey(Funcao, on_delete=models.CASCADE, related_name="vagas", verbose_name="Função", null=True, blank=True)
+    quantidade = models.PositiveIntegerField(verbose_name="Quantidade de Vagas")
+    quantidade_preenchida = models.PositiveIntegerField(default=0, verbose_name="Vagas Preenchidas")
+    
+    # Remuneração
+    remuneracao = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor da Remuneração")
+    tipo_remuneracao = models.CharField(max_length=20, choices=TIPO_REMUNERACAO_CHOICES, default='por_dia', verbose_name="Tipo de Remuneração")
+    
+    # Descrição e requisitos
+    descricao = models.TextField(verbose_name="Descrição da Vaga")
+    requisitos = models.TextField(blank=True, null=True, verbose_name="Requisitos")
+    responsabilidades = models.TextField(blank=True, null=True, verbose_name="Responsabilidades")
+    beneficios = models.TextField(blank=True, null=True, verbose_name="Benefícios")
+    
+    # Experiência e qualificações
+    nivel_experiencia = models.CharField(max_length=20, choices=NIVEL_EXPERIENCIA_CHOICES, default='iniciante', verbose_name="Nível de Experiência")
+    experiencia_minima = models.PositiveIntegerField(default=0, verbose_name="Experiência Mínima (meses)")
+    
+    # Datas importantes
+    data_limite_candidatura = models.DateTimeField(null=True, blank=True, verbose_name="Data Limite para Candidatura")
+    data_inicio_trabalho = models.DateTimeField(null=True, blank=True, verbose_name="Data de Início do Trabalho")
+    data_fim_trabalho = models.DateTimeField(null=True, blank=True, verbose_name="Data de Fim do Trabalho")
+    
+    # Status e controle
+    ativa = models.BooleanField(default=True, verbose_name="Vaga Ativa")
+    publicada = models.BooleanField(default=False, verbose_name="Vaga Publicada")
+    urgente = models.BooleanField(default=False, verbose_name="Vaga Urgente")
+    
+    # Metadados
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    criado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="vagas_criadas", verbose_name="Criado Por")
+    
+    class Meta:
+        verbose_name = "Vaga"
+        verbose_name_plural = "Vagas"
+        ordering = ['-data_criacao']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantidade_preenchida__lte=models.F('quantidade')),
+                name='quantidade_preenchida_lte_quantidade'
+            ),
+        ]
+    
     def __str__(self):
-        return f"{self.titulo} ({self.setor.evento.nome})"
+        return f"{self.titulo} - {self.setor.evento.nome}"
+    
+    @property
+    def vagas_disponiveis(self):
+        """Retorna o número de vagas ainda disponíveis"""
+        return self.quantidade - self.quantidade_preenchida
+    
+    @property
+    def esta_aberta_candidatura(self):
+        """Verifica se ainda está aberto para candidaturas"""
+        from django.utils import timezone
+        if not self.data_limite_candidatura:
+            return self.ativa and self.publicada
+        return self.ativa and self.publicada and timezone.now() <= self.data_limite_candidatura
+    
+    @property
+    def tem_vagas_disponiveis(self):
+        """Verifica se ainda tem vagas disponíveis"""
+        return self.vagas_disponiveis > 0
+    
+    def pode_candidatar(self):
+        """Verifica se um freelancer pode se candidatar a esta vaga"""
+        return self.esta_aberta_candidatura and self.tem_vagas_disponiveis
+    
+    def incrementar_preenchida(self):
+        """Incrementa o contador de vagas preenchidas"""
+        if self.quantidade_preenchida < self.quantidade:
+            self.quantidade_preenchida += 1
+            self.save(update_fields=['quantidade_preenchida'])
+    
+    def decrementar_preenchida(self):
+        """Decrementa o contador de vagas preenchidas"""
+        if self.quantidade_preenchida > 0:
+            self.quantidade_preenchida -= 1
+            self.save(update_fields=['quantidade_preenchida'])
 class Freelance(models.Model):
     VINCULO_CHOICES = [
         ('intermitente', 'Intermitente'),
@@ -1126,27 +1215,178 @@ class Freelance(models.Model):
 
 class Candidatura(models.Model):
     """
-    Pré-cadastro de um freelance para uma vaga.
+    Candidatura de um freelancer para uma vaga
     """
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('em_analise', 'Em Análise'),
+        ('aprovado', 'Aprovado'),
+        ('rejeitado', 'Rejeitado'),
+        ('cancelado', 'Cancelado'),
+        ('contratado', 'Contratado'),
+    ]
+    
+    PRIORIDADE_CHOICES = [
+        ('baixa', 'Baixa'),
+        ('media', 'Média'),
+        ('alta', 'Alta'),
+        ('urgente', 'Urgente'),
+    ]
+    
     freelance = models.ForeignKey(
         Freelance,
         on_delete=models.CASCADE,
-        related_name='candidaturas_pendentes'
+        related_name='candidaturas',
+        verbose_name="Freelancer"
     )
     vaga = models.ForeignKey(
         'Vaga',
         on_delete=models.CASCADE,
-        related_name='candidaturas'
+        related_name='candidaturas',
+        verbose_name="Vaga"
     )
-    data_candidatura = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=[
-        ('pendente', 'Pendente'),
-        ('aprovado', 'Aprovado'),
-        ('rejeitado', 'Rejeitado'),
-    ], default='pendente')
-
+    
+    # Status e controle
+    status = models.CharField(
+        max_length=20, 
+        choices=STATUS_CHOICES, 
+        default='pendente',
+        verbose_name="Status da Candidatura"
+    )
+    prioridade = models.CharField(
+        max_length=10, 
+        choices=PRIORIDADE_CHOICES, 
+        default='media',
+        verbose_name="Prioridade"
+    )
+    
+    # Datas importantes
+    data_candidatura = models.DateTimeField(auto_now_add=True, verbose_name="Data da Candidatura")
+    data_analise = models.DateTimeField(null=True, blank=True, verbose_name="Data da Análise")
+    data_resposta = models.DateTimeField(null=True, blank=True, verbose_name="Data da Resposta")
+    
+    # Informações adicionais
+    carta_apresentacao = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Carta de Apresentação",
+        help_text="Mensagem do freelancer para a empresa"
+    )
+    experiencia_relevante = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Experiência Relevante",
+        help_text="Experiência específica relacionada à vaga"
+    )
+    disponibilidade = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Disponibilidade",
+        help_text="Horários e dias disponíveis"
+    )
+    
+    # Avaliação da empresa
+    nota_empresa = models.PositiveIntegerField(
+        null=True, 
+        blank=True, 
+        verbose_name="Nota da Empresa",
+        help_text="Nota de 1 a 5 dada pela empresa"
+    )
+    comentarios_empresa = models.TextField(
+        blank=True, 
+        null=True, 
+        verbose_name="Comentários da Empresa"
+    )
+    
+    # Controle de notificações
+    notificado_freelancer = models.BooleanField(default=False, verbose_name="Notificado Freelancer")
+    notificado_empresa = models.BooleanField(default=False, verbose_name="Notificado Empresa")
+    
+    # Metadados
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+    analisado_por = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name="candidaturas_analisadas",
+        verbose_name="Analisado Por"
+    )
+    
+    class Meta:
+        verbose_name = "Candidatura"
+        verbose_name_plural = "Candidaturas"
+        ordering = ['-data_candidatura']
+        unique_together = ['freelance', 'vaga']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(nota_empresa__gte=1, nota_empresa__lte=5),
+                name='nota_empresa_range'
+            ),
+        ]
+    
     def __str__(self):
-        return f"{self.freelance} → {self.vaga} ({self.status})"
+        return f"{self.freelance.nome_completo} → {self.vaga.titulo} ({self.get_status_display()})"
+    
+    @property
+    def tempo_em_analise(self):
+        """Retorna o tempo que a candidatura está em análise"""
+        if self.data_analise:
+            from django.utils import timezone
+            return timezone.now() - self.data_analise
+        return None
+    
+    @property
+    def pode_ser_aprovada(self):
+        """Verifica se a candidatura pode ser aprovada"""
+        return self.status in ['pendente', 'em_analise'] and self.vaga.tem_vagas_disponiveis
+    
+    @property
+    def pode_ser_cancelada(self):
+        """Verifica se a candidatura pode ser cancelada"""
+        return self.status in ['pendente', 'em_analise']
+    
+    def aprovar(self, usuario_aprovador=None):
+        """Aprova a candidatura"""
+        if self.pode_ser_aprovada:
+            from django.utils import timezone
+            self.status = 'aprovado'
+            self.data_resposta = timezone.now()
+            self.analisado_por = usuario_aprovador
+            self.save()
+            
+            # Incrementa contador de vagas preenchidas
+            self.vaga.incrementar_preenchida()
+            
+            # Cria contrato automaticamente
+            ContratoFreelance.objects.get_or_create(
+                freelance=self.freelance,
+                vaga=self.vaga,
+                defaults={'status': 'ativo'}
+            )
+            return True
+        return False
+    
+    def rejeitar(self, motivo=None, usuario_rejeitador=None):
+        """Rejeita a candidatura"""
+        if self.status in ['pendente', 'em_analise']:
+            from django.utils import timezone
+            self.status = 'rejeitado'
+            self.data_resposta = timezone.now()
+            self.analisado_por = usuario_rejeitador
+            if motivo:
+                self.comentarios_empresa = motivo
+            self.save()
+            return True
+        return False
+    
+    def cancelar(self):
+        """Cancela a candidatura"""
+        if self.pode_ser_cancelada:
+            self.status = 'cancelado'
+            self.save()
+            return True
+        return False
 
 
 class ContratoFreelance(models.Model):
@@ -4194,3 +4434,7 @@ class ParceriaEstrategica(models.Model):
     
     def __str__(self):
         return f"{self.nome_parceria} - {self.parceiro_nome}"
+
+
+# Importar modelos de notificação
+from .models_notificacoes import Notificacao, ConfiguracaoNotificacao

@@ -6,6 +6,8 @@ from .models import (
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
     # Sistema de Grupos e Permissões
     PermissaoSistema, GrupoUsuario, UsuarioGrupo,
+    # Sistema de Notificações
+    Notificacao, ConfiguracaoNotificacao,
     # Analytics e Business Intelligence
     MetricaEvento, RelatorioAnalytics, DashboardPersonalizado, ComparativoEventos,
     # Gestão de Qualidade e Satisfação
@@ -423,6 +425,8 @@ class DespesaEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
     atrasada_display.short_description = "Status de Vencimento"
 
 
+
+
 @admin.register(ReceitaEvento)
 class ReceitaEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
     list_display = ('descricao', 'evento', 'categoria', 'valor', 'data_vencimento', 'status', 'cliente', 'atrasada_display')
@@ -460,5 +464,7 @@ class ReceitaEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
             )
         return "Em dia"
     atrasada_display.short_description = "Status de Vencimento"
+
+
 
 
