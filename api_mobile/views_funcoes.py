@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.db.models import Q
 
-from app_eventos.models import Freelance, Funcao, TipoFuncao
+from app_eventos.models import Freelance, Funcao, TipoFuncao, FreelancerFuncao
 from .serializers import FuncaoSerializer, FreelancerFuncaoSerializer
 
 class FuncaoViewSet(viewsets.ReadOnlyModelViewSet):
