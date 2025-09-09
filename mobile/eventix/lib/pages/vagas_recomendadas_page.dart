@@ -478,7 +478,7 @@ class _VagasRecomendadasPageState extends State<VagasRecomendadasPage>
                     size: 16, color: Color(0xFF6B7280)),
                 const SizedBox(width: 8),
                 Text(
-                  'R\$ ${vaga['remuneracao']?.toStringAsFixed(2) ?? '0.00'}',
+                  'R\$ ${_formatarValor(vaga['remuneracao'])}',
                   style: const TextStyle(
                     color: Color(0xFF6B7280),
                     fontWeight: FontWeight.w500,

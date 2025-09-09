@@ -71,6 +71,27 @@ class _DashboardFreelancerPageState extends State<DashboardFreelancerPage> {
     }
   }
 
+  String _formatarValor(dynamic valor) {
+    if (valor == null) return '0.00';
+    
+    // Se já é uma string, tenta converter para double
+    if (valor is String) {
+      try {
+        final doubleValor = double.parse(valor);
+        return doubleValor.toStringAsFixed(2);
+      } catch (e) {
+        return valor; // Retorna a string original se não conseguir converter
+      }
+    }
+    
+    // Se é um número, usa toStringAsFixed
+    if (valor is num) {
+      return valor.toStringAsFixed(2);
+    }
+    
+    return '0.00';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -500,7 +521,7 @@ class _DashboardFreelancerPageState extends State<DashboardFreelancerPage> {
                     ),
                   ),
                 Text(
-                  'R\$ ${vaga['remuneracao']?.toStringAsFixed(2) ?? '0.00'}',
+                  'R\$ ${_formatarValor(vaga['remuneracao'])}',
                   style: const TextStyle(
                     color: Color(0xFF10B981),
                     fontSize: 12,

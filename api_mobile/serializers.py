@@ -120,6 +120,7 @@ class VagaSerializer(serializers.ModelSerializer):
     empresa_contratante_id = serializers.IntegerField(write_only=True)
     evento_nome = serializers.CharField(source='setor.evento.nome', read_only=True)
     candidaturas_count = serializers.SerializerMethodField()
+    remuneracao = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False)
     
     class Meta:
         model = Vaga
