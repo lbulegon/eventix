@@ -307,16 +307,8 @@ class Empresa(models.Model):
     """
     Empresas parceiras (locais, fornecedores, etc.)
     """
-    empresa_contratante = models.ForeignKey(
-        EmpresaContratante,
-        on_delete=models.CASCADE,
-        related_name="empresas_parceiras",
-        verbose_name="Empresa Contratante",
-        null=True,
-        blank=True
-    )
     nome = models.CharField(max_length=255)
-    cnpj = models.CharField(max_length=18, blank=True, null=True)
+    cnpj = models.CharField(max_length=18, blank=True, null=True, unique=True)
     tipo_empresa = models.ForeignKey(
         TipoEmpresa,
         on_delete=models.SET_NULL,
@@ -331,13 +323,9 @@ class Empresa(models.Model):
     class Meta:
         verbose_name = "Empresa"
         verbose_name_plural = "Empresas"
-        constraints = [
-            models.UniqueConstraint(fields=['empresa_contratante', 'cnpj'], name='uniq_empresa_cnpj_por_tenant')
-        ]
 
     def __str__(self):
-        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
-        return f"{self.nome} - {empresa}"
+        return self.nome
 
 
 class LocalEvento(models.Model):

@@ -406,7 +406,7 @@ Notificações de status das candidaturas
 Histórico de performance
 Para Empresas:
 Dashboard completo de candidaturas
-Sistema de aprovação/rejeição com feedback
+Sistema de aprovação/rejeiçaddão com feedback
 Recomendações de freelancers
 Estatísticas detalhadas
 Sistema Inteligente:

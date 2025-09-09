@@ -100,9 +100,9 @@ class TipoEmpresaAdmin(admin.ModelAdmin):
 
 
 @admin.register(Empresa)
-class EmpresaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('nome', 'cnpj', 'tipo_empresa', 'empresa_contratante', 'ativo')
-    list_filter = ('tipo_empresa', 'ativo', 'empresa_contratante')
+class EmpresaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'cnpj', 'tipo_empresa', 'ativo')
+    list_filter = ('tipo_empresa', 'ativo')
     search_fields = ('nome', 'cnpj', 'email')
     autocomplete_fields = ('tipo_empresa',)
 
