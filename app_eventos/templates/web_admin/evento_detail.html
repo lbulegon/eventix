@@ -1,0 +1,333 @@
+{% extends 'web_admin/base.html' %}
+
+{% block title %}{{ evento.nome }} - Detalhes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">{{ evento.nome }}</h2>
+        <p class="text-muted mb-0">{{ evento.local.nome }} • {{ evento.data_inicio|date:"d/m/Y H:i" }}</p>
+    </div>
+    <div>
+        <a href="{% url 'admin_eventos_list' %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left me-2"></i>Voltar
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editarEventoModal">
+            <i class="bi bi-pencil me-2"></i>Editar
+        </button>
+    </div>
+</div>
+
+<!-- Estatísticas do Evento -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Setores</h6>
+                        <h3 class="text-white mb-0">{{ setores.count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-grid-3x3-gap fs-1 text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Vagas Ativas</h6>
+                        <h3 class="text-white mb-0">{{ vagas_ativas }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-people fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">{{ vagas_total }} vagas no total</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Candidaturas Pendentes</h6>
+                        <h3 class="text-white mb-0">{{ candidaturas_pendentes }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-person-check fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">{{ candidaturas_total }} candidaturas no total</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card {% if equipamentos_em_manutencao > 0 %}danger{% else %}success{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Equipamentos</h6>
+                        <h3 class="text-white mb-0">{{ equipamentos_total }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-gear fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">{{ equipamentos_em_manutencao }} em manutenção</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informações do Evento -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle me-2"></i>Informações do Evento
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>Nome:</strong>
+                        <p class="text-muted">{{ evento.nome }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Status:</strong>
+                        <p>
+                            {% if evento.ativo %}
+                                <span class="badge bg-success">Ativo</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Inativo</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Data de Início:</strong>
+                        <p class="text-muted">{{ evento.data_inicio|date:"d/m/Y H:i" }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Data de Fim:</strong>
+                        <p class="text-muted">
+                            {% if evento.data_fim %}
+                                {{ evento.data_fim|date:"d/m/Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">Não definida</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Local:</strong>
+                        <p class="text-muted">{{ evento.local.nome }}</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>Endereço:</strong>
+                        <p class="text-muted">
+                            {% if evento.local.endereco %}
+                                {{ evento.local.endereco }}
+                            {% else %}
+                                <span class="text-muted">Não informado</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if evento.descricao %}
+                    <div class="col-12 mb-3">
+                        <strong>Descrição:</strong>
+                        <p class="text-muted">{{ evento.descricao }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Financeiro -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Resumo Financeiro
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Receitas:</span>
+                        <strong class="text-success">R$ {{ receitas_total|floatformat:2 }}</strong>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Despesas:</span>
+                        <strong class="text-danger">R$ {{ despesas_total|floatformat:2 }}</strong>
+                    </div>
+                </div>
+                <hr>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span><strong>Lucro:</strong></span>
+                        <strong class="{% if lucro >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            R$ {{ lucro|floatformat:2 }}
+                        </strong>
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <a href="#" class="btn btn-outline-primary">
+                        <i class="bi bi-graph-up me-2"></i>Ver Detalhes Financeiros
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Setores do Evento -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-grid-3x3-gap me-2"></i>Setores do Evento
+                </h5>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#novoSetorModal">
+                    <i class="bi bi-plus-circle me-2"></i>Novo Setor
+                </button>
+            </div>
+            <div class="card-body">
+                {% if setores %}
+                    <div class="row">
+                        {% for setor in setores %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ setor.nome }}</h6>
+                                    {% if setor.descricao %}
+                                        <p class="card-text small text-muted">{{ setor.descricao|truncatechars:80 }}</p>
+                                    {% endif %}
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-primary">{{ setor.vagas.count }} vagas</span>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="#" class="btn btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <button class="btn btn-outline-secondary" 
+                                                    data-bs-toggle="modal" data-bs-target="#editarSetorModal{{ setor.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-grid-3x3-gap fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Nenhum setor criado para este evento</p>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#novoSetorModal">
+                            <i class="bi bi-plus-circle me-2"></i>Criar Primeiro Setor
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Evento -->
+<div class="modal fade" id="editarEventoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get" action="#">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome do Evento *</label>
+                            <input type="text" class="form-control" id="nome" name="nome" 
+                                   value="{{ evento.nome }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_inicio" class="form-label">Data de Início *</label>
+                            <input type="datetime-local" class="form-control" id="data_inicio" 
+                                   name="data_inicio" value="{{ evento.data_inicio|date:'Y-m-d\TH:i' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_fim" class="form-label">Data de Fim</label>
+                            <input type="datetime-local" class="form-control" id="data_fim" 
+                                   name="data_fim" value="{% if evento.data_fim %}{{ evento.data_fim|date:'Y-m-d\TH:i' }}{% endif %}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="local" class="form-label">Local *</label>
+                            <select class="form-select" id="local" name="local" required>
+                                <option value="{{ evento.local.id }}" selected>{{ evento.local.nome }}</option>
+                                <!-- Aqui você carregaria os outros locais disponíveis -->
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3">{{ evento.descricao }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo" 
+                                       {% if evento.ativo %}checked{% endif %}>
+                                <label class="form-check-label" for="ativo">
+                                    Evento ativo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Novo Setor -->
+<div class="modal fade" id="novoSetorModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Criar Novo Setor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get" action="#">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nome_setor" class="form-label">Nome do Setor *</label>
+                        <input type="text" class="form-control" id="nome_setor" name="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricao_setor" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricao_setor" name="descricao" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Setor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

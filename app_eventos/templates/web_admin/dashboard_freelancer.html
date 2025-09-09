@@ -1,0 +1,300 @@
+{% extends 'web_admin/base.html' %}
+
+{% block title %}Dashboard - {{ freelance.usuario.get_full_name|default:freelance.usuario.username }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Meu Dashboard</h2>
+        <p class="text-muted mb-0">Olá, {{ freelance.usuario.get_full_name|default:freelance.usuario.username }}</p>
+    </div>
+    <div>
+        <a href="#" class="btn btn-primary">
+            <i class="bi bi-search me-2"></i>Buscar Vagas
+        </a>
+    </div>
+</div>
+
+<!-- Estatísticas do Freelancer -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Candidaturas Enviadas</h6>
+                        <h3 class="text-white mb-0">{{ candidaturas_total }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-file-earmark-text fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">Total de candidaturas</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Pendentes</h6>
+                        <h3 class="text-white mb-0">{{ candidaturas_pendentes }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-clock fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">Aguardando resposta</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Aprovadas</h6>
+                        <h3 class="text-white mb-0">{{ candidaturas_aprovadas }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-check-circle fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">Candidaturas aceitas</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stats-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h6 class="card-title text-white-50 mb-1">Contratos Ativos</h6>
+                        <h3 class="text-white mb-0">{{ contratos_ativos.count }}</h3>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="bi bi-file-earmark-check fs-1 text-white-50"></i>
+                    </div>
+                </div>
+                <small class="text-white-50">Trabalhos em andamento</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Candidaturas Recentes -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-text me-2"></i>Minhas Candidaturas Recentes
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if candidaturas_recentes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Vaga</th>
+                                    <th>Evento</th>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for candidatura in candidaturas_recentes %}
+                                <tr>
+                                    <td>
+                                        <div>
+                                            <strong>{{ candidatura.vaga.titulo }}</strong>
+                                            <br>
+                                            <small class="text-muted">{{ candidatura.vaga.funcao.nome }}</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            {{ candidatura.vaga.setor.evento.nome }}
+                                            <br>
+                                            <small class="text-muted">{{ candidatura.vaga.setor.evento.data_inicio|date:"d/m/Y" }}</small>
+                                        </div>
+                                    </td>
+                                    <td>{{ candidatura.data_candidatura|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        {% if candidatura.status == 'pendente' %}
+                                            <span class="badge bg-warning">{{ candidatura.get_status_display }}</span>
+                                        {% elif candidatura.status == 'aprovada' %}
+                                            <span class="badge bg-success">{{ candidatura.get_status_display }}</span>
+                                        {% elif candidatura.status == 'rejeitada' %}
+                                            <span class="badge bg-danger">{{ candidatura.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#candidaturaModal{{ candidatura.id }}">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-center">
+                        <a href="#" class="btn btn-outline-primary">
+                            Ver Todas as Candidaturas
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-file-earmark-x fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Você ainda não enviou nenhuma candidatura</p>
+                        <a href="#" class="btn btn-primary">
+                            Buscar Vagas
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vagas Recomendadas -->
+    <div class="col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-star me-2"></i>Vagas Recomendadas
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if vagas_recomendadas %}
+                    {% for vaga in vagas_recomendadas %}
+                    <div class="card border-primary mb-3">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ vaga.titulo }}</h6>
+                            <p class="card-text small text-muted">{{ vaga.descricao|truncatechars:80 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">{{ vaga.setor.evento.nome }}</small>
+                                <span class="badge bg-primary">R$ {{ vaga.valor_hora|floatformat:2 }}/h</span>
+                            </div>
+                            <div class="mt-2">
+                                <a href="#" class="btn btn-sm btn-outline-primary">
+                                    Ver Detalhes
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="text-center">
+                        <a href="#" class="btn btn-outline-primary btn-sm">
+                            Ver Mais Vagas
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Nenhuma vaga recomendada no momento</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contratos Ativos -->
+{% if contratos_ativos %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-file-earmark-check me-2"></i>Contratos Ativos
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for contrato in contratos_ativos %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ contrato.vaga.titulo }}</h6>
+                                <p class="card-text small text-muted">{{ contrato.vaga.setor.evento.nome }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Início: {{ contrato.data_inicio|date:"d/m/Y" }}</small>
+                                    <span class="badge bg-success">Ativo</span>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-success">R$ {{ contrato.valor_total|floatformat:2 }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modais para Candidaturas -->
+{% for candidatura in candidaturas_recentes %}
+<div class="modal fade" id="candidaturaModal{{ candidatura.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalhes da Candidatura</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <h6>Vaga: {{ candidatura.vaga.titulo }}</h6>
+                        <p class="text-muted">{{ candidatura.vaga.setor.evento.nome }}</p>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <h6>Status:</h6>
+                        {% if candidatura.status == 'pendente' %}
+                            <span class="badge bg-warning">{{ candidatura.get_status_display }}</span>
+                        {% elif candidatura.status == 'aprovada' %}
+                            <span class="badge bg-success">{{ candidatura.get_status_display }}</span>
+                        {% elif candidatura.status == 'rejeitada' %}
+                            <span class="badge bg-danger">{{ candidatura.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                    {% if candidatura.carta_apresentacao %}
+                    <div class="col-12 mb-3">
+                        <h6>Carta de Apresentação:</h6>
+                        <p class="text-muted">{{ candidatura.carta_apresentacao }}</p>
+                    </div>
+                    {% endif %}
+                    {% if candidatura.feedback %}
+                    <div class="col-12 mb-3">
+                        <h6>Feedback:</h6>
+                        <p class="text-muted">{{ candidatura.feedback }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh das candidaturas a cada 30 segundos
+    setInterval(function() {
+        // Implementar chamada AJAX para atualizar status das candidaturas
+    }, 30000);
+</script>
+{% endblock %}

@@ -4,9 +4,9 @@ class AppConfig {
   static const String apiUrl = '$baseUrl$apiPrefix';
 
   // Autenticação
-  static const String login = '$baseUrl/api/auth/login/';
-  static const String refreshToken = '$baseUrl/api/auth/refresh/';
-  static const String logout = '$baseUrl/api/auth/logout/';
+  static const String login = '$apiUrl/login/';
+  static const String refreshToken = '$apiUrl/refresh/';
+  static const String logout = '$apiUrl/logout/';
   static const String tokenVerify = '$apiUrl/token/verify/';
   static const String userProfile = '$apiUrl/users/profile/';
 

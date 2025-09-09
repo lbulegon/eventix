@@ -39,6 +39,9 @@ urlpatterns = [
     # Fornecedores
     path("fornecedores/", fornecedores_list, name="fornecedores_list"),
     
+    # Interface Web Administrativa
+    path("admin-web/", include("app_eventos.urls.urls_admin")),
+    
     # APIs existentes
     path("api/equipamentos/", include("app_eventos.urls.urls_equipamentos")),
     path("setor/<int:setor_id>/equipamentos/", equipamentos_setor, name="equipamentos_setor"),

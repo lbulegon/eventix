@@ -1,0 +1,324 @@
+{% extends 'web_admin/base.html' %}
+
+{% block title %}Eventos - {{ empresa.nome_fantasia }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Eventos</h2>
+        <p class="text-muted mb-0">Gerencie todos os seus eventos</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#novoEventoModal">
+            <i class="bi bi-plus-circle me-2"></i>Novo Evento
+        </button>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="status" class="form-label">Status</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="todos" {% if status == 'todos' %}selected{% endif %}>Todos</option>
+                    <option value="ativos" {% if status == 'ativos' %}selected{% endif %}>Ativos</option>
+                    <option value="inativos" {% if status == 'inativos' %}selected{% endif %}>Inativos</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search }}" placeholder="Nome do evento, local...">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Lista de Eventos -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-calendar-event me-2"></i>Lista de Eventos
+            <span class="badge bg-primary ms-2">{{ eventos.paginator.count }} eventos</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if eventos %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Evento</th>
+                            <th>Local</th>
+                            <th>Data</th>
+                            <th>Status</th>
+                            <th>Vagas</th>
+                            <th>Candidaturas</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for evento in eventos %}
+                        <tr>
+                            <td>
+                                <div>
+                                    <strong>{{ evento.nome }}</strong>
+                                    {% if evento.descricao %}
+                                        <br>
+                                        <small class="text-muted">{{ evento.descricao|truncatechars:50 }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    {{ evento.local.nome }}
+                                    {% if evento.local.endereco %}
+                                        <br>
+                                        <small class="text-muted">{{ evento.local.endereco|truncatechars:30 }}</small>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <strong>{{ evento.data_inicio|date:"d/m/Y" }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ evento.data_inicio|time:"H:i" }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                {% if evento.ativo %}
+                                    <span class="badge bg-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ evento.vagas.count }} vagas</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">{{ evento.candidaturas.count }} candidaturas</span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'admin_evento_detail' evento.id %}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary" 
+                                            data-bs-toggle="modal" data-bs-target="#editarEventoModal{{ evento.id }}" 
+                                            title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger btn-delete" 
+                                            data-bs-toggle="modal" data-bs-target="#excluirEventoModal{{ evento.id }}" 
+                                            title="Excluir">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Paginação -->
+            {% if eventos.has_other_pages %}
+            <nav aria-label="Paginação de eventos">
+                <ul class="pagination justify-content-center">
+                    {% if eventos.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if status %}&status={{ status }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Primeira</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ eventos.previous_page_number }}{% if status %}&status={{ status }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ eventos.number }} de {{ eventos.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if eventos.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ eventos.next_page_number }}{% if status %}&status={{ status }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Próxima</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ eventos.paginator.num_pages }}{% if status %}&status={{ status }}{% endif %}{% if search %}&search={{ search }}{% endif %}">Última</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x fs-1 text-muted"></i>
+                <h4 class="text-muted mt-3">Nenhum evento encontrado</h4>
+                <p class="text-muted">Comece criando seu primeiro evento</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#novoEventoModal">
+                    <i class="bi bi-plus-circle me-2"></i>Criar Primeiro Evento
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Novo Evento -->
+<div class="modal fade" id="novoEventoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Criar Novo Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get" action="#">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome" class="form-label">Nome do Evento *</label>
+                            <input type="text" class="form-control" id="nome" name="nome" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_inicio" class="form-label">Data de Início *</label>
+                            <input type="datetime-local" class="form-control" id="data_inicio" name="data_inicio" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_fim" class="form-label">Data de Fim</label>
+                            <input type="datetime-local" class="form-control" id="data_fim" name="data_fim">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="local" class="form-label">Local *</label>
+                            <select class="form-select" id="local" name="local" required>
+                                <option value="">Selecione um local</option>
+                                <!-- Aqui você carregaria os locais disponíveis -->
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao" name="descricao" rows="3"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo" name="ativo" checked>
+                                <label class="form-check-label" for="ativo">
+                                    Evento ativo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Criar Evento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modais de Edição e Exclusão para cada evento -->
+{% for evento in eventos %}
+<!-- Modal Editar Evento -->
+<div class="modal fade" id="editarEventoModal{{ evento.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Evento: {{ evento.nome }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="get" action="#">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nome{{ evento.id }}" class="form-label">Nome do Evento *</label>
+                            <input type="text" class="form-control" id="nome{{ evento.id }}" name="nome" 
+                                   value="{{ evento.nome }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_inicio{{ evento.id }}" class="form-label">Data de Início *</label>
+                            <input type="datetime-local" class="form-control" id="data_inicio{{ evento.id }}" 
+                                   name="data_inicio" value="{{ evento.data_inicio|date:'Y-m-d\TH:i' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="data_fim{{ evento.id }}" class="form-label">Data de Fim</label>
+                            <input type="datetime-local" class="form-control" id="data_fim{{ evento.id }}" 
+                                   name="data_fim" value="{% if evento.data_fim %}{{ evento.data_fim|date:'Y-m-d\TH:i' }}{% endif %}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="local{{ evento.id }}" class="form-label">Local *</label>
+                            <select class="form-select" id="local{{ evento.id }}" name="local" required>
+                                <option value="{{ evento.local.id }}" selected>{{ evento.local.nome }}</option>
+                                <!-- Aqui você carregaria os outros locais disponíveis -->
+                            </select>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label for="descricao{{ evento.id }}" class="form-label">Descrição</label>
+                            <textarea class="form-control" id="descricao{{ evento.id }}" name="descricao" rows="3">{{ evento.descricao }}</textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="ativo{{ evento.id }}" name="ativo" 
+                                       {% if evento.ativo %}checked{% endif %}>
+                                <label class="form-check-label" for="ativo{{ evento.id }}">
+                                    Evento ativo
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Excluir Evento -->
+<div class="modal fade" id="excluirEventoModal{{ evento.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir o evento <strong>"{{ evento.nome }}"</strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Esta ação não pode ser desfeita. Todos os dados relacionados ao evento serão perdidos.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form method="get" action="#" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Excluir Evento</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit do formulário de filtros quando o select de status muda
+    document.getElementById('status').addEventListener('change', function() {
+        this.form.submit();
+    });
+</script>
+{% endblock %}

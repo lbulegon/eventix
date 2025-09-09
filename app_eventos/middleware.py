@@ -23,6 +23,8 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/api/token/',
             '/api/token/refresh/',
             '/api/auth/',
+            '/api/v1/',  # API Mobile
+            '/api/desktop/',  # API Desktop
             '/static/',
             '/media/',
             '/favicon.ico',
