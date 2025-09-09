@@ -15,6 +15,9 @@ class AuthService {
   static String? _refreshToken;
   static Map<String, dynamic>? _userData;
 
+  /// Getter para a instância do Dio
+  static Dio get dio => _dio;
+
   /// Inicializa o serviço de autenticação
   static Future<void> initialize() async {
     try {
@@ -22,6 +25,10 @@ class AuthService {
       _accessToken = prefs.getString(_accessTokenKey);
       _refreshToken = prefs.getString(_refreshTokenKey);
       final userDataString = prefs.getString(_userDataKey);
+
+      print('🔧 [AUTH_SERVICE] Token carregado: ${_accessToken != null ? "SIM" : "NÃO"}');
+      print('🔧 [AUTH_SERVICE] Refresh token carregado: ${_refreshToken != null ? "SIM" : "NÃO"}');
+      print('🔧 [AUTH_SERVICE] Dados do usuário carregados: ${userDataString != null ? "SIM" : "NÃO"}');
 
       if (userDataString != null) {
         _userData = jsonDecode(userDataString);
@@ -89,13 +96,19 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = response.data;
 
-        _accessToken = data['access'];
-        _refreshToken = data['refresh'];
+        _accessToken = data['tokens']['access'];
+        _refreshToken = data['tokens']['refresh'];
         _userData = data['user'];
+
+        print('🔧 [AUTH_SERVICE] Token recebido: ${_accessToken != null ? "SIM" : "NÃO"}');
+        print('🔧 [AUTH_SERVICE] Refresh token recebido: ${_refreshToken != null ? "SIM" : "NÃO"}');
+        print('🔧 [AUTH_SERVICE] Dados do usuário recebidos: ${_userData != null ? "SIM" : "NÃO"}');
 
         // Salvar tokens e dados do usuário
         await _saveTokens();
         await _saveUserData();
+
+        print('🔧 [AUTH_SERVICE] Tokens salvos com sucesso');
 
         AppLogger.info('Login successful', category: LogCategory.auth, data: {
           'user_id': _userData?['id'],

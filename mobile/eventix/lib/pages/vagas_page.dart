@@ -295,15 +295,15 @@ class _VagasPageState extends State<VagasPage> {
             ),
             const SizedBox(height: 8),
 
-            // Evento
-            if (evento != null) ...[
+            // Evento - usando evento_nome que vem diretamente da vaga
+            if (vaga['evento_nome'] != null) ...[
               Row(
                 children: [
                   const Icon(Icons.event, size: 16, color: Color(0xFF6B7280)),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      evento['nome'] ?? 'Evento sem nome',
+                      vaga['evento_nome'],
                       style: const TextStyle(color: Color(0xFF6B7280)),
                     ),
                   ),
@@ -349,7 +349,7 @@ class _VagasPageState extends State<VagasPage> {
                     size: 16, color: Color(0xFF6B7280)),
                 const SizedBox(width: 8),
                 Text(
-                  'R\$ ${vaga['remuneracao']?.toStringAsFixed(2) ?? '0.00'}',
+                  'R\$ ${vaga['remuneracao']?.toString() ?? '0.00'}',
                   style: const TextStyle(
                     color: Color(0xFF6B7280),
                     fontWeight: FontWeight.w500,

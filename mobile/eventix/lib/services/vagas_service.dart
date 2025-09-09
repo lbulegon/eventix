@@ -5,19 +5,13 @@ import '../utils/app_logger.dart';
 import 'auth_service.dart';
 
 class VagasService {
-  static final Dio _dio = Dio();
+  static Dio _dio = Dio();
 
   /// Inicializa o serviço
   static void initialize() {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        if (AuthService.accessToken != null) {
-          options.headers['Authorization'] =
-              'Bearer ${AuthService.accessToken}';
-        }
-        handler.next(options);
-      },
-    ));
+    // Usar a mesma instância do Dio do AuthService
+    _dio = AuthService.dio;
+    print('🔧 [VAGAS_SERVICE] Inicializado com Dio do AuthService');
   }
 
   /// Lista vagas disponíveis

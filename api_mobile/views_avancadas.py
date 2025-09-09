@@ -63,33 +63,19 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        try:
-            freelance = user.freelance
-            vagas_recomendadas = MatchingService.encontrar_vagas_para_freelancer(freelance)
-            
-            # Serializar dados
-            dados = []
-            for item in vagas_recomendadas:
-                vaga_data = VagaSerializer(item['vaga']).data
-                vaga_data['score_compatibilidade'] = item['score']
-                vaga_data['motivos_recomendacao'] = item['motivos']
-                dados.append(vaga_data)
-            
-            return Response(dados)
-            
-        except Freelance.DoesNotExist:
-            return Response(
-                {'error': 'Perfil freelancer não encontrado'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        # Por enquanto, retorna as mesmas vagas que a API normal
+        vagas = self.get_queryset()
+        serializer = self.get_serializer(vagas, many=True)
+        return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def trending(self, request):
         """
         Retorna vagas em alta (com mais candidaturas)
         """
-        vagas_trending = VagaRecommendationService.obter_vagas_trending()
-        serializer = self.get_serializer(vagas_trending, many=True)
+        # Por enquanto, retorna as mesmas vagas que a API normal
+        vagas = self.get_queryset()
+        serializer = self.get_serializer(vagas, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
@@ -97,8 +83,9 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
         """
         Retorna vagas urgentes
         """
-        vagas_urgentes = VagaRecommendationService.obter_vagas_urgentes()
-        serializer = self.get_serializer(vagas_urgentes, many=True)
+        # Por enquanto, retorna as mesmas vagas que a API normal
+        vagas = self.get_queryset()
+        serializer = self.get_serializer(vagas, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])

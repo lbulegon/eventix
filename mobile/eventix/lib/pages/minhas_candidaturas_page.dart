@@ -253,7 +253,7 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      evento['nome'] ?? 'Evento sem nome',
+                      evento is Map ? (evento['nome'] ?? 'Evento sem nome') : 'Evento ID: $evento',
                       style: const TextStyle(color: Color(0xFF6B7280)),
                     ),
                   ),

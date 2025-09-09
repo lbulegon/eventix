@@ -4,6 +4,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -370,3 +372,62 @@ class PasswordResetConfirmView(APIView):
             
             return Response({'error': 'Token inválido'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class CustomTokenObtainPairView(TokenObtainPairView):
+    """
+    View personalizada para login com JWT
+    """
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            # Adicionar dados do usuário na resposta
+            user = User.objects.get(username=request.data.get('username'))
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'tipo_usuario': user.tipo_usuario,
+            }
+            
+            # Adicionar dados específicos do tipo de usuário
+            if user.is_freelancer:
+                try:
+                    freelance = user.freelance
+                    user_data.update({
+                        'freelance_id': freelance.id,
+                        'nome_completo': freelance.nome_completo,
+                        'cadastro_completo': freelance.cadastro_completo,
+                    })
+                except:
+                    pass
+            elif user.is_empresa_user:
+                try:
+                    empresa = user.empresa_contratante
+                    user_data.update({
+                        'empresa_id': empresa.id,
+                        'empresa_nome': empresa.nome,
+                    })
+                except:
+                    pass
+            
+            response.data['user'] = user_data
+            response.data['tokens'] = {
+                'access': response.data['access'],
+                'refresh': response.data['refresh']
+            }
+            # Remover os tokens do nível raiz
+            del response.data['access']
+            del response.data['refresh']
+        
+        return response
+
+
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    View personalizada para refresh de token
+    """
+    pass

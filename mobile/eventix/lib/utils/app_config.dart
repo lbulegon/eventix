@@ -4,9 +4,9 @@ class AppConfig {
   static const String apiUrl = '$baseUrl$apiPrefix';
 
   // Autenticação
-  static const String login = '$baseUrl/api/auth/login/';
-  static const String refreshToken = '$baseUrl/api/auth/refresh/';
-  static const String logout = '$baseUrl/api/auth/logout/';
+  static const String login = '$apiUrl/auth/login/';
+  static const String refreshToken = '$apiUrl/auth/refresh/';
+  static const String logout = '$apiUrl/auth/logout/';
   static const String tokenVerify = '$apiUrl/token/verify/';
   static const String userProfile = '$apiUrl/users/profile/';
 
@@ -18,9 +18,9 @@ class AppConfig {
 
   // Endpoints de Vagas
   static const String vagasDisponiveis = '$apiUrl/vagas/';
-  static const String vagasRecomendadas = '$apiUrl/vagas/recomendadas/';
-  static const String vagasTrending = '$apiUrl/vagas/trending/';
-  static const String vagasUrgentes = '$apiUrl/vagas/urgentes/';
+  static const String vagasRecomendadas = '$apiUrl/vagas-avancadas/recomendadas/';
+  static const String vagasTrending = '$apiUrl/vagas-avancadas/trending/';
+  static const String vagasUrgentes = '$apiUrl/vagas-avancadas/urgentes/';
   static const String candidaturas = '$apiUrl/candidaturas/';
   static const String cancelarCandidatura = '$apiUrl/candidaturas/';
   static const String aprovarCandidatura = '$apiUrl/candidaturas/';

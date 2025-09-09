@@ -4,13 +4,17 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     VagaViewSet, CandidaturaViewSet, EventoViewSet, FreelanceViewSet,
     EmpresaViewSet, EmpresaContratanteViewSet, UserProfileView,
-    TokenVerifyView, PasswordResetView, PasswordResetConfirmView
+    TokenVerifyView, PasswordResetView, PasswordResetConfirmView,
+    CustomTokenObtainPairView, CustomTokenRefreshView
 )
 from .views_funcoes import FuncaoViewSet, FreelancerFuncaoViewSet
+from .views_avancadas import VagaAvancadaViewSet, CandidaturaAvancadaViewSet
 
 router = DefaultRouter()
 router.register(r'vagas', VagaViewSet, basename='vaga')
+router.register(r'vagas-avancadas', VagaAvancadaViewSet, basename='vaga-avancada')
 router.register(r'candidaturas', CandidaturaViewSet, basename='candidatura')
+router.register(r'candidaturas-avancadas', CandidaturaAvancadaViewSet, basename='candidatura-avancada')
 router.register(r'eventos', EventoViewSet, basename='evento')
 router.register(r'freelancers', FreelanceViewSet, basename='freelancer')
 router.register(r'empresas', EmpresaViewSet, basename='empresa')
@@ -21,6 +25,11 @@ router.register(r'freelancers/funcoes', FreelancerFuncaoViewSet, basename='freel
 urlpatterns = [
     # URLs do router
     path('', include(router.urls)),
+    
+    # URLs de autenticação
+    path('auth/login/', CustomTokenObtainPairView.as_view(), name='token-obtain-pair'),
+    path('auth/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
+    path('auth/logout/', TokenVerifyView.as_view(), name='token-logout'),
     
     # URLs específicas
     path('users/profile/', UserProfileView.as_view(), name='user-profile'),
