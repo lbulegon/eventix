@@ -197,7 +197,7 @@ class Command(BaseCommand):
                 'data_fim': timezone.now() + timedelta(days=32),
                 'local': local,
                 'empresa_contratante': empresa,
-                'empresa_contratante_mao_obra': empresa_proprietaria
+                'empresa_contratante_recursos': empresa_proprietaria
             },
             {
                 'nome': 'Feira de Tecnologia',
@@ -206,7 +206,7 @@ class Command(BaseCommand):
                 'data_fim': timezone.now() + timedelta(days=47),
                 'local': local,
                 'empresa_contratante': empresa,
-                'empresa_contratante_mao_obra': empresa_proprietaria
+                'empresa_contratante_recursos': empresa_proprietaria
             },
             {
                 'nome': 'Conferência de Marketing Digital',
@@ -215,7 +215,7 @@ class Command(BaseCommand):
                 'data_fim': timezone.now() + timedelta(days=61),
                 'local': local,
                 'empresa_contratante': empresa,
-                'empresa_contratante_mao_obra': empresa_proprietaria
+                'empresa_contratante_recursos': empresa_proprietaria
             }
         ]
         

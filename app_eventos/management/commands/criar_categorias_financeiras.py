@@ -21,7 +21,7 @@ class Command(BaseCommand):
                 'cor': '#fd7e14'
             },
             {
-                'nome': 'Mão de Obra',
+                'nome': 'Recursos Humanos',
                 'descricao': 'Pagamentos de freelancers e funcionários',
                 'tipo': 'despesa',
                 'cor': '#e83e8c'

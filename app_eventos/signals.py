@@ -1,7 +1,7 @@
 # app_eventos/signals.py
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from .models import Candidatura, ContratoFreelance, User, GrupoUsuario
+from .models import Candidatura, ContratoFreelance, User, GrupoUsuario, ComissaoEventix
 
 @receiver(post_save, sender=Candidatura)
 def criar_contrato_ao_aprovar(sender, instance, created, **kwargs):
@@ -117,4 +117,61 @@ def verificar_mudanca_tipo_usuario(sender, instance, **kwargs):
             )
             for grupo in grupos_empresa_antiga:
                 instance.remover_do_grupo(grupo)
+
+
+@receiver(post_save, sender=ContratoFreelance)
+def calcular_comissao_eventix(sender, instance, created, **kwargs):
+    """
+    Quando um ContratoFreelance é criado, calcula automaticamente a comissão do Eventix.
+    """
+    if created and instance.status == 'ativo':
+        try:
+            # Verifica se já existe comissão para evitar duplicação
+            if not ComissaoEventix.objects.filter(contrato_freelance=instance).exists():
+                # Obtém o percentual de comissão do plano da empresa
+                empresa = instance.vaga.empresa_contratante
+                percentual_comissao = empresa.plano_contratado.percentual_comissao if empresa.plano_contratado else 6.00
+                
+                # Cria a comissão
+                ComissaoEventix.objects.create(
+                    contrato_freelance=instance,
+                    empresa_contratante=empresa,
+                    valor_vaga_freelancer=instance.vaga.remuneracao,
+                    percentual_comissao=percentual_comissao,
+                    status='calculada'
+                )
+        except Exception as e:
+            # Log do erro (em produção, usar logging adequado)
+            print(f"Erro ao calcular comissão: {e}")
+
+
+@receiver(pre_save, sender=ContratoFreelance)
+def atualizar_comissao_ao_alterar_status(sender, instance, **kwargs):
+    """
+    Atualiza o status da comissão quando o status do contrato muda.
+    """
+    if not instance.pk:
+        return
+    
+    try:
+        contrato_antigo = ContratoFreelance.objects.get(pk=instance.pk)
+    except ContratoFreelance.DoesNotExist:
+        return
+    
+    # Se o status mudou, atualiza a comissão correspondente
+    if contrato_antigo.status != instance.status:
+        try:
+            comissao = ComissaoEventix.objects.get(contrato_freelance=instance)
+            
+            # Mapeia status do contrato para status da comissão
+            if instance.status == 'finalizado':
+                comissao.status = 'cobrada'
+            elif instance.status == 'cancelado':
+                comissao.status = 'cancelada'
+            elif instance.status == 'ativo':
+                comissao.status = 'calculada'
+            
+            comissao.save()
+        except ComissaoEventix.DoesNotExist:
+            pass  # Comissão não existe ainda
 

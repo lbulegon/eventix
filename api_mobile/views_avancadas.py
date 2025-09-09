@@ -34,22 +34,29 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                 ativa=True,
                 publicada=True,
                 data_limite_candidatura__gte=timezone.now()
-            ).select_related('setor__evento', 'funcao', 'criado_por')
+            ).select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
         elif user.is_empresa_user:
             # Empresa vê suas próprias vagas
             return Vaga.objects.filter(
-                setor__evento__empresa_contratante=user.empresa_contratante
-            ).select_related('setor__evento', 'funcao', 'criado_por')
+                empresa_contratante=user.empresa_contratante
+            ).select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
         else:
             # Admin vê todas
-            return Vaga.objects.all().select_related('setor__evento', 'funcao', 'criado_por')
+            return Vaga.objects.all().select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
     
     def perform_create(self, serializer):
         user = self.request.user
         if not user.is_empresa_user:
             raise serializers.ValidationError("Apenas empresas podem criar vagas")
         
-        serializer.save(criado_por=user)
+        # Define a empresa contratante baseada no setor do evento
+        setor = serializer.validated_data['setor']
+        empresa_contratante = setor.evento.empresa_contratante
+        
+        serializer.save(
+            criado_por=user,
+            empresa_contratante=empresa_contratante
+        )
     
     @action(detail=False, methods=['get'])
     def recomendadas(self, request):
@@ -118,7 +125,7 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+        if vaga.empresa_contratante != user.empresa_contratante:
             return Response(
                 {'error': 'Você não pode publicar esta vaga'},
                 status=status.HTTP_403_FORBIDDEN
@@ -143,7 +150,7 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+        if vaga.empresa_contratante != user.empresa_contratante:
             return Response(
                 {'error': 'Você não pode despublicar esta vaga'},
                 status=status.HTTP_403_FORBIDDEN
@@ -169,7 +176,7 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if user.is_empresa_user and vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+        if user.is_empresa_user and vaga.empresa_contratante != user.empresa_contratante:
             return Response(
                 {'error': 'Você não pode ver estatísticas desta vaga'},
                 status=status.HTTP_403_FORBIDDEN
@@ -216,7 +223,7 @@ class CandidaturaAvancadaViewSet(viewsets.ModelViewSet):
         else:
             # Empresa vê candidaturas para suas vagas
             return Candidatura.objects.filter(
-                vaga__setor__evento__empresa_contratante=user.empresa_contratante
+                vaga__empresa_contratante=user.empresa_contratante
             ).select_related('vaga__setor__evento', 'vaga__funcao', 'freelance', 'analisado_por')
     
     def perform_create(self, serializer):
@@ -255,7 +262,7 @@ class CandidaturaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if candidatura.vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+        if candidatura.vaga.empresa_contratante != user.empresa_contratante:
             return Response(
                 {'error': 'Você não pode aprovar esta candidatura'},
                 status=status.HTTP_403_FORBIDDEN
@@ -283,7 +290,7 @@ class CandidaturaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if candidatura.vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+        if candidatura.vaga.empresa_contratante != user.empresa_contratante:
             return Response(
                 {'error': 'Você não pode rejeitar esta candidatura'},
                 status=status.HTTP_403_FORBIDDEN
@@ -335,7 +342,7 @@ class CandidaturaAvancadaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if candidatura.vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+        if candidatura.vaga.empresa_contratante != user.empresa_contratante:
             return Response(
                 {'error': 'Você não pode avaliar esta candidatura'},
                 status=status.HTTP_403_FORBIDDEN
@@ -421,7 +428,7 @@ class FreelancerRecommendationView(APIView):
             vaga = Vaga.objects.get(id=vaga_id)
             
             # Verificar se a vaga pertence à empresa
-            if vaga.setor.evento.empresa_contratante != user.empresa_contratante:
+            if vaga.empresa_contratante != user.empresa_contratante:
                 return Response(
                     {'error': 'Você não pode ver recomendações para esta vaga'},
                     status=status.HTTP_403_FORBIDDEN

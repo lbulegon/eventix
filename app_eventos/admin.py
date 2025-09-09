@@ -1,6 +1,6 @@
 # app_eventos/admin.py
 from .models import (
-    User, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
+    User, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
@@ -44,12 +44,39 @@ class ScopedAdmin(admin.ModelAdmin):
             return qs.filter(empresa_contratante=u.empresa_contratante)
         return qs.none() if not u.is_superuser else qs
 
+@admin.register(PlanoContratacao)
+class PlanoContratacaoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'tipo_plano', 'valor_mensal', 'max_eventos_mes', 'max_usuarios', 'ativo')
+    list_filter = ('tipo_plano', 'ativo', 'suporte_24h', 'relatorios_avancados')
+    search_fields = ('nome', 'descricao')
+    readonly_fields = ('data_criacao', 'data_atualizacao')
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('nome', 'tipo_plano', 'descricao', 'ativo')
+        }),
+        ('Limites e Recursos', {
+            'fields': ('max_eventos_mes', 'max_usuarios', 'max_freelancers', 'max_equipamentos', 'max_locais')
+        }),
+        ('Recursos Inclusos', {
+            'fields': ('suporte_24h', 'relatorios_avancados', 'integracao_api', 'backup_automatico', 'ssl_certificado', 'dominio_personalizado')
+        }),
+        ('Preços', {
+            'fields': ('valor_mensal', 'valor_anual', 'desconto_anual')
+        }),
+        ('Metadados', {
+            'fields': ('data_criacao', 'data_atualizacao'),
+            'classes': ('collapse',)
+        }),
+    )
+
 @admin.register(EmpresaContratante)
 class EmpresaContratanteAdmin(admin.ModelAdmin):
     list_display = ('nome_fantasia', 'cnpj', 'plano_contratado', 'valor_mensal', 'ativo', 'data_vencimento')
-    list_filter = ('ativo', 'plano_contratado', 'data_contratacao')
+    list_filter = ('ativo', 'plano_contratado__tipo_plano', 'data_contratacao')
     search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email')
     readonly_fields = ('data_contratacao', 'data_atualizacao')
+    autocomplete_fields = ('plano_contratado',)
     
     fieldsets = (
         ("Informações Básicas", {
@@ -108,19 +135,32 @@ class EmpresaAdmin(admin.ModelAdmin):
 
 
 @admin.register(LocalEvento)
-class LocalEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('nome', 'endereco', 'capacidade', 'empresa_contratante', 'empresa_proprietaria', 'ativo')
-    list_filter = ('ativo', 'empresa_contratante')
+class LocalEventoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'endereco', 'capacidade', 'empresa_proprietaria', 'ativo')
+    list_filter = ('ativo', 'empresa_proprietaria')
     search_fields = ('nome', 'endereco')
     autocomplete_fields = ('empresa_proprietaria',)
 
 
 @admin.register(Evento)
 class EventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('nome', 'data_inicio', 'data_fim', 'empresa_contratante', 'local', 'ativo')
-    list_filter = ('ativo', 'empresa_contratante', 'data_inicio', 'data_fim')
+    list_display = ('nome', 'data_inicio', 'data_fim', 'empresa_contratante', 'empresa_produtora', 'local', 'ativo')
+    list_filter = ('ativo', 'empresa_contratante', 'empresa_produtora', 'data_inicio', 'data_fim')
     search_fields = ('nome',)
-    autocomplete_fields = ('local', 'empresa_produtora', 'empresa_contratante_mao_obra')
+    autocomplete_fields = ('local', 'empresa_produtora', 'empresa_contratante')
+    
+    fieldsets = (
+        ("Informações Básicas", {
+            "fields": ("nome", "descricao", "data_inicio", "data_fim", "local")
+        }),
+        ("Empresas", {
+            "fields": ("empresa_contratante", "empresa_produtora"),
+            "description": "Empresa Contratante = Operadora (cria e gerencia) | Empresa Produtora = Concedente (apenas referência)"
+        }),
+        ("Status", {
+            "fields": ("ativo",)
+        }),
+    )
 
 
 @admin.register(SetorEvento)
@@ -133,10 +173,23 @@ class SetorEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
 
 @admin.register(Vaga)
 class VagaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('titulo', 'setor', 'quantidade', 'remuneracao', 'ativa')
-    list_filter = ('ativa', 'setor__evento__empresa_contratante')
+    list_display = ('titulo', 'empresa_contratante', 'setor', 'quantidade', 'remuneracao', 'ativa')
+    list_filter = ('ativa', 'empresa_contratante', 'setor__evento')
     search_fields = ('titulo',)
-    autocomplete_fields = ('setor',)
+    autocomplete_fields = ('setor', 'empresa_contratante', 'funcao')
+    
+    fieldsets = (
+        ("Informações da Vaga", {
+            "fields": ("titulo", "descricao", "requisitos", "quantidade", "remuneracao")
+        }),
+        ("Relacionamentos", {
+            "fields": ("setor", "empresa_contratante", "funcao"),
+            "description": "Empresa Contratante = Operadora (quem cria e contrata freelancers)"
+        }),
+        ("Status", {
+            "fields": ("ativa", "publicada", "data_limite_candidatura")
+        }),
+    )
 
 
 @admin.register(TipoFuncao)

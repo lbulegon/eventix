@@ -108,14 +108,63 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
 
 class EmpresaContextMiddleware(MiddlewareMixin):
     """
-    Middleware para adicionar contexto da empresa contratante
+    Middleware para adicionar contexto completo da empresa contratante
     """
     
     def process_request(self, request):
         try:
             if request.user.is_authenticated and hasattr(request.user, 'empresa_contratante'):
-                request.empresa_contratante = request.user.empresa_contratante
-            else:
-                request.empresa_contratante = None
-        except Exception:
+                # Carrega dados completos da empresa contratante
+                empresa = request.user.empresa_contratante
+                if empresa:
+                    # Adiciona dados da empresa ao request
+                    request.empresa_contratante = empresa
+                    request.empresa_contratante_id = empresa.id
+                    request.empresa_contratante_nome = empresa.nome_fantasia
+                    request.empresa_contratante_cnpj = empresa.cnpj
+                    request.empresa_contratante_plano = empresa.plano_contratado
+                    request.empresa_contratante_ativa = empresa.ativo
+                    
+                    # Carrega dados do plano contratado
+                    if hasattr(empresa, 'plano_contratado') and empresa.plano_contratado:
+                        plano = empresa.plano_contratado
+                        request.empresa_plano_nome = plano.nome
+                        request.empresa_plano_tipo = plano.tipo_plano
+                        request.empresa_plano_limites = {
+                            'max_eventos_mes': plano.max_eventos_mes,
+                            'max_usuarios': plano.max_usuarios,
+                            'max_freelancers': plano.max_freelancers,
+                            'max_equipamentos': plano.max_equipamentos,
+                            'max_locais': plano.max_locais,
+                        }
+                        request.empresa_plano_recursos = {
+                            'suporte_24h': plano.suporte_24h,
+                            'relatorios_avancados': plano.relatorios_avancados,
+                            'integracao_api': plano.integracao_api,
+                            'backup_automatico': plano.backup_automatico,
+                            'ssl_certificado': plano.ssl_certificado,
+                            'dominio_personalizado': plano.dominio_personalizado,
+                        }
+                    
+                    # Carrega empresas parceiras da empresa contratante
+                    from .models import Empresa
+                    empresas_parceiras = Empresa.objects.filter(ativo=True)
+                    request.empresas_parceiras = empresas_parceiras
+                    
+                    # Carrega dados do usuário
+                    request.usuario_tipo = request.user.tipo_usuario
+                    request.usuario_ativo = request.user.ativo
+                    request.usuario_ultimo_acesso = request.user.data_ultimo_acesso
+                    
+                    # Atualiza último acesso
+                    from django.utils import timezone
+                    request.user.data_ultimo_acesso = timezone.now()
+                    request.user.save(update_fields=['data_ultimo_acesso'])
+                    
+                    print(f"🏢 Dados da empresa carregados: {empresa.nome_fantasia} (ID: {empresa.id})")
+                    print(f"👤 Usuário: {request.user.username} - {request.user.tipo_usuario}")
+                    
+        except Exception as e:
+            print(f"❌ Erro ao carregar dados da empresa: {e}")
+            # Em caso de erro, não bloqueia o acesso
             request.empresa_contratante = None

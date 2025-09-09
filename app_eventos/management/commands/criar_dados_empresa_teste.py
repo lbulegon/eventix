@@ -79,7 +79,7 @@ class Command(BaseCommand):
                     'local': local_evento,
                     'empresa_produtora': empresa_proprietaria,
                     'empresa_contratante': empresa_contratante,
-                    'empresa_contratante_mao_obra': empresa_proprietaria,
+                    'empresa_contratante_recursos': empresa_proprietaria,
                     'ativo': True
                 }
             )

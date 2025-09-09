@@ -56,7 +56,7 @@ def criar_tipos_empresa():
     
     tipos_data = [
         {'nome': 'Produtora', 'descricao': 'Empresas produtoras de eventos'},
-        {'nome': 'Contratante de Mão de Obra', 'descricao': 'Empresas que contratam freelancers'},
+        {'nome': 'Contratante de Recursos', 'descricao': 'Empresas que contratam freelancers'},
         {'nome': 'Proprietária de Local', 'descricao': 'Empresas proprietárias de locais de eventos'},
         {'nome': 'Fornecedora', 'descricao': 'Empresas fornecedoras de serviços e equipamentos'},
     ]
@@ -149,7 +149,7 @@ def criar_evento(empresa_contratante, local, empresa_produtora):
             'descricao': 'Festival de música eletrônica com DJs nacionais e internacionais, food trucks e muito mais!',
             'local': local,
             'empresa_produtora': empresa_produtora,
-            'empresa_contratante_mao_obra': empresa_produtora,
+            'empresa_contratante_recursos': empresa_produtora,
             'ativo': True
         }
     )

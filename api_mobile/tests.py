@@ -72,7 +72,7 @@ class VagaAPITestCase(APITestCase):
             data_fim="2024-12-02",
             local=self.local,
             empresa_contratante=self.empresa,
-            empresa_contratante_mao_obra=self.empresa_proprietaria
+            empresa_contratante_recursos=self.empresa_proprietaria
         )
         
         # Criar setor

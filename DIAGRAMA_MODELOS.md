@@ -534,7 +534,7 @@ erDiagram
     %% Relacionamentos
     EmpresaContratante ||--o{ User : "usuarios"
     EmpresaContratante ||--o{ Empresa : "empresas_parceiras"
-    EmpresaContratante ||--o{ LocalEvento : "locais_eventos"
+    Empresa ||--o{ LocalEvento : "locais"
     EmpresaContratante ||--o{ Evento : "eventos"
     EmpresaContratante ||--o{ CategoriaEquipamento : "categorias_equipamentos"
     EmpresaContratante ||--o{ Equipamento : "equipamentos"

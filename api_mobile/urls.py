@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     VagaViewSet, CandidaturaViewSet, EventoViewSet, FreelanceViewSet,
-    EmpresaViewSet, EmpresaContratanteViewSet, UserProfileView,
+    EmpresaViewSet, EmpresaContratanteViewSet, UserProfileView, EmpresaDataView,
     TokenVerifyView, PasswordResetView, PasswordResetConfirmView,
     CustomTokenObtainPairView, CustomTokenRefreshView
 )
@@ -33,6 +33,7 @@ urlpatterns = [
     
     # URLs específicas
     path('users/profile/', UserProfileView.as_view(), name='user-profile'),
+    path('users/empresa-data/', EmpresaDataView.as_view(), name='empresa-data'),
     path('token/verify/', TokenVerifyView.as_view(), name='token-verify'),
     path('password/password-reset/', PasswordResetView.as_view(), name='password-reset'),
     path('password/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),

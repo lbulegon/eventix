@@ -48,7 +48,7 @@ O sistema utiliza uma arquitetura multi-tenant baseada em **EmpresaContratante**
 #### Evento
 - **Informações Básicas**: Nome, Data Início/Fim, Descrição
 - **Localização**: Vinculação com LocalEvento
-- **Empresas**: Produtora e Contratante de Mão de Obra
+- **Empresas**: Produtora e Contratante de Recursos
 - **Controle**: Status ativo/inativo
 
 #### LocalEvento

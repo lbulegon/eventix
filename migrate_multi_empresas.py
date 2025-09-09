@@ -45,7 +45,7 @@ def criar_tipos_empresa():
     
     tipos_empresa = [
         {'nome': 'Produtora', 'descricao': 'Empresas produtoras de eventos'},
-        {'nome': 'Contratante de Mão de Obra', 'descricao': 'Empresas que contratam freelancers'},
+        {'nome': 'Contratante de Recursos', 'descricao': 'Empresas que contratam freelancers'},
         {'nome': 'Proprietária de Local', 'descricao': 'Empresas proprietárias de locais de eventos'},
         {'nome': 'Fornecedora', 'descricao': 'Empresas fornecedoras de serviços e equipamentos'},
     ]

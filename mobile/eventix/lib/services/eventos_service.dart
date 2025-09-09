@@ -80,13 +80,13 @@ class EventosService {
     required String dataInicio,
     required String dataFim,
     required int localId,
-    required int empresaContratanteMaoObraId,
+    required int empresaContratanteRecursosId,
   }) async {
     try {
       AppLogger.info('Creating evento', category: LogCategory.api, data: {
         'nome': nome,
         'local_id': localId,
-        'empresa_contratante_mao_obra_id': empresaContratanteMaoObraId,
+        'empresa_contratante_recursos_id': empresaContratanteRecursosId,
       });
 
       final response = await _dio.post(
@@ -97,7 +97,7 @@ class EventosService {
           'data_inicio': dataInicio,
           'data_fim': dataFim,
           'local_id': localId,
-          'empresa_contratante_mao_obra_id': empresaContratanteMaoObraId,
+          'empresa_contratante_recursos_id': empresaContratanteRecursosId,
         },
       );
 

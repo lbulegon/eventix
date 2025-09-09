@@ -1,3 +1,35 @@
+"""
+MODELOS DO SISTEMA EVENTIX
+
+ESTRUTURA DE EMPRESAS:
+=====================
+
+1. EmpresaContratante (Operadora do Sistema):
+   - Empresa que CRIA e GERENCIA eventos no Eventix
+   - Contrata toda mão de obra (freelancers)
+   - Cria os setores e faz toda logística
+   - Controla gastos, equipamentos e operações
+   - Responsável por toda operação no sistema
+   - Atribui empresa concedente para fazer ligação
+
+2. Empresa (Empresa Concedente/Fornecedora):
+   - Empresa que CONCEDE/FORNECE a oportunidade do evento
+   - NÃO opera no Eventix (apenas referência)
+   - Usada para comunicação e ligação entre empresas
+   - Independente da empresa contratante
+
+3. Fluxo de Trabalho:
+   - Empresa Contratante cria evento no Eventix
+   - Empresa Contratante atribui Empresa Concedente
+   - Empresa Contratante opera tudo (freelancers, setores, etc.)
+   - Empresa Concedente não se envolve no sistema
+
+4. Relacionamentos:
+   - Evento.empresa_contratante = OPERADORA (quem cria e gerencia)
+   - Evento.empresa_produtora = CONCEDENTE (referência para ligação)
+   - Vaga.empresa_contratante = OPERADORA (quem contrata freelancers)
+"""
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -240,6 +272,94 @@ class UsuarioGrupo(models.Model):
         return f"{self.usuario.username} - {self.grupo.nome}"
 
 
+class PlanoContratacao(models.Model):
+    """
+    Planos de contratação disponíveis para o sistema Eventix
+    """
+    TIPO_PLANO_CHOICES = [
+        ('basico', 'Básico'),
+        ('profissional', 'Profissional'),
+        ('empresarial', 'Empresarial'),
+        ('enterprise', 'Enterprise'),
+        ('personalizado', 'Personalizado'),
+    ]
+    
+    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome do Plano")
+    tipo_plano = models.CharField(
+        max_length=20, 
+        choices=TIPO_PLANO_CHOICES, 
+        verbose_name="Tipo de Plano"
+    )
+    descricao = models.TextField(verbose_name="Descrição do Plano")
+    
+    # Limites e Recursos
+    max_eventos_mes = models.IntegerField(verbose_name="Máximo de Eventos por Mês")
+    max_usuarios = models.IntegerField(verbose_name="Máximo de Usuários")
+    max_freelancers = models.IntegerField(verbose_name="Máximo de Freelancers")
+    max_equipamentos = models.IntegerField(verbose_name="Máximo de Equipamentos")
+    max_locais = models.IntegerField(verbose_name="Máximo de Locais")
+    
+    # Recursos Inclusos
+    suporte_24h = models.BooleanField(default=False, verbose_name="Suporte 24h")
+    relatorios_avancados = models.BooleanField(default=False, verbose_name="Relatórios Avançados")
+    integracao_api = models.BooleanField(default=False, verbose_name="Integração API")
+    backup_automatico = models.BooleanField(default=False, verbose_name="Backup Automático")
+    ssl_certificado = models.BooleanField(default=False, verbose_name="SSL Certificado")
+    dominio_personalizado = models.BooleanField(default=False, verbose_name="Domínio Personalizado")
+    
+    # Preços
+    valor_mensal = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        verbose_name="Valor Mensal"
+    )
+    valor_anual = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        blank=True, 
+        null=True,
+        verbose_name="Valor Anual (com desconto)"
+    )
+    desconto_anual = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=0,
+        verbose_name="Desconto Anual (%)"
+    )
+    
+    # Comissão do Eventix
+    percentual_comissao = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=6.00,
+        verbose_name="Percentual de Comissão (%)",
+        help_text="Percentual que o Eventix cobra da empresa contratante sobre o valor das vagas (ex: 6% sobre R$ 100 = R$ 6 de comissão + R$ 100 para o freelancer = R$ 106 total)"
+    )
+    
+    # Status
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_atualizacao = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Plano de Contratação"
+        verbose_name_plural = "Planos de Contratação"
+        ordering = ['valor_mensal']
+    
+    def __str__(self):
+        return f"{self.nome} - R$ {self.valor_mensal}/mês"
+    
+    @property
+    def valor_anual_calculado(self):
+        """Calcula o valor anual com desconto"""
+        if self.valor_anual:
+            return self.valor_anual
+        valor_anual = self.valor_mensal * 12
+        if self.desconto_anual > 0:
+            valor_anual = valor_anual * (1 - self.desconto_anual / 100)
+        return valor_anual
+
+
 class EmpresaContratante(models.Model):
     """
     Empresa que contratou o sistema Eventix
@@ -266,7 +386,14 @@ class EmpresaContratante(models.Model):
     # Contrato
     data_contratacao = models.DateField(auto_now_add=True, verbose_name="Data de Contratação")
     data_vencimento = models.DateField(verbose_name="Data de Vencimento", db_index=True)
-    plano_contratado = models.CharField(max_length=50, verbose_name="Plano Contratado")
+    plano_contratado = models.ForeignKey(
+        PlanoContratacao,
+        on_delete=models.PROTECT,
+        related_name="empresas_contratantes",
+        verbose_name="Plano Contratado",
+        blank=True,
+        null=True
+    )
     valor_mensal = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor Mensal")
     
     # Status
@@ -333,14 +460,6 @@ class LocalEvento(models.Model):
     endereco             = models.CharField(max_length=255)
     capacidade           = models.IntegerField()
     descricao            = models.TextField(blank=True, null=True, verbose_name="Descrição")
-    empresa_contratante  = models.ForeignKey(
-        EmpresaContratante,
-        on_delete=models.CASCADE,
-        related_name="locais_eventos",
-        verbose_name="Empresa Contratante",
-        null=True,
-        blank=True
-    )
     empresa_proprietaria = models.ForeignKey(
         Empresa,
         on_delete=models.CASCADE,
@@ -350,18 +469,23 @@ class LocalEvento(models.Model):
     ativo = models.BooleanField(default=True)
 
     def __str__(self):
-        empresa = self.empresa_contratante.nome_fantasia if self.empresa_contratante else "—"
-        return f"{self.nome} - {empresa}"
+        return f"{self.nome} - {self.empresa_proprietaria.nome}"
 
 
 class Evento(models.Model):
+    """
+    Modelo para eventos do sistema.
+    
+    Fluxo de trabalho:
+    - empresa_contratante: OPERADORA (cria evento, gerencia tudo no Eventix)
+    - empresa_produtora: CONCEDENTE (referência para ligação, não opera no sistema)
+    """
     empresa_contratante = models.ForeignKey(
         EmpresaContratante,
         on_delete=models.CASCADE,
         related_name="eventos",
-        verbose_name="Empresa Contratante",
-        null=True,
-        blank=True
+        verbose_name="Empresa Contratante (Operadora)",
+        help_text="Empresa que cria e gerencia o evento no Eventix, contrata mão de obra e faz toda logística"
     )
     nome = models.CharField(max_length=200)
     data_inicio = models.DateField()
@@ -372,14 +496,11 @@ class Evento(models.Model):
         Empresa,
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name="eventos_produzidos"
+        related_name="eventos_produzidos",
+        verbose_name="Empresa Produtora (Concedente)",
+        help_text="Empresa que concede/fornece a oportunidade do evento (apenas referência, não opera no sistema)"
     )
-    empresa_contratante_mao_obra = models.ForeignKey(
-        Empresa,
-        on_delete=models.CASCADE,
-        related_name="eventos_contratados",
-        verbose_name="Empresa Contratante de Mão de Obra"
-    )
+    
     ativo         = models.BooleanField(default=True)
     data_criacao  = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
@@ -461,8 +582,7 @@ class Evento(models.Model):
         return self.receitas.filter(
             status='pendente',
             data_vencimento__lt=timezone.now().date()
-        )
-
+        ) 
 
 class EventoFreelancerInfo(models.Model):
     """
@@ -1014,6 +1134,12 @@ class Vaga(models.Model):
     ]
     
     setor = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="vagas")
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="vagas",
+        verbose_name="Empresa Contratante"
+    )
     titulo = models.CharField(max_length=200, verbose_name="Título da Vaga")
     funcao = models.ForeignKey(Funcao, on_delete=models.CASCADE, related_name="vagas", verbose_name="Função", null=True, blank=True)
     quantidade = models.PositiveIntegerField(verbose_name="Quantidade de Vagas")
@@ -4482,6 +4608,114 @@ class ParceriaEstrategica(models.Model):
     
     def __str__(self):
         return f"{self.nome_parceria} - {self.parceiro_nome}"
+
+
+class ComissaoEventix(models.Model):
+    """
+    Modelo para rastrear as comissões que o Eventix cobra da empresa contratante
+    sobre as vagas de freelancers contratados.
+    
+    Lógica: Empresa paga valor_vaga para freelancer + comissão para Eventix
+    Exemplo: Vaga R$ 100 + 6% comissão = Empresa paga R$ 106 total
+    """
+    STATUS_CHOICES = [
+        ('pendente', 'Pendente'),
+        ('calculada', 'Calculada'),
+        ('cobrada', 'Cobrada'),
+        ('paga', 'Paga'),
+        ('cancelada', 'Cancelada'),
+    ]
+    
+    # Relacionamentos
+    contrato_freelance = models.OneToOneField(
+        ContratoFreelance,
+        on_delete=models.CASCADE,
+        related_name='comissao_eventix',
+        verbose_name="Contrato do Freelancer"
+    )
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name='comissoes_eventix',
+        verbose_name="Empresa Contratante"
+    )
+    
+    # Valores
+    valor_vaga_freelancer = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        verbose_name="Valor da Vaga (Freelancer)",
+        help_text="Valor que será pago para o freelancer"
+    )
+    percentual_comissao = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2,
+        verbose_name="Percentual de Comissão (%)"
+    )
+    valor_comissao_eventix = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        verbose_name="Valor da Comissão (Eventix)",
+        help_text="Valor da comissão que a empresa paga para o Eventix"
+    )
+    valor_total_empresa = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        verbose_name="Valor Total (Empresa)",
+        help_text="Valor total que a empresa paga (vaga + comissão)"
+    )
+    
+    # Status e datas
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pendente',
+        verbose_name="Status"
+    )
+    data_calculo = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Data do Cálculo"
+    )
+    data_cobranca = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Data da Cobrança"
+    )
+    data_pagamento = models.DateTimeField(
+        blank=True,
+        null=True,
+        verbose_name="Data do Pagamento"
+    )
+    
+    # Observações
+    observacoes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Observações"
+    )
+    
+    class Meta:
+        verbose_name = "Comissão do Eventix"
+        verbose_name_plural = "Comissões do Eventix"
+        ordering = ['-data_calculo']
+    
+    def __str__(self):
+        return f"Comissão {self.empresa_contratante.nome} - R$ {self.valor_comissao_eventix:.2f}"
+    
+    def save(self, *args, **kwargs):
+        """Calcula automaticamente os valores"""
+        if self.valor_vaga_freelancer and self.percentual_comissao:
+            # Comissão = percentual sobre o valor da vaga
+            from decimal import Decimal
+            self.valor_comissao_eventix = (Decimal(str(self.valor_vaga_freelancer)) * Decimal(str(self.percentual_comissao))) / Decimal('100')
+            # Total = valor da vaga + comissão
+            self.valor_total_empresa = Decimal(str(self.valor_vaga_freelancer)) + self.valor_comissao_eventix
+        super().save(*args, **kwargs)
+    
+    @property
+    def valor_liquido_freelancer(self):
+        """Valor que o freelancer recebe (sem desconto)"""
+        return self.valor_vaga_freelancer
 
 
 # Importar modelos de notificação

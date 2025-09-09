@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
@@ -87,7 +88,7 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         else:
             # Empresa vê candidaturas para suas vagas
             return Candidatura.objects.filter(
-                vaga__setor__evento__empresa_contratante=user.empresa_contratante
+                vaga__empresa_contratante=user.empresa_contratante
             ).select_related('vaga__setor__evento', 'vaga__funcao', 'freelance')
     
     def perform_create(self, serializer):
@@ -291,13 +292,45 @@ class EmpresaContratanteViewSet(viewsets.ModelViewSet):
 
 class UserProfileView(APIView):
     """
-    View para perfil do usuário
+    View para perfil do usuário com dados completos da empresa
     """
     permission_classes = [IsAuthenticated]
     
     def get(self, request):
-        serializer = UserProfileSerializer(request.user)
-        return Response(serializer.data)
+        user = request.user
+        
+        # Dados básicos do usuário
+        user_data = UserProfileSerializer(user).data
+        
+        # Dados adicionais da empresa (se disponível no request)
+        empresa_data = {}
+        if hasattr(request, 'empresa_contratante') and request.empresa_contratante:
+            empresa_data = {
+                'empresa_id': getattr(request, 'empresa_contratante_id', None),
+                'empresa_nome': getattr(request, 'empresa_contratante_nome', None),
+                'empresa_cnpj': getattr(request, 'empresa_contratante_cnpj', None),
+                'empresa_ativa': getattr(request, 'empresa_contratante_ativa', None),
+                'plano_limites': getattr(request, 'empresa_plano_limites', {}),
+                'plano_recursos': getattr(request, 'empresa_plano_recursos', {}),
+                'empresas_parceiras_count': getattr(request, 'empresas_parceiras', []).count() if hasattr(request, 'empresas_parceiras') else 0,
+            }
+        
+        # Dados do usuário
+        usuario_data = {
+            'tipo_usuario': getattr(request, 'usuario_tipo', user.tipo_usuario),
+            'ativo': getattr(request, 'usuario_ativo', user.ativo),
+            'ultimo_acesso': getattr(request, 'usuario_ultimo_acesso', user.data_ultimo_acesso),
+        }
+        
+        # Resposta completa
+        response_data = {
+            'usuario': user_data,
+            'empresa': empresa_data,
+            'usuario_info': usuario_data,
+            'timestamp': timezone.now().isoformat(),
+        }
+        
+        return Response(response_data)
     
     def put(self, request):
         serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
@@ -305,6 +338,112 @@ class UserProfileView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class EmpresaDataView(APIView):
+    """
+    View para carregar dados completos da empresa após login
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        if not user.is_empresa_user or not user.empresa_contratante:
+            return Response(
+                {'error': 'Usuário não está associado a uma empresa'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        empresa = user.empresa_contratante
+        
+        # Dados completos da empresa
+        empresa_data = {
+            'id': empresa.id,
+            'nome': empresa.nome,
+            'nome_fantasia': empresa.nome_fantasia,
+            'cnpj': empresa.cnpj,
+            'razao_social': empresa.razao_social,
+            'telefone': empresa.telefone,
+            'email': empresa.email,
+            'website': empresa.website,
+            'endereco': {
+                'cep': empresa.cep,
+                'logradouro': empresa.logradouro,
+                'numero': empresa.numero,
+                'complemento': empresa.complemento,
+                'bairro': empresa.bairro,
+                'cidade': empresa.cidade,
+                'uf': empresa.uf,
+            },
+            'contrato': {
+                'data_contratacao': empresa.data_contratacao,
+                'data_vencimento': empresa.data_vencimento,
+                'valor_mensal': empresa.valor_mensal,
+                'ativo': empresa.ativo,
+            }
+        }
+        
+        # Dados do plano contratado
+        if empresa.plano_contratado_fk:
+            plano = empresa.plano_contratado_fk
+            empresa_data['plano'] = {
+                'id': plano.id,
+                'nome': plano.nome,
+                'tipo_plano': plano.tipo_plano,
+                'descricao': plano.descricao,
+                'limites': {
+                    'max_eventos_mes': plano.max_eventos_mes,
+                    'max_usuarios': plano.max_usuarios,
+                    'max_freelancers': plano.max_freelancers,
+                    'max_equipamentos': plano.max_equipamentos,
+                    'max_locais': plano.max_locais,
+                },
+                'recursos': {
+                    'suporte_24h': plano.suporte_24h,
+                    'relatorios_avancados': plano.relatorios_avancados,
+                    'integracao_api': plano.integracao_api,
+                    'backup_automatico': plano.backup_automatico,
+                    'ssl_certificado': plano.ssl_certificado,
+                    'dominio_personalizado': plano.dominio_personalizado,
+                },
+                'precos': {
+                    'valor_mensal': plano.valor_mensal,
+                    'valor_anual': plano.valor_anual,
+                    'desconto_anual': plano.desconto_anual,
+                    'valor_anual_calculado': plano.valor_anual_calculado,
+                }
+            }
+        
+        # Estatísticas da empresa
+        from app_eventos.models import Evento, Vaga, Candidatura
+        stats = {
+            'eventos_ativos': Evento.objects.filter(
+                empresa_contratante=empresa, ativo=True
+            ).count(),
+            'vagas_ativas': Vaga.objects.filter(
+                empresa_contratante=empresa, ativa=True
+            ).count(),
+            'candidaturas_pendentes': Candidatura.objects.filter(
+                vaga__empresa_contratante=empresa,
+                status='pendente'
+            ).count(),
+        }
+        
+        response_data = {
+            'empresa': empresa_data,
+            'estatisticas': stats,
+            'usuario': {
+                'id': user.id,
+                'username': user.username,
+                'tipo_usuario': user.tipo_usuario,
+                'ativo': user.ativo,
+                'ultimo_acesso': user.data_ultimo_acesso,
+            },
+            'timestamp': timezone.now().isoformat(),
+        }
+        
+        return Response(response_data)
 
 
 class TokenVerifyView(APIView):
