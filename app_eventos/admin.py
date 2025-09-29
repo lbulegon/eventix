@@ -33,6 +33,9 @@ from .mixins import EmpresaContratanteMixin
 # Importar admin dos grupos
 from . import admin_grupos
 
+# Importar admin dos modelos globais
+from . import admin_globais
+
 class ScopedAdmin(admin.ModelAdmin):
     """Filtra por empresa_contratante para usuários de empresa."""
     def get_queryset(self, request):
@@ -193,18 +196,35 @@ class VagaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
 
 
 @admin.register(TipoFuncao)
-class TipoFuncaoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'ativo')
-    list_filter = ('ativo',)
-    search_fields = ('nome',)
+class TipoFuncaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome', 'empresa_contratante', 'ativo')
+    list_filter = ('ativo', 'empresa_contratante')
+    search_fields = ('nome', 'empresa_contratante__nome_fantasia')
+    autocomplete_fields = ('empresa_contratante',)
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('empresa_contratante')
 
 
 @admin.register(Funcao)
-class FuncaoAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'tipo_funcao', 'ativo')
-    list_filter = ('ativo', 'tipo_funcao')
-    search_fields = ('nome',)
-    autocomplete_fields = ('tipo_funcao',)
+class FuncaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome', 'empresa_contratante', 'tipo_funcao', 'disponivel_para_vagas', 'ativo')
+    list_filter = ('ativo', 'disponivel_para_vagas', 'empresa_contratante', 'tipo_funcao')
+    search_fields = ('nome', 'empresa_contratante__nome_fantasia', 'tipo_funcao__nome')
+    autocomplete_fields = ('empresa_contratante', 'tipo_funcao')
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('empresa_contratante', 'tipo_funcao', 'nome', 'descricao', 'ativo')
+        }),
+        ('Controle de Planos', {
+            'fields': ('disponivel_para_vagas', 'valor_base_por_vaga'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('empresa_contratante', 'tipo_funcao')
 
 
 @admin.register(Freelance)

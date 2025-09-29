@@ -37,22 +37,26 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
         _carregando = false;
       });
 
-      AppLogger.info('Candidaturas loaded successfully', category: LogCategory.api, data: {
-        'count': _candidaturas.length,
-      });
+      AppLogger.info('Candidaturas loaded successfully',
+          category: LogCategory.api,
+          data: {
+            'count': _candidaturas.length,
+          });
     } catch (e) {
       setState(() {
         _erro = 'Erro ao carregar candidaturas';
         _carregando = false;
       });
 
-      AppLogger.error('Failed to load candidaturas', category: LogCategory.api, error: e);
+      AppLogger.error('Failed to load candidaturas',
+          category: LogCategory.api, error: e);
     }
   }
 
   Future<void> _cancelarCandidatura(int candidaturaId) async {
     try {
-      AppLogger.info('Canceling candidatura', category: LogCategory.api, data: {'candidatura_id': candidaturaId});
+      AppLogger.info('Canceling candidatura',
+          category: LogCategory.api, data: {'candidatura_id': candidaturaId});
 
       final result = await VagasService.cancelarCandidatura(candidaturaId);
 
@@ -79,8 +83,9 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
         }
       }
     } catch (e) {
-      AppLogger.error('Failed to cancel candidatura', category: LogCategory.api, error: e);
-      
+      AppLogger.error('Failed to cancel candidatura',
+          category: LogCategory.api, error: e);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -124,7 +129,7 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
 
   String _formatarValor(dynamic valor) {
     if (valor == null) return '0.00';
-    
+
     // Se já é uma string, tenta converter para double
     if (valor is String) {
       try {
@@ -134,12 +139,12 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
         return valor; // Retorna a string original se não conseguir converter
       }
     }
-    
+
     // Se é um número, usa toStringAsFixed
     if (valor is num) {
       return valor.toStringAsFixed(2);
     }
-    
+
     return '0.00';
   }
 
@@ -224,47 +229,52 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
     final evento = vaga?['setor']?['evento'];
     final funcao = vaga?['funcao'];
     final status = candidatura['status'] ?? 'pendente';
-    
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Cabeçalho com status
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    vaga?['titulo'] ?? 'Vaga sem título',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1F2937),
-                    ),
+                Text(
+                  vaga?['titulo'] ?? 'Vaga sem título',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2937),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _getStatusColor(status)),
-                  ),
-                  child: Text(
-                    _getStatusText(status),
-                    style: TextStyle(
-                      color: _getStatusColor(status),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(status).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _getStatusColor(status)),
+                    ),
+                    child: Text(
+                      _getStatusText(status),
+                      style: TextStyle(
+                        color: _getStatusColor(status),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
             // Evento
             if (evento != null) ...[
@@ -274,8 +284,12 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      evento is Map ? (evento['nome'] ?? 'Evento sem nome') : 'Evento ID: $evento',
+                      evento is Map
+                          ? (evento['nome'] ?? 'Evento sem nome')
+                          : 'Evento ID: $evento',
                       style: const TextStyle(color: Color(0xFF6B7280)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -293,6 +307,8 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
                     child: Text(
                       funcao['nome'] ?? 'Função não especificada',
                       style: const TextStyle(color: Color(0xFF6B7280)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -303,13 +319,18 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
             // Remuneração
             Row(
               children: [
-                const Icon(Icons.attach_money, size: 16, color: Color(0xFF6B7280)),
+                const Icon(Icons.attach_money,
+                    size: 16, color: Color(0xFF6B7280)),
                 const SizedBox(width: 8),
-                Text(
-                  'R\$ ${_formatarValor(vaga?['remuneracao'])}',
-                  style: const TextStyle(
-                    color: Color(0xFF6B7280),
-                    fontWeight: FontWeight.w500,
+                Expanded(
+                  child: Text(
+                    'R\$ ${_formatarValor(vaga?['remuneracao'])}',
+                    style: const TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -319,11 +340,16 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
             // Data da candidatura
             Row(
               children: [
-                const Icon(Icons.access_time, size: 16, color: Color(0xFF6B7280)),
+                const Icon(Icons.access_time,
+                    size: 16, color: Color(0xFF6B7280)),
                 const SizedBox(width: 8),
-                Text(
-                  'Candidatado em: ${candidatura['data_candidatura'] ?? candidatura['created_at'] ?? 'Data não disponível'}',
-                  style: const TextStyle(color: Color(0xFF6B7280)),
+                Expanded(
+                  child: Text(
+                    'Candidatado em: ${candidatura['data_candidatura'] ?? candidatura['created_at'] ?? 'Data não disponível'}',
+                    style: const TextStyle(color: Color(0xFF6B7280)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),
@@ -339,7 +365,7 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
             //   ),
             // ],
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Botões de ação
             if (status == 'pendente') ...[
@@ -354,7 +380,10 @@ class _MinhasCandidaturasPageState extends State<MinhasCandidaturasPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text('Cancelar Candidatura'),
+                  child: const Text(
+                    'Cancelar Candidatura',
+                    style: TextStyle(fontSize: 14),
+                  ),
                 ),
               ),
             ] else if (status == 'aprovada') ...[

@@ -99,13 +99,6 @@ class HomeContent extends StatelessWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.bug_report),
-            onPressed: () {
-              Navigator.pushNamed(context, '/debug_user');
-            },
-            tooltip: 'Debug Usuário',
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () => _showLogoutDialog(context),
           ),
@@ -153,30 +146,24 @@ class HomeContent extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Cards de ação rápida
-            const Text(
-              'Ações Rápidas',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            // Card Oportunidades (largura completa)
+            SizedBox(
+              width: double.infinity,
+              child: _buildActionCard(
+                icon: Icons.recommend,
+                title: 'Oportunidades e recomendações',
+                subtitle: 'Vagas escolhidas especiamente para você',
+                onTap: () {
+                  Navigator.pushNamed(context, '/vagas_recomendadas');
+                },
               ),
             ),
-            const SizedBox(height: 16),
 
+            const SizedBox(height: 12),
+
+            // Cards lado a lado
             Row(
               children: [
-                Expanded(
-                  child: _buildActionCard(
-                    icon: Icons.recommend,
-                    title: 'Oportunidades',
-                    subtitle: 'Vagas para você',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/vagas_recomendadas');
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
                 Expanded(
                   child: _buildActionCard(
                     icon: Icons.work,
@@ -187,13 +174,7 @@ class HomeContent extends StatelessWidget {
                     },
                   ),
                 ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildActionCard(
                     icon: Icons.assignment,
@@ -204,79 +185,22 @@ class HomeContent extends StatelessWidget {
                     },
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionCard(
-                    icon: Icons.dashboard,
-                    title: 'Dashboard',
-                    subtitle: 'Estatísticas',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/dashboard_freelancer');
-                    },
-                  ),
-                ),
               ],
             ),
 
             const SizedBox(height: 12),
 
-            Row(
-              children: [
-                Expanded(
-                  child: _buildActionCard(
-                    icon: Icons.security,
-                    title: 'Funções',
-                    subtitle: 'Configure suas especialidades',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/funcoes');
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildActionCard(
-                    icon: Icons.bug_report,
-                    title: 'Debug',
-                    subtitle: 'Diagnóstico',
-                    onTap: () {
-                      Navigator.pushNamed(context, '/debug_user');
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 24),
-
-            // Estatísticas
-            const Text(
-              'Estatísticas',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            // Card Funções (largura completa)
+            SizedBox(
+              width: double.infinity,
+              child: _buildActionCard(
+                icon: Icons.security,
+                title: 'Funções',
+                subtitle: 'Configure suas especialidades',
+                onTap: () {
+                  Navigator.pushNamed(context, '/funcoes');
+                },
               ),
-            ),
-            const SizedBox(height: 16),
-
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Vagas Aplicadas',
-                    value: '0',
-                    icon: Icons.work_outline,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Contratos Ativos',
-                    value: '0',
-                    icon: Icons.handshake_outlined,
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -324,46 +248,6 @@ class HomeContent extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-  }) {
-    return Card(
-      color: const Color(0xFF161B22),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 24,
-              color: const Color(0xFF6366F1),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFFB0B3B8),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

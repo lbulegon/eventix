@@ -25,7 +25,6 @@ import 'package:eventix/pages/vagas_recomendadas_page.dart';
 import 'package:eventix/pages/minhas_candidaturas_page.dart';
 import 'package:eventix/pages/notificacoes_page.dart';
 import 'package:eventix/pages/dashboard_freelancer_page.dart';
-import 'package:eventix/pages/debug_user_page.dart';
 import 'package:eventix/pages/funcoes_page.dart';
 
 //ola mundo
@@ -119,7 +118,6 @@ class MyApp extends StatelessWidget {
         '/minhas_candidaturas': (context) => const MinhasCandidaturasPage(),
         '/notificacoes': (context) => const NotificacoesPage(),
         '/dashboard_freelancer': (context) => const DashboardFreelancerPage(),
-        '/debug_user': (context) => const DebugUserPage(),
         '/funcoes': (context) => const FuncoesPage(),
       },
     );

@@ -39,6 +39,87 @@ from django.db.models import Q, F
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
+class GrupoPermissaoEmpresa(models.Model):
+    """
+    Grupos de permissões específicos por empresa contratante.
+    Permite criar diferentes níveis de acesso dentro de cada empresa.
+    """
+    empresa_contratante = models.ForeignKey(
+        'EmpresaContratante',
+        on_delete=models.CASCADE,
+        related_name="grupos_permissao",
+        verbose_name="Empresa Contratante"
+    )
+    nome = models.CharField(max_length=100, verbose_name="Nome do Grupo")
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    
+    # Permissões específicas do sistema
+    pode_gerenciar_usuarios = models.BooleanField(
+        default=False,
+        verbose_name="Pode Gerenciar Usuários",
+        help_text="Pode criar, editar e remover usuários da empresa"
+    )
+    pode_gerenciar_eventos = models.BooleanField(
+        default=True,
+        verbose_name="Pode Gerenciar Eventos",
+        help_text="Pode criar, editar e gerenciar eventos"
+    )
+    pode_gerenciar_freelancers = models.BooleanField(
+        default=True,
+        verbose_name="Pode Gerenciar Freelancers",
+        help_text="Pode gerenciar freelancers e candidaturas"
+    )
+    pode_gerenciar_equipamentos = models.BooleanField(
+        default=True,
+        verbose_name="Pode Gerenciar Equipamentos",
+        help_text="Pode gerenciar equipamentos e manutenções"
+    )
+    pode_gerenciar_estoque = models.BooleanField(
+        default=True,
+        verbose_name="Pode Gerenciar Estoque",
+        help_text="Pode gerenciar insumos e estoque"
+    )
+    pode_gerenciar_financeiro = models.BooleanField(
+        default=False,
+        verbose_name="Pode Gerenciar Financeiro",
+        help_text="Pode acessar relatórios financeiros e pagamentos"
+    )
+    pode_gerenciar_relatorios = models.BooleanField(
+        default=True,
+        verbose_name="Pode Gerar Relatórios",
+        help_text="Pode gerar relatórios e estatísticas"
+    )
+    pode_configurar_sistema = models.BooleanField(
+        default=False,
+        verbose_name="Pode Configurar Sistema",
+        help_text="Pode alterar configurações da empresa"
+    )
+    
+    # Controle de acesso a dados
+    pode_ver_todos_eventos = models.BooleanField(
+        default=True,
+        verbose_name="Pode Ver Todos os Eventos",
+        help_text="Pode visualizar todos os eventos da empresa"
+    )
+    pode_editar_todos_eventos = models.BooleanField(
+        default=True,
+        verbose_name="Pode Editar Todos os Eventos",
+        help_text="Pode editar todos os eventos da empresa"
+    )
+    
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_atualizacao = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Grupo de Permissão"
+        verbose_name_plural = "Grupos de Permissão"
+        unique_together = ('empresa_contratante', 'nome')
+
+    def __str__(self):
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+
+
 class User(AbstractUser):
     """
     Usuário do sistema com controle multi-empresas
@@ -59,8 +140,24 @@ class User(AbstractUser):
         related_name="usuarios",
         verbose_name="Empresa Contratante"
     )
+    grupo_permissao = models.ForeignKey(
+        'GrupoPermissaoEmpresa',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="usuarios",
+        verbose_name="Grupo de Permissão"
+    )
     ativo = models.BooleanField(default=True, db_index=True)
     data_ultimo_acesso = models.DateTimeField(null=True, blank=True)
+    criado_por = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="usuarios_criados",
+        verbose_name="Criado por"
+    )
 
     class Meta:
         verbose_name = "Usuário"
@@ -85,6 +182,80 @@ class User(AbstractUser):
     def is_admin_sistema(self):
         """Verifica se o usuário é administrador do sistema"""
         return self.tipo_usuario == 'admin_sistema'
+
+    def tem_permissao(self, permissao):
+        """
+        Verifica se o usuário tem uma permissão específica
+        """
+        if self.is_admin_sistema:
+            return True
+            
+        if not self.empresa_contratante or not self.grupo_permissao:
+            return False
+            
+        return getattr(self.grupo_permissao, permissao, False)
+    
+    def pode_gerenciar_usuarios(self):
+        """Verifica se pode gerenciar usuários da empresa"""
+        return self.tem_permissao('pode_gerenciar_usuarios')
+    
+    def pode_gerenciar_eventos(self):
+        """Verifica se pode gerenciar eventos"""
+        return self.tem_permissao('pode_gerenciar_eventos')
+    
+    def pode_gerenciar_freelancers(self):
+        """Verifica se pode gerenciar freelancers"""
+        return self.tem_permissao('pode_gerenciar_freelancers')
+    
+    def pode_gerenciar_equipamentos(self):
+        """Verifica se pode gerenciar equipamentos"""
+        return self.tem_permissao('pode_gerenciar_equipamentos')
+    
+    def pode_gerenciar_estoque(self):
+        """Verifica se pode gerenciar estoque"""
+        return self.tem_permissao('pode_gerenciar_estoque')
+    
+    def pode_gerenciar_financeiro(self):
+        """Verifica se pode gerenciar financeiro"""
+        return self.tem_permissao('pode_gerenciar_financeiro')
+    
+    def pode_gerenciar_relatorios(self):
+        """Verifica se pode gerar relatórios"""
+        return self.tem_permissao('pode_gerenciar_relatorios')
+    
+    def pode_configurar_sistema(self):
+        """Verifica se pode configurar sistema"""
+        return self.tem_permissao('pode_configurar_sistema')
+    
+    def pode_ver_todos_eventos(self):
+        """Verifica se pode ver todos os eventos"""
+        return self.tem_permissao('pode_ver_todos_eventos')
+    
+    def pode_editar_todos_eventos(self):
+        """Verifica se pode editar todos os eventos"""
+        return self.tem_permissao('pode_editar_todos_eventos')
+    
+    def get_permissoes_disponiveis(self):
+        """
+        Retorna lista de permissões disponíveis para o usuário
+        """
+        if not self.grupo_permissao:
+            return []
+            
+        permissoes = []
+        campos_permissao = [
+            'pode_gerenciar_usuarios', 'pode_gerenciar_eventos', 
+            'pode_gerenciar_freelancers', 'pode_gerenciar_equipamentos',
+            'pode_gerenciar_estoque', 'pode_gerenciar_financeiro',
+            'pode_gerenciar_relatorios', 'pode_configurar_sistema',
+            'pode_ver_todos_eventos', 'pode_editar_todos_eventos'
+        ]
+        
+        for campo in campos_permissao:
+            if getattr(self.grupo_permissao, campo, False):
+                permissoes.append(campo)
+                
+        return permissoes
 
     @property
     def empresa_owner(self):
@@ -1094,26 +1265,80 @@ class ManutencaoEquipamento(models.Model):
 
 
 class TipoFuncao(models.Model):
-    nome = models.CharField(max_length=80, unique=True)
+    """
+    Tipos de função específicos por empresa contratante.
+    Cada empresa pode ter seus próprios tipos de função.
+    """
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="tipos_funcao",
+        verbose_name="Empresa Contratante"
+    )
+    nome = models.CharField(max_length=80)
     descricao = models.TextField(blank=True, null=True)
     ativo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Tipo de Função"
         verbose_name_plural = "Tipos de Função"
+        unique_together = ('empresa_contratante', 'nome')
 
     def __str__(self):
-        return self.nome
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
 
 
 class Funcao(models.Model):
-    tipo_funcao = models.ForeignKey(TipoFuncao, on_delete=models.CASCADE, related_name="funcoes")
+    """
+    Funções específicas de cada empresa contratante.
+    Cada função pertence a uma empresa e pode ser utilizada para criar vagas.
+    """
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="funcoes",
+        verbose_name="Empresa Contratante",
+        null=True,
+        blank=True
+    )
+    tipo_funcao = models.ForeignKey(
+        TipoFuncao, 
+        on_delete=models.CASCADE, 
+        related_name="funcoes",
+        verbose_name="Tipo de Função"
+    )
     nome = models.CharField(max_length=80)
     descricao = models.TextField(blank=True, null=True)
     ativo = models.BooleanField(default=True)
+    
+    # Campos para controle de planos e cobrança
+    disponivel_para_vagas = models.BooleanField(
+        default=True,
+        verbose_name="Disponível para Criação de Vagas",
+        help_text="Se esta função pode ser usada para criar vagas"
+    )
+    valor_base_por_vaga = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        verbose_name="Valor Base por Vaga",
+        help_text="Valor base para cobrança por vaga desta função"
+    )
+
+    class Meta:
+        verbose_name = "Função"
+        verbose_name_plural = "Funções"
+        unique_together = ('empresa_contratante', 'nome')
 
     def __str__(self):
-        return f"{self.nome} ({self.tipo_funcao.nome})"
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+    
+    def save(self, *args, **kwargs):
+        # Garantir que o tipo_funcao pertence à mesma empresa
+        if self.tipo_funcao.empresa_contratante != self.empresa_contratante:
+            raise ValueError("O tipo de função deve pertencer à mesma empresa contratante.")
+        super().save(*args, **kwargs)
 
 class Vaga(models.Model):
     """
@@ -4720,3 +4945,9 @@ class ComissaoEventix(models.Model):
 
 # Importar modelos de notificação
 from .models_notificacoes import Notificacao, ConfiguracaoNotificacao
+
+# Importar modelos de freelancers
+from .models_freelancers import *
+
+# Importar modelos de documentos
+from .models_documentos import *

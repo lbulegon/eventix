@@ -329,7 +329,7 @@ Todas as rotas de API abaixo estão sob o prefixo `/api/auth/` conforme `setup/u
 ### Utilitários
 ```bash
 # Escanear portas
-python manage.py escanear_portas --host 127.0.0.1 --inicio 31400 --fim 31409
+python "manage.py" escanear_portas --host 127.0.0.1 --inicio 31400 --fim 31409
 
 # Extrair PDF
 python manage.py extrair_pdf docs/exemplo.pdf

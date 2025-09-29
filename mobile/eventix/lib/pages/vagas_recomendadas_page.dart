@@ -142,6 +142,27 @@ class _VagasRecomendadasPageState extends State<VagasRecomendadasPage>
     }
   }
 
+  String _formatarValor(dynamic valor) {
+    if (valor == null) return '0.00';
+    
+    // Se já é uma string, tenta converter para double
+    if (valor is String) {
+      try {
+        final doubleValor = double.parse(valor);
+        return doubleValor.toStringAsFixed(2);
+      } catch (e) {
+        return valor; // Retorna a string original se não conseguir converter
+      }
+    }
+    
+    // Se é um número, usa toStringAsFixed
+    if (valor is num) {
+      return valor.toStringAsFixed(2);
+    }
+    
+    return '0.00';
+  }
+
   Future<void> _candidatarVagaComCarta(int vagaId) async {
     final cartaController = TextEditingController();
 

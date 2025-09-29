@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from app_eventos.views.views_web import (
     web_dashboard, web_empresa_dashboard, web_freelancer_dashboard, web_admin_dashboard,
     web_eventos_list, web_evento_detail, web_equipamentos_list, web_equipamento_detail,
@@ -31,4 +31,7 @@ urlpatterns = [
     
     # Financeiro
     path('financeiro/', web_financeiro_dashboard, name='admin_financeiro_dashboard'),
+    
+    # Modelos Globais (áreas comuns)
+    path('globais/', include('app_eventos.urls_globais')),
 ]
