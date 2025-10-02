@@ -1332,7 +1332,9 @@ class Funcao(models.Model):
         unique_together = ('empresa_contratante', 'nome')
 
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        if self.empresa_contratante:
+            return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        return f"{self.nome} - Sem empresa"
     
     def save(self, *args, **kwargs):
         # Garantir que o tipo_funcao pertence à mesma empresa
