@@ -1,11 +1,13 @@
 # app_eventos/admin.py
+from django import forms
+from .admin_restricoes import AdminRestricoesMixin
 from .models import (
     User, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
     # Sistema de Grupos e Permissões
-    PermissaoSistema, GrupoUsuario, UsuarioGrupo,
+    GrupoPermissaoEmpresa, PermissaoSistema, GrupoUsuario, UsuarioGrupo,
     # Sistema de Notificações
     Notificacao, ConfiguracaoNotificacao,
     # Analytics e Business Intelligence
@@ -48,7 +50,7 @@ class ScopedAdmin(admin.ModelAdmin):
         return qs.none() if not u.is_superuser else qs
 
 @admin.register(PlanoContratacao)
-class PlanoContratacaoAdmin(admin.ModelAdmin):
+class PlanoContratacaoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome', 'tipo_plano', 'valor_mensal', 'max_eventos_mes', 'max_usuarios', 'ativo')
     list_filter = ('tipo_plano', 'ativo', 'suporte_24h', 'relatorios_avancados')
     search_fields = ('nome', 'descricao')
@@ -74,7 +76,7 @@ class PlanoContratacaoAdmin(admin.ModelAdmin):
     )
 
 @admin.register(EmpresaContratante)
-class EmpresaContratanteAdmin(admin.ModelAdmin):
+class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome_fantasia', 'cnpj', 'plano_contratado', 'valor_mensal', 'ativo', 'data_vencimento')
     list_filter = ('ativo', 'plano_contratado__tipo_plano', 'data_contratacao')
     search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email')
@@ -101,7 +103,7 @@ class EmpresaContratanteAdmin(admin.ModelAdmin):
 
 
 @admin.register(User)
-class UserAdmin(BaseUserAdmin, EmpresaContratanteMixin):
+class UserAdmin(BaseUserAdmin, EmpresaContratanteMixin, AdminRestricoesMixin):
     list_display = ('username', 'email', 'tipo_usuario', 'empresa_contratante', 'ativo', 'data_ultimo_acesso')
     list_filter = ('tipo_usuario', 'ativo', 'empresa_contratante', 'is_staff', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name')
@@ -109,7 +111,7 @@ class UserAdmin(BaseUserAdmin, EmpresaContratanteMixin):
     
     fieldsets = BaseUserAdmin.fieldsets + (
         ("Empresa e Permissões", {
-            "fields": ("tipo_usuario", "empresa_contratante", "ativo")
+            "fields": ("tipo_usuario", "empresa_contratante", "grupo_permissao", "ativo")
         }),
         ("Informações Adicionais", {
             "fields": ("data_ultimo_acesso",)
@@ -118,19 +120,132 @@ class UserAdmin(BaseUserAdmin, EmpresaContratanteMixin):
     
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ("Empresa e Permissões", {
-            "fields": ("tipo_usuario", "empresa_contratante", "ativo")
+            "fields": ("tipo_usuario", "empresa_contratante", "grupo_permissao", "ativo")
         }),
     )
+    
+    def get_queryset(self, request):
+        """Filtra usuários baseado no tipo de usuário logado"""
+        qs = super().get_queryset(request)
+        u = request.user
+        
+        # Admin do sistema vê todos os usuários
+        if u.tipo_usuario == 'admin_sistema':
+            return qs
+            
+        # Admin da empresa vê apenas usuários da sua empresa
+        if u.tipo_usuario == 'admin_empresa' and u.empresa_contratante:
+            return qs.filter(empresa_contratante=u.empresa_contratante)
+            
+        # Operadores não podem ver lista de usuários
+        return qs.none()
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Personaliza o formulário baseado no tipo de usuário"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Se é admin da empresa, restringe alguns campos
+        if request.user.tipo_usuario == 'admin_empresa':
+            # Remove campos que não devem ser editados por admin da empresa
+            if 'is_superuser' in form.base_fields:
+                form.base_fields['is_superuser'].widget = forms.HiddenInput()
+            if 'groups' in form.base_fields:
+                form.base_fields['groups'].widget = forms.HiddenInput()
+            if 'user_permissions' in form.base_fields:
+                form.base_fields['user_permissions'].widget = forms.HiddenInput()
+            if 'empresa_contratante' in form.base_fields:
+                form.base_fields['empresa_contratante'].widget = forms.HiddenInput()
+                
+        return form
+    
+    def save_model(self, request, obj, form, change):
+        """Personaliza o salvamento do modelo"""
+        # Se é admin da empresa criando usuário
+        if request.user.tipo_usuario == 'admin_empresa' and not change:
+            # Define a empresa do usuário como a empresa do admin
+            obj.empresa_contratante = request.user.empresa_contratante
+            # Define como operador da empresa
+            obj.tipo_usuario = 'operador_empresa'
+            # Define como staff mas não superuser
+            obj.is_staff = True
+            obj.is_superuser = False
+            
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(GrupoPermissaoEmpresa)
+class GrupoPermissaoEmpresaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome', 'empresa_contratante', 'ativo', 'usuarios_count')
+    list_filter = ('ativo', 'empresa_contratante')
+    search_fields = ('nome', 'descricao', 'empresa_contratante__nome_fantasia')
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('nome', 'descricao', 'empresa_contratante', 'ativo')
+        }),
+        ('Permissões do Sistema', {
+            'fields': (
+                'pode_gerenciar_usuarios',
+                'pode_gerenciar_eventos', 
+                'pode_gerenciar_freelancers',
+                'pode_gerenciar_equipamentos',
+                'pode_gerenciar_estoque',
+                'pode_gerenciar_financeiro',
+                'pode_gerenciar_relatorios'
+            )
+        }),
+    )
+    
+    def usuarios_count(self, obj):
+        """Conta quantos usuários estão neste grupo"""
+        return obj.usuarios.count()
+    usuarios_count.short_description = 'Usuários'
+    
+    def get_queryset(self, request):
+        """Filtra grupos baseado no tipo de usuário logado"""
+        qs = super().get_queryset(request)
+        u = request.user
+        
+        # Admin do sistema vê todos os grupos
+        if u.tipo_usuario == 'admin_sistema':
+            return qs
+            
+        # Admin da empresa vê apenas grupos da sua empresa
+        if u.tipo_usuario == 'admin_empresa' and u.empresa_contratante:
+            return qs.filter(empresa_contratante=u.empresa_contratante)
+            
+        # Operadores não podem ver grupos
+        return qs.none()
+    
+    def get_form(self, request, obj=None, **kwargs):
+        """Personaliza o formulário baseado no tipo de usuário"""
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Se é admin da empresa, restringe alguns campos
+        if request.user.tipo_usuario == 'admin_empresa':
+            if 'empresa_contratante' in form.base_fields:
+                form.base_fields['empresa_contratante'].widget = forms.HiddenInput()
+                
+        return form
+    
+    def save_model(self, request, obj, form, change):
+        """Personaliza o salvamento do modelo"""
+        # Se é admin da empresa criando grupo
+        if request.user.tipo_usuario == 'admin_empresa' and not change:
+            # Define a empresa do grupo como a empresa do admin
+            obj.empresa_contratante = request.user.empresa_contratante
+            
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(TipoEmpresa)
-class TipoEmpresaAdmin(admin.ModelAdmin):
+class TipoEmpresaAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome', 'descricao')
     search_fields = ('nome',)
 
 
 @admin.register(Empresa)
-class EmpresaAdmin(admin.ModelAdmin):
+class EmpresaAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome', 'cnpj', 'tipo_empresa', 'ativo')
     list_filter = ('tipo_empresa', 'ativo')
     search_fields = ('nome', 'cnpj', 'email')
@@ -138,7 +253,7 @@ class EmpresaAdmin(admin.ModelAdmin):
 
 
 @admin.register(LocalEvento)
-class LocalEventoAdmin(admin.ModelAdmin):
+class LocalEventoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome', 'endereco', 'capacidade', 'empresa_proprietaria', 'ativo')
     list_filter = ('ativo', 'empresa_proprietaria')
     search_fields = ('nome', 'endereco')
@@ -196,7 +311,7 @@ class VagaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
 
 
 @admin.register(TipoFuncao)
-class TipoFuncaoAdmin(admin.ModelAdmin):
+class TipoFuncaoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome', 'ativo')
     list_filter = ('ativo',)
     search_fields = ('nome',)
