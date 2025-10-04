@@ -196,14 +196,10 @@ class VagaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
 
 
 @admin.register(TipoFuncao)
-class TipoFuncaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('nome', 'empresa_contratante', 'ativo')
-    list_filter = ('ativo', 'empresa_contratante')
-    search_fields = ('nome', 'empresa_contratante__nome_fantasia')
-    autocomplete_fields = ('empresa_contratante',)
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('empresa_contratante')
+class TipoFuncaoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'ativo')
+    list_filter = ('ativo',)
+    search_fields = ('nome',)
 
 
 @admin.register(Funcao)

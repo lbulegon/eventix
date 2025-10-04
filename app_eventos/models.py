@@ -1266,26 +1266,19 @@ class ManutencaoEquipamento(models.Model):
 
 class TipoFuncao(models.Model):
     """
-    Tipos de função específicos por empresa contratante.
-    Cada empresa pode ter seus próprios tipos de função.
+    Tipos de função genéricos disponíveis para todas as empresas contratantes.
+    Tipos de função compartilhados entre todas as empresas do sistema.
     """
-    empresa_contratante = models.ForeignKey(
-        EmpresaContratante,
-        on_delete=models.CASCADE,
-        related_name="tipos_funcao",
-        verbose_name="Empresa Contratante"
-    )
-    nome = models.CharField(max_length=80)
+    nome = models.CharField(max_length=80, unique=True)
     descricao = models.TextField(blank=True, null=True)
     ativo = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = "Tipo de Função"
         verbose_name_plural = "Tipos de Função"
-        unique_together = ('empresa_contratante', 'nome')
 
     def __str__(self):
-        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+        return self.nome
 
 
 class Funcao(models.Model):
