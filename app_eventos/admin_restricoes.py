@@ -17,12 +17,7 @@ class AdminRestricoesMixin:
     
     # Tabelas que apenas admin do sistema pode acessar
     TABELAS_RESTRITAS = [
-        'PlanoContratacao',
-        'EmpresaContratante', 
-        'TipoEmpresa',
-        'Empresa',
-        'LocalEvento',
-        'TipoFuncao',
+        'EmpresaContratante',  # Apenas esta é restrita (informação sensível)
         'User',  # Lista de usuários
         'Group',  # Grupos do Django
         'Permission',  # Permissões do Django
@@ -31,27 +26,63 @@ class AdminRestricoesMixin:
         'LogEntry',  # Logs do admin
     ]
     
+    # Tabelas genéricas que usuários de empresa podem ver mas não modificar
+    TABELAS_GENERICAS_SOMENTE_LEITURA = [
+        'PlanoContratacao',
+        'TipoEmpresa',
+        'Empresa',
+        'LocalEvento',
+        'TipoFuncao',
+    ]
+    
     def has_view_permission(self, request, obj=None):
         """Verifica se o usuário pode visualizar"""
-        if self._is_tabela_restrita() and not self._is_admin_sistema(request.user):
+        # Admin do sistema pode ver tudo
+        if self._is_admin_sistema(request.user):
+            return True
+            
+        # Para tabelas restritas, usuários de empresa não podem nem visualizar
+        if self._is_tabela_restrita():
             return False
+            
+        # Para tabelas genéricas, usuários de empresa podem ver mas não modificar
+        if self._is_tabela_generica_somente_leitura():
+            return True
+            
+        # Para outras tabelas, verifica se é usuário de empresa
+        if self._is_admin_empresa(request.user) or request.user.tipo_usuario == 'operador_empresa':
+            return True
+            
+        # Comportamento padrão do Django
         return super().has_view_permission(request, obj)
     
     def has_add_permission(self, request):
         """Verifica se o usuário pode adicionar"""
+        # Tabelas restritas: apenas admin do sistema
         if self._is_tabela_restrita() and not self._is_admin_sistema(request.user):
+            return False
+        # Tabelas genéricas: apenas admin do sistema
+        if self._is_tabela_generica_somente_leitura() and not self._is_admin_sistema(request.user):
             return False
         return super().has_add_permission(request)
     
     def has_change_permission(self, request, obj=None):
         """Verifica se o usuário pode editar"""
+        # Tabelas restritas: apenas admin do sistema
         if self._is_tabela_restrita() and not self._is_admin_sistema(request.user):
+            return False
+        # Tabelas genéricas: apenas admin do sistema
+        if self._is_tabela_generica_somente_leitura() and not self._is_admin_sistema(request.user):
             return False
         return super().has_change_permission(request, obj)
     
     def has_delete_permission(self, request, obj=None):
         """Verifica se o usuário pode deletar"""
+        # Tabelas restritas: apenas admin do sistema
         if self._is_tabela_restrita() and not self._is_admin_sistema(request.user):
+            return False
+        # Tabelas genéricas: apenas admin do sistema
+        if self._is_tabela_generica_somente_leitura() and not self._is_admin_sistema(request.user):
             return False
         return super().has_delete_permission(request, obj)
     
@@ -59,6 +90,11 @@ class AdminRestricoesMixin:
         """Verifica se esta é uma tabela restrita"""
         model_name = self.model.__name__
         return model_name in self.TABELAS_RESTRITAS
+    
+    def _is_tabela_generica_somente_leitura(self):
+        """Verifica se esta é uma tabela genérica (somente leitura para usuários de empresa)"""
+        model_name = self.model.__name__
+        return model_name in self.TABELAS_GENERICAS_SOMENTE_LEITURA
     
     def _is_admin_sistema(self, user):
         """Verifica se o usuário é admin do sistema"""
