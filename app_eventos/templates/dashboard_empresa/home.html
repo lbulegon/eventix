@@ -1,0 +1,258 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Dashboard - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Dashboard Principal{% endblock %}
+
+{% block content %}
+<!-- Cards de Estatísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Eventos</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_eventos }}</div>
+                        <div class="text-xs text-white-50">{{ stats.eventos_ativos }} ativos</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-alt fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Vagas</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_vagas }}</div>
+                        <div class="text-xs text-white-50">{{ stats.vagas_ativas }} ativas</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-briefcase fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Candidaturas</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_candidaturas }}</div>
+                        <div class="text-xs text-white-50">{{ stats.candidaturas_pendentes }} pendentes</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-alt fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card danger">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Freelancers</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_freelancers }}</div>
+                        <div class="text-xs text-white-50">cadastrados</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Segunda linha de estatísticas -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Equipamentos</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_equipamentos }}</div>
+                        <div class="text-xs text-white-50">{{ stats.equipamentos_ativos }} ativos</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-cogs fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card success">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Receitas (Mês)</div>
+                        <div class="h5 mb-0 font-weight-bold">R$ {{ stats.receitas_mes|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-arrow-up fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Despesas (Mês)</div>
+                        <div class="h5 mb-0 font-weight-bold">R$ {{ stats.despesas_mes|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-arrow-down fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card {% if stats.saldo_mes >= 0 %}success{% else %}danger{% endif %}">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Saldo (Mês)</div>
+                        <div class="h5 mb-0 font-weight-bold">R$ {{ stats.saldo_mes|floatformat:2 }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-balance-scale fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Conteúdo Principal -->
+<div class="row">
+    <!-- Eventos Recentes -->
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Eventos Recentes</h6>
+                <a href="{% url 'eventos_empresa' %}" class="btn btn-sm btn-primary">Ver Todos</a>
+            </div>
+            <div class="card-body">
+                {% if eventos_recentes %}
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Data Início</th>
+                                    <th>Data Fim</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for evento in eventos_recentes %}
+                                <tr>
+                                    <td>{{ evento.nome }}</td>
+                                    <td>{{ evento.data_inicio|date:"d/m/Y" }}</td>
+                                    <td>{{ evento.data_fim|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if evento.ativo %}
+                                            <span class="badge bg-success">Ativo</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inativo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-3">Nenhum evento encontrado.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Candidaturas Recentes -->
+    <div class="col-xl-4 col-lg-5">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Candidaturas Recentes</h6>
+                <a href="{% url 'candidaturas_empresa' %}" class="btn btn-sm btn-primary">Ver Todas</a>
+            </div>
+            <div class="card-body">
+                {% if candidaturas_recentes %}
+                    {% for candidatura in candidaturas_recentes %}
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-circle fa-2x text-primary"></i>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <h6 class="mb-0">{{ candidatura.freelance.nome_completo }}</h6>
+                            <small class="text-muted">{{ candidatura.vaga.titulo }}</small>
+                            <br>
+                            <span class="badge bg-{% if candidatura.status == 'aprovada' %}success{% elif candidatura.status == 'pendente' %}warning{% else %}secondary{% endif %}">
+                                {{ candidatura.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-3">Nenhuma candidatura encontrada.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ações Rápidas -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Ações Rápidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'eventos_empresa' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-plus me-2"></i>Novo Evento
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'candidaturas_empresa' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-check me-2"></i>Revisar Candidaturas
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'equipamentos_empresa' %}" class="btn btn-outline-info w-100">
+                            <i class="fas fa-cogs me-2"></i>Gerenciar Equipamentos
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'financeiro_empresa' %}" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-chart-line me-2"></i>Relatórios Financeiros
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Teste - {{ empresa.nome_fantasia }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>🎉 Dashboard Personalizado Funcionando!</h3>
+                    </div>
+                    <div class="card-body">
+                        <h5>Empresa: {{ empresa.nome_fantasia }}</h5>
+                        <h5>Usuário: {{ user.get_full_name }} ({{ user.username }})</h5>
+                        <h5>Tipo: {{ user.get_tipo_usuario_display }}</h5>
+                        
+                        <hr>
+                        
+                        <div class="alert alert-success">
+                            <h6>✅ Sistema Funcionando Corretamente!</h6>
+                            <p>O dashboard personalizado está funcionando perfeitamente. Agora você pode:</p>
+                            <ul>
+                                <li>Ver apenas dados da sua empresa</li>
+                                <li>Gerenciar eventos, candidaturas e freelancers</li>
+                                <li>Controlar equipamentos e estoque</li>
+                                <li>Acessar relatórios financeiros</li>
+                                {% if user.tipo_usuario == 'admin_empresa' %}
+                                <li>Criar e gerenciar usuários da empresa</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <a href="{% url 'dashboard_empresa:dashboard_empresa' %}" class="btn btn-primary">
+                                Ir para Dashboard Principal
+                            </a>
+                            <a href="{% url 'admin:logout' %}" class="btn btn-secondary">
+                                Sair
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

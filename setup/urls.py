@@ -42,6 +42,9 @@ urlpatterns = [
     # Interface Web Administrativa
     path("admin-web/", include("app_eventos.urls.urls_admin")),
     
+    # Dashboard Personalizado da Empresa
+    path("empresa/", include("app_eventos.urls_dashboard_empresa")),
+    
     # APIs existentes
     path("api/equipamentos/", include("app_eventos.urls.urls_equipamentos")),
     path("setor/<int:setor_id>/equipamentos/", equipamentos_setor, name="equipamentos_setor"),
