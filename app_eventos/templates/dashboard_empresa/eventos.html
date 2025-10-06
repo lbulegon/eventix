@@ -33,7 +33,7 @@
                                     <td>{{ evento.nome }}</td>
                                     <td>{{ evento.data_inicio|date:"d/m/Y" }}</td>
                                     <td>{{ evento.data_fim|date:"d/m/Y" }}</td>
-                                    <td>{{ evento.local.nome if evento.local else "Não definido" }}</td>
+                                    <td>{% if evento.local %}{{ evento.local.nome }}{% else %}Não definido{% endif %}</td>
                                     <td>
                                         {% if evento.ativo %}
                                             <span class="badge bg-success">Ativo</span>

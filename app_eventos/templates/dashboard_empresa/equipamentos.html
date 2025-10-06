@@ -40,7 +40,7 @@
                                             <span class="badge bg-secondary">Inativo</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ equipamento.localizacao_atual|default:"Não definida" }}</td>
+                                    <td>{% if equipamento.localizacao_atual %}{{ equipamento.localizacao_atual }}{% else %}Não definida{% endif %}</td>
                                     <td>
                                         <button class="btn btn-sm btn-info">
                                             <i class="fas fa-eye"></i>

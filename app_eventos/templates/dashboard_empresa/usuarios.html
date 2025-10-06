@@ -50,7 +50,7 @@
                                             <span class="badge bg-secondary">Inativo</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ usuario.data_ultimo_acesso|date:"d/m/Y H:i"|default:"Nunca" }}</td>
+                                    <td>{% if usuario.data_ultimo_acesso %}{{ usuario.data_ultimo_acesso|date:"d/m/Y H:i" }}{% else %}Nunca{% endif %}</td>
                                     <td>
                                         <button class="btn btn-sm btn-info">
                                             <i class="fas fa-eye"></i>
