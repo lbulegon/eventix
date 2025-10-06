@@ -150,7 +150,7 @@
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Eventos Recentes</h6>
-                <a href="{% url 'eventos_empresa' %}" class="btn btn-sm btn-primary">Ver Todos</a>
+                <a href="{% url 'dashboard_empresa:eventos_empresa' %}" class="btn btn-sm btn-primary">Ver Todos</a>
             </div>
             <div class="card-body">
                 {% if eventos_recentes %}
@@ -194,7 +194,7 @@
         <div class="card shadow mb-4">
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-primary">Candidaturas Recentes</h6>
-                <a href="{% url 'candidaturas_empresa' %}" class="btn btn-sm btn-primary">Ver Todas</a>
+                <a href="{% url 'dashboard_empresa:candidaturas_empresa' %}" class="btn btn-sm btn-primary">Ver Todas</a>
             </div>
             <div class="card-body">
                 {% if candidaturas_recentes %}
@@ -231,22 +231,22 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <a href="{% url 'eventos_empresa' %}" class="btn btn-outline-primary w-100">
+                        <a href="{% url 'dashboard_empresa:eventos_empresa' %}" class="btn btn-outline-primary w-100">
                             <i class="fas fa-plus me-2"></i>Novo Evento
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{% url 'candidaturas_empresa' %}" class="btn btn-outline-success w-100">
+                        <a href="{% url 'dashboard_empresa:candidaturas_empresa' %}" class="btn btn-outline-success w-100">
                             <i class="fas fa-check me-2"></i>Revisar Candidaturas
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{% url 'equipamentos_empresa' %}" class="btn btn-outline-info w-100">
+                        <a href="{% url 'dashboard_empresa:equipamentos_empresa' %}" class="btn btn-outline-info w-100">
                             <i class="fas fa-cogs me-2"></i>Gerenciar Equipamentos
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
-                        <a href="{% url 'financeiro_empresa' %}" class="btn btn-outline-warning w-100">
+                        <a href="{% url 'dashboard_empresa:financeiro_empresa' %}" class="btn btn-outline-warning w-100">
                             <i class="fas fa-chart-line me-2"></i>Relatórios Financeiros
                         </a>
                     </div>

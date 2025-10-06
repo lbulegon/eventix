@@ -1,0 +1,65 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Freelancers - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Freelancers{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Freelancers Cadastrados</h6>
+            </div>
+            <div class="card-body">
+                {% if freelancers %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>CPF</th>
+                                    <th>Telefone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for freelancer in freelancers %}
+                                <tr>
+                                    <td>{{ freelancer.nome_completo }}</td>
+                                    <td>{{ freelancer.cpf }}</td>
+                                    <td>{{ freelancer.telefone }}</td>
+                                    <td>{{ freelancer.email }}</td>
+                                    <td>
+                                        {% if freelancer.cadastro_completo %}
+                                            <span class="badge bg-success">Completo</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Incompleto</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-primary">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum freelancer encontrado</h5>
+                        <p class="text-muted">Freelancers que se candidatarem às suas vagas aparecerão aqui.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

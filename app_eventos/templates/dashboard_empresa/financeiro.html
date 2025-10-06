@@ -1,0 +1,58 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Financeiro - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Financeiro{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Relatório Financeiro</h6>
+            </div>
+            <div class="card-body">
+                {% if meses %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Mês</th>
+                                    <th>Receitas</th>
+                                    <th>Despesas</th>
+                                    <th>Saldo</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for mes in meses %}
+                                <tr>
+                                    <td>{{ mes.mes }}</td>
+                                    <td class="text-success">R$ {{ mes.receitas|floatformat:2 }}</td>
+                                    <td class="text-danger">R$ {{ mes.despesas|floatformat:2 }}</td>
+                                    <td class="{% if mes.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        R$ {{ mes.saldo|floatformat:2 }}
+                                    </td>
+                                    <td>
+                                        {% if mes.saldo >= 0 %}
+                                            <span class="badge bg-success">Positivo</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Negativo</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum dado financeiro encontrado</h5>
+                        <p class="text-muted">Quando houver receitas e despesas, elas aparecerão aqui.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

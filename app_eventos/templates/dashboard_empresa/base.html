@@ -68,44 +68,44 @@
                     <ul class="nav flex-column">
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'dashboard_empresa' %}active{% endif %}" 
-                               href="{% url 'dashboard_empresa' %}">
+                               href="{% url 'dashboard_empresa:dashboard_empresa' %}">
                                 <i class="fas fa-home me-2"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'eventos_empresa' %}active{% endif %}" 
-                               href="{% url 'eventos_empresa' %}">
+                               href="{% url 'dashboard_empresa:eventos_empresa' %}">
                                 <i class="fas fa-calendar-alt me-2"></i>Eventos
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'candidaturas_empresa' %}active{% endif %}" 
-                               href="{% url 'candidaturas_empresa' %}">
+                               href="{% url 'dashboard_empresa:candidaturas_empresa' %}">
                                 <i class="fas fa-file-alt me-2"></i>Candidaturas
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'freelancers_empresa' %}active{% endif %}" 
-                               href="{% url 'freelancers_empresa' %}">
+                               href="{% url 'dashboard_empresa:freelancers_empresa' %}">
                                 <i class="fas fa-users me-2"></i>Freelancers
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'equipamentos_empresa' %}active{% endif %}" 
-                               href="{% url 'equipamentos_empresa' %}">
+                               href="{% url 'dashboard_empresa:equipamentos_empresa' %}">
                                 <i class="fas fa-cogs me-2"></i>Equipamentos
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'financeiro_empresa' %}active{% endif %}" 
-                               href="{% url 'financeiro_empresa' %}">
+                               href="{% url 'dashboard_empresa:financeiro_empresa' %}">
                                 <i class="fas fa-chart-line me-2"></i>Financeiro
                             </a>
                         </li>
                         {% if user.tipo_usuario == 'admin_empresa' %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'usuarios_empresa' %}active{% endif %}" 
-                               href="{% url 'usuarios_empresa' %}">
+                               href="{% url 'dashboard_empresa:usuarios_empresa' %}">
                                 <i class="fas fa-user-cog me-2"></i>Usuários
                             </a>
                         </li>
