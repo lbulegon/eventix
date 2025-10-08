@@ -2,6 +2,7 @@
 Views para Dashboard Personalizado da Empresa
 """
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Count, Sum
@@ -15,7 +16,47 @@ from .models import (
 from .mixins import EmpresaContratanteRequiredMixin
 
 
-@login_required
+def login_empresa(request):
+    """
+    View de login para usuários de empresa
+    """
+    # Se já está logado, redireciona para o dashboard
+    if request.user.is_authenticated:
+        if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+            return redirect('dashboard_empresa:dashboard_empresa')
+        else:
+            return redirect('admin:index')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            # Verificar se é usuário de empresa
+            if user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+                login(request, user)
+                messages.success(request, f'Bem-vindo(a), {user.get_full_name() or user.username}!')
+                return redirect('dashboard_empresa:dashboard_empresa')
+            else:
+                messages.error(request, 'Este login é exclusivo para usuários de empresa. Use /admin para acessar.')
+        else:
+            messages.error(request, 'Usuário ou senha incorretos.')
+    
+    return render(request, 'dashboard_empresa/login.html')
+
+
+def logout_empresa(request):
+    """
+    View de logout para usuários de empresa
+    """
+    logout(request)
+    messages.success(request, 'Você saiu com sucesso.')
+    return redirect('dashboard_empresa:login_empresa')
+
+
+@login_required(login_url='/empresa/login/')
 def test_dashboard(request):
     """
     View de teste para verificar se o dashboard está funcionando
@@ -23,11 +64,11 @@ def test_dashboard(request):
     # Verificar se é usuário de empresa
     if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
         messages.error(request, 'Acesso negado. Apenas usuários de empresa podem acessar este dashboard.')
-        return redirect('home')
+        return redirect('dashboard_empresa:login_empresa')
     
     if not request.user.empresa_contratante:
         messages.error(request, 'Usuário não está associado a nenhuma empresa.')
-        return redirect('home')
+        return redirect('dashboard_empresa:login_empresa')
     
     empresa = request.user.empresa_contratante
     
@@ -39,7 +80,7 @@ def test_dashboard(request):
     return render(request, 'dashboard_empresa/test.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def dashboard_empresa(request):
     """
     Dashboard principal da empresa
@@ -110,14 +151,14 @@ def dashboard_empresa(request):
     return render(request, 'dashboard_empresa/home.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def eventos_empresa(request):
     """
     Lista de eventos da empresa
     """
     if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
         messages.error(request, 'Acesso negado.')
-        return redirect('home')
+        return redirect('dashboard_empresa:login_empresa')
     
     empresa = request.user.empresa_contratante
     eventos = Evento.objects.filter(empresa_contratante=empresa).order_by('-data_criacao')
@@ -131,14 +172,14 @@ def eventos_empresa(request):
     return render(request, 'dashboard_empresa/eventos.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def candidaturas_empresa(request):
     """
     Lista de candidaturas da empresa
     """
     if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
         messages.error(request, 'Acesso negado.')
-        return redirect('home')
+        return redirect('dashboard_empresa:login_empresa')
     
     empresa = request.user.empresa_contratante
     candidaturas = Candidatura.objects.filter(
@@ -154,14 +195,14 @@ def candidaturas_empresa(request):
     return render(request, 'dashboard_empresa/candidaturas.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def freelancers_empresa(request):
     """
     Lista de freelancers da empresa
     """
     if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
         messages.error(request, 'Acesso negado.')
-        return redirect('home')
+        return redirect('dashboard_empresa:login_empresa')
     
     empresa = request.user.empresa_contratante
     
@@ -179,14 +220,14 @@ def freelancers_empresa(request):
     return render(request, 'dashboard_empresa/freelancers.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def usuarios_empresa(request):
     """
     Lista de usuários da empresa (apenas para admin)
     """
     if request.user.tipo_usuario != 'admin_empresa':
         messages.error(request, 'Apenas administradores podem gerenciar usuários.')
-        return redirect('dashboard_empresa')
+        return redirect('dashboard_empresa:dashboard_empresa')
     
     empresa = request.user.empresa_contratante
     usuarios = User.objects.filter(empresa_contratante=empresa).order_by('username')
@@ -200,14 +241,14 @@ def usuarios_empresa(request):
     return render(request, 'dashboard_empresa/usuarios.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def equipamentos_empresa(request):
     """
     Lista de equipamentos da empresa
     """
     if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
         messages.error(request, 'Acesso negado.')
-        return redirect('home')
+        return redirect('dashboard_empresa:login_empresa')
     
     empresa = request.user.empresa_contratante
     equipamentos = Equipamento.objects.filter(empresa_contratante=empresa).order_by('codigo_patrimonial')
@@ -221,7 +262,7 @@ def equipamentos_empresa(request):
     return render(request, 'dashboard_empresa/equipamentos.html', context)
 
 
-@login_required
+@login_required(login_url='/empresa/login/')
 def financeiro_empresa(request):
     """
     Dashboard financeiro da empresa

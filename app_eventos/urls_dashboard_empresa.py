@@ -7,6 +7,10 @@ from . import views_dashboard_empresa
 app_name = 'dashboard_empresa'
 
 urlpatterns = [
+    # Autenticação
+    path('login/', views_dashboard_empresa.login_empresa, name='login_empresa'),
+    path('logout/', views_dashboard_empresa.logout_empresa, name='logout_empresa'),
+    
     # Teste do dashboard
     path('test/', views_dashboard_empresa.test_dashboard, name='test_dashboard'),
     

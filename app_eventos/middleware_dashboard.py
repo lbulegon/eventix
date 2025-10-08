@@ -18,19 +18,38 @@ class DashboardRedirectMiddleware:
         return response
 
     def process_view(self, request, view_func, view_args, view_kwargs):
+        # URLs que NÃO devem ser redirecionadas
+        excecoes = [
+            '/admin/login/',
+            '/admin/logout/',
+            '/empresa/login/',
+            '/empresa/logout/',
+            '/api/',
+            '/static/',
+            '/media/',
+        ]
+        
+        # Não redirecionar se for uma URL de exceção
+        if any(request.path.startswith(url) for url in excecoes):
+            return None
+        
         # URLs que devem ser redirecionadas para o dashboard personalizado
         admin_urls = [
             '/admin/',
-            '/admin/app_eventos/',
         ]
         
         # Verificar se é uma requisição para o admin do Django
         if any(request.path.startswith(url) for url in admin_urls):
-            # Verificar se o usuário está logado e é de empresa
-            if (request.user.is_authenticated and 
-                request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']):
-                
-                # Redirecionar para o dashboard personalizado
+            # Se não está autenticado, deixar seguir para a tela de login
+            if not request.user.is_authenticated:
+                return None
+            
+            # Admin do sistema pode acessar o admin normalmente
+            if request.user.tipo_usuario == 'admin_sistema':
+                return None
+            
+            # Usuários de empresa vão para o dashboard personalizado
+            if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
                 return redirect('dashboard_empresa:dashboard_empresa')
         
         return None
