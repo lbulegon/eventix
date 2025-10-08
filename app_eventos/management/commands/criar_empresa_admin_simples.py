@@ -1,3 +1,4 @@
+#!/usr/bin/env python                           #
 """
 Comando simples para criar usuário admin do sistema
 """
