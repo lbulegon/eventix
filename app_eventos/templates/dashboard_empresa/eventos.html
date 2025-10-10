@@ -42,10 +42,10 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-info">
+                                        <a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}" class="btn btn-sm btn-info" title="Ver detalhes e freelancers aprovados">
                                             <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-warning">
+                                        </a>
+                                        <button class="btn btn-sm btn-warning" title="Editar evento">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                     </td>

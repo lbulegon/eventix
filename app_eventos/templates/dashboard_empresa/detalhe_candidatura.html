@@ -1,0 +1,194 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Detalhes da Candidatura - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Detalhes da Candidatura{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:candidaturas_empresa' %}">Candidaturas</a></li>
+        <li class="breadcrumb-item active">Detalhes</li>
+    </ol>
+</nav>
+
+<!-- Informações da Candidatura -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Informações da Candidatura</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Freelancer</h6>
+                        <p class="mb-1"><strong>Nome:</strong> {{ candidatura.freelance.nome_completo }}</p>
+                        <p class="mb-1"><strong>CPF:</strong> {{ candidatura.freelance.cpf }}</p>
+                        <p class="mb-1"><strong>Telefone:</strong> {{ candidatura.freelance.telefone }}</p>
+                        <p class="mb-3"><strong>Email:</strong> {{ candidatura.freelance.email }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Vaga</h6>
+                        <p class="mb-1"><strong>Evento:</strong> {{ evento.nome }}</p>
+                        <p class="mb-1"><strong>Setor:</strong> {{ candidatura.vaga.setor.nome }}</p>
+                        <p class="mb-1"><strong>Vaga:</strong> {{ candidatura.vaga.titulo }}</p>
+                        <p class="mb-1"><strong>Remuneração:</strong> R$ {{ candidatura.vaga.remuneracao }}</p>
+                        <p class="mb-1"><strong>Data Candidatura:</strong> {{ candidatura.data_candidatura|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-3">
+                            <strong>Status:</strong> 
+                            {% if candidatura.status == 'aprovado' %}
+                                <span class="badge bg-success">Aprovado</span>
+                            {% elif candidatura.status == 'pendente' %}
+                                <span class="badge bg-warning">Pendente</span>
+                            {% elif candidatura.status == 'rejeitado' %}
+                                <span class="badge bg-danger">Rejeitado</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ candidatura.get_status_display }}</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                {% if candidatura.carta_apresentacao %}
+                <hr>
+                <h6 class="text-primary">Carta de Apresentação</h6>
+                <p>{{ candidatura.carta_apresentacao }}</p>
+                {% endif %}
+                
+                {% if candidatura.experiencia_relevante %}
+                <h6 class="text-primary">Experiência Relevante</h6>
+                <p>{{ candidatura.experiencia_relevante }}</p>
+                {% endif %}
+                
+                {% if candidatura.disponibilidade %}
+                <h6 class="text-primary">Disponibilidade</h6>
+                <p>{{ candidatura.disponibilidade }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas do Evento -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-primary">{{ stats_evento.total_candidaturas }}</h3>
+                <p class="text-muted mb-0">Total Candidaturas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-success">{{ stats_evento.aprovadas }}</h3>
+                <p class="text-muted mb-0">Aprovadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-warning">{{ stats_evento.pendentes }}</h3>
+                <p class="text-muted mb-0">Pendentes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="text-danger">{{ stats_evento.rejeitadas }}</h3>
+                <p class="text-muted mb-0">Rejeitadas</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Freelancers Aprovados para o Evento -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Freelancers Aprovados para: {{ evento.nome }}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if candidaturas_aprovadas %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Freelancer</th>
+                                    <th>Telefone</th>
+                                    <th>Email</th>
+                                    <th>Setor</th>
+                                    <th>Vaga</th>
+                                    <th>Remuneração</th>
+                                    <th>Data Aprovação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cand in candidaturas_aprovadas %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-user-circle text-success me-2"></i>
+                                        <strong>{{ cand.freelance.nome_completo }}</strong>
+                                    </td>
+                                    <td>{{ cand.freelance.telefone }}</td>
+                                    <td>{{ cand.freelance.email }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ cand.vaga.setor.nome }}</span>
+                                    </td>
+                                    <td>{{ cand.vaga.titulo }}</td>
+                                    <td class="text-success">
+                                        <strong>R$ {{ cand.vaga.remuneracao }}</strong>
+                                    </td>
+                                    <td>{{ cand.data_resposta|date:"d/m/Y H:i"|default:"Não informada" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Total de {{ candidaturas_aprovadas.count }} freelancer(s) aprovado(s)</strong> para este evento.
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-users-slash fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum freelancer aprovado ainda</h5>
+                        <p class="text-muted">Quando candidaturas forem aprovadas, elas aparecerão aqui.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botões de Ação -->
+<div class="row mt-4">
+    <div class="col-12">
+        <a href="{% url 'dashboard_empresa:candidaturas_empresa' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar para Candidaturas
+        </a>
+        {% if candidatura.status == 'pendente' %}
+            <a href="{% url 'dashboard_empresa:aprovar_candidatura' candidatura.id %}" 
+               class="btn btn-success"
+               onclick="return confirm('Tem certeza que deseja aprovar esta candidatura?')">
+                <i class="fas fa-check me-2"></i>Aprovar Candidatura
+            </a>
+            <a href="{% url 'dashboard_empresa:rejeitar_candidatura' candidatura.id %}" 
+               class="btn btn-danger"
+               onclick="return confirm('Tem certeza que deseja rejeitar esta candidatura?')">
+                <i class="fas fa-times me-2"></i>Rejeitar Candidatura
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

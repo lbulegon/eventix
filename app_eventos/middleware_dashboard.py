@@ -18,12 +18,13 @@ class DashboardRedirectMiddleware:
         return response
 
     def process_view(self, request, view_func, view_args, view_kwargs):
-        # URLs que NÃO devem ser redirecionadas
+        # URLs que NÃO devem sofrer qualquer tipo de redirecionamento
         excecoes = [
             '/admin/login/',
             '/admin/logout/',
             '/empresa/login/',
             '/empresa/logout/',
+            '/empresa/test/',
             '/api/',
             '/static/',
             '/media/',
@@ -33,7 +34,12 @@ class DashboardRedirectMiddleware:
         if any(request.path.startswith(url) for url in excecoes):
             return None
         
-        # URLs que devem ser redirecionadas para o dashboard personalizado
+        # URLs do dashboard empresa - não redirecionar, apenas verificar
+        if request.path.startswith('/empresa/'):
+            # Deixar as views do dashboard tratarem a autenticação
+            return None
+        
+        # URLs do admin que devem ser redirecionadas para o dashboard personalizado
         admin_urls = [
             '/admin/',
         ]

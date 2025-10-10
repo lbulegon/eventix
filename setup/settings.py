@@ -89,7 +89,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Middleware customizado para controle multi-empresas
-    "app_eventos.middleware_dashboard.DashboardRedirectMiddleware",
+    # "app_eventos.middleware_dashboard.DashboardRedirectMiddleware",  # REMOVIDO - sistemas independentes
     "app_eventos.middleware.EmpresaContratanteMiddleware",
     "app_eventos.middleware.EmpresaContextMiddleware",
 ]

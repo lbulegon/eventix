@@ -4,28 +4,32 @@ Views para Dashboard Personalizado da Empresa
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
 from django.db.models import Count, Sum
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import (
-    Evento, Vaga, Candidatura, ContratoFreelance, Freelance,
+    Evento, SetorEvento, Vaga, Candidatura, ContratoFreelance, Freelance,
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
     User, GrupoPermissaoEmpresa
 )
 from .mixins import EmpresaContratanteRequiredMixin
 
 
+@csrf_protect
 def login_empresa(request):
     """
     View de login para usuários de empresa
     """
-    # Se já está logado, redireciona para o dashboard
+    # Se já está logado
     if request.user.is_authenticated:
+        # Usuários de empresa vão direto para o dashboard
         if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
             return redirect('dashboard_empresa:dashboard_empresa')
-        else:
-            return redirect('admin:index')
+        
+        # Para outros tipos de usuário, renderizar o template com mensagem
+        # NÃO redirecionar - isso estava causando o problema
     
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -173,6 +177,162 @@ def eventos_empresa(request):
 
 
 @login_required(login_url='/empresa/login/')
+def detalhe_evento(request, evento_id):
+    """
+    Detalhes do evento com freelancers aprovados
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar evento
+    evento = get_object_or_404(
+        Evento.objects.select_related('local', 'empresa_produtora'),
+        id=evento_id,
+        empresa_contratante=empresa
+    )
+    
+    # Buscar setores do evento
+    setores = SetorEvento.objects.filter(evento=evento).prefetch_related('vagas')
+    
+    # Buscar todas as vagas do evento
+    vagas = Vaga.objects.filter(setor__evento=evento).select_related('setor')
+    
+    # Buscar freelancers aprovados para este evento
+    candidaturas_aprovadas = Candidatura.objects.filter(
+        vaga__setor__evento=evento,
+        status='aprovado'
+    ).select_related('freelance', 'vaga', 'vaga__setor').order_by('vaga__setor__nome', 'vaga__titulo')
+    
+    # Buscar todas as candidaturas do evento
+    todas_candidaturas = Candidatura.objects.filter(
+        vaga__setor__evento=evento
+    ).select_related('freelance', 'vaga', 'vaga__setor')
+    
+    # Estatísticas do evento
+    stats_evento = {
+        'total_setores': setores.count(),
+        'total_vagas': vagas.count(),
+        'vagas_ativas': vagas.filter(ativa=True).count(),
+        'total_candidaturas': todas_candidaturas.count(),
+        'aprovadas': todas_candidaturas.filter(status='aprovado').count(),
+        'pendentes': todas_candidaturas.filter(status='pendente').count(),
+        'rejeitadas': todas_candidaturas.filter(status='rejeitado').count(),
+        'total_freelancers_aprovados': candidaturas_aprovadas.count(),
+    }
+    
+    context = {
+        'empresa': empresa,
+        'evento': evento,
+        'setores': setores,
+        'vagas': vagas,
+        'candidaturas_aprovadas': candidaturas_aprovadas,
+        'stats_evento': stats_evento,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/detalhe_evento.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def criar_setor(request, evento_id):
+    """
+    Criar novo setor para o evento
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar evento
+    evento = get_object_or_404(
+        Evento,
+        id=evento_id,
+        empresa_contratante=empresa
+    )
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        descricao = request.POST.get('descricao', '')
+        
+        if nome:
+            setor = SetorEvento.objects.create(
+                evento=evento,
+                nome=nome,
+                descricao=descricao,
+                ativo=True
+            )
+            messages.success(request, f'Setor "{nome}" criado com sucesso!')
+            return redirect('dashboard_empresa:detalhe_evento', evento_id=evento.id)
+        else:
+            messages.error(request, 'Nome do setor é obrigatório.')
+    
+    context = {
+        'empresa': empresa,
+        'evento': evento,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/criar_setor.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def criar_vaga(request, setor_id):
+    """
+    Criar nova vaga para o setor
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar setor
+    setor = get_object_or_404(
+        SetorEvento.objects.select_related('evento'),
+        id=setor_id,
+        evento__empresa_contratante=empresa
+    )
+    
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descricao = request.POST.get('descricao', '')
+        quantidade = request.POST.get('quantidade')
+        remuneracao = request.POST.get('remuneracao')
+        tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
+        nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
+        
+        if titulo and quantidade and remuneracao:
+            vaga = Vaga.objects.create(
+                setor=setor,
+                empresa_contratante=empresa,
+                titulo=titulo,
+                descricao=descricao,
+                quantidade=int(quantidade),
+                remuneracao=float(remuneracao),
+                tipo_remuneracao=tipo_remuneracao,
+                nivel_experiencia=nivel_experiencia,
+                ativa=True
+            )
+            messages.success(request, f'Vaga "{titulo}" criada com sucesso!')
+            return redirect('dashboard_empresa:detalhe_evento', evento_id=setor.evento.id)
+        else:
+            messages.error(request, 'Preencha todos os campos obrigatórios.')
+    
+    context = {
+        'empresa': empresa,
+        'setor': setor,
+        'evento': setor.evento,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/criar_vaga.html', context)
+
+
+@login_required(login_url='/empresa/login/')
 def candidaturas_empresa(request):
     """
     Lista de candidaturas da empresa
@@ -184,7 +344,7 @@ def candidaturas_empresa(request):
     empresa = request.user.empresa_contratante
     candidaturas = Candidatura.objects.filter(
         vaga__empresa_contratante=empresa
-    ).order_by('-data_candidatura')
+    ).select_related('freelance', 'vaga', 'vaga__setor', 'vaga__setor__evento').order_by('-data_candidatura')
     
     context = {
         'empresa': empresa,
@@ -193,6 +353,116 @@ def candidaturas_empresa(request):
     }
     
     return render(request, 'dashboard_empresa/candidaturas.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def detalhe_candidatura(request, candidatura_id):
+    """
+    Detalhes da candidatura e freelancers aprovados para o evento
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar candidatura
+    candidatura = get_object_or_404(
+        Candidatura.objects.select_related('freelance', 'vaga', 'vaga__setor', 'vaga__setor__evento'),
+        id=candidatura_id,
+        vaga__empresa_contratante=empresa
+    )
+    
+    evento = candidatura.vaga.setor.evento
+    
+    # Buscar todos os freelancers aprovados para este evento
+    candidaturas_aprovadas = Candidatura.objects.filter(
+        vaga__setor__evento=evento,
+        status='aprovado'
+    ).select_related('freelance', 'vaga', 'vaga__setor').order_by('vaga__setor__nome', 'vaga__titulo')
+    
+    # Buscar todas as candidaturas deste evento
+    todas_candidaturas = Candidatura.objects.filter(
+        vaga__setor__evento=evento
+    ).select_related('freelance', 'vaga', 'vaga__setor')
+    
+    # Estatísticas do evento
+    stats_evento = {
+        'total_candidaturas': todas_candidaturas.count(),
+        'aprovadas': todas_candidaturas.filter(status='aprovado').count(),
+        'pendentes': todas_candidaturas.filter(status='pendente').count(),
+        'rejeitadas': todas_candidaturas.filter(status='rejeitado').count(),
+        'total_vagas': Vaga.objects.filter(setor__evento=evento).count(),
+    }
+    
+    context = {
+        'empresa': empresa,
+        'candidatura': candidatura,
+        'evento': evento,
+        'candidaturas_aprovadas': candidaturas_aprovadas,
+        'stats_evento': stats_evento,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/detalhe_candidatura.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def aprovar_candidatura(request, candidatura_id):
+    """
+    Aprovar candidatura
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar candidatura
+    candidatura = get_object_or_404(
+        Candidatura,
+        id=candidatura_id,
+        vaga__empresa_contratante=empresa
+    )
+    
+    # Aprovar candidatura
+    candidatura.status = 'aprovado'
+    candidatura.data_resposta = timezone.now()
+    candidatura.save()
+    
+    messages.success(request, f'Candidatura de {candidatura.freelance.nome_completo} aprovada com sucesso!')
+    
+    # Redirecionar de volta para a página de candidaturas
+    return redirect('dashboard_empresa:candidaturas_empresa')
+
+
+@login_required(login_url='/empresa/login/')
+def rejeitar_candidatura(request, candidatura_id):
+    """
+    Rejeitar candidatura
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar candidatura
+    candidatura = get_object_or_404(
+        Candidatura,
+        id=candidatura_id,
+        vaga__empresa_contratante=empresa
+    )
+    
+    # Rejeitar candidatura
+    candidatura.status = 'rejeitado'
+    candidatura.data_resposta = timezone.now()
+    candidatura.save()
+    
+    messages.warning(request, f'Candidatura de {candidatura.freelance.nome_completo} rejeitada.')
+    
+    # Redirecionar de volta para a página de candidaturas
+    return redirect('dashboard_empresa:candidaturas_empresa')
 
 
 @login_required(login_url='/empresa/login/')

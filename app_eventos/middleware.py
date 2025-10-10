@@ -20,6 +20,8 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/admin/logout/',
             '/accounts/login/',
             '/accounts/logout/',
+            '/empresa/login/',  # Login do dashboard empresa
+            '/empresa/logout/',  # Logout do dashboard empresa
             '/api/token/',
             '/api/token/refresh/',
             '/api/auth/',

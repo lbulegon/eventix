@@ -116,6 +116,23 @@
                     {% endfor %}
                 {% endif %}
 
+                <!-- Se já está logado com outro tipo de usuário -->
+                {% if user.is_authenticated and user.tipo_usuario != 'admin_empresa' and user.tipo_usuario != 'operador_empresa' %}
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Usuário Logado</h6>
+                        <p class="mb-2">Você está logado como: <strong>{{ user.username }}</strong> ({{ user.get_tipo_usuario_display }})</p>
+                        <p class="mb-0">Para acessar o Dashboard de Empresa, faça logout primeiro.</p>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dashboard_empresa:logout_empresa' %}" class="btn btn-danger">
+                            <i class="fas fa-sign-out-alt me-2"></i>Fazer Logout
+                        </a>
+                        <a href="/admin/" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar para Admin
+                        </a>
+                    </div>
+                {% else %}
+
                 <form method="post" action="{% url 'dashboard_empresa:login_empresa' %}">
                     {% csrf_token %}
                     
@@ -162,12 +179,16 @@
                         <i class="fas fa-sign-in-alt me-2"></i>Entrar
                     </button>
                 </form>
+                
+                {% endif %}
             </div>
             
             <div class="login-footer">
                 <small class="text-muted">
                     <i class="fas fa-info-circle me-1"></i>
                     Admin do sistema? <a href="/admin/">Clique aqui</a>
+                    <br>
+                    Já está logado? <a href="{% url 'dashboard_empresa:logout_empresa' %}">Fazer logout</a>
                 </small>
             </div>
         </div>
