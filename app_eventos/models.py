@@ -1523,6 +1523,20 @@ class Freelance(models.Model):
     # Observações
     observacoes = models.TextField(blank=True, null=True)
     observacoes_medicas = models.TextField(blank=True, null=True)
+    
+    # Notificações Push
+    device_token = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name="Token do Dispositivo",
+        help_text="Token FCM para notificações push"
+    )
+    notificacoes_ativas = models.BooleanField(
+        default=True,
+        verbose_name="Notificações Ativas",
+        help_text="Se o freelancer deseja receber notificações push"
+    )
 
     atualizado_em = models.DateTimeField(auto_now=True)
     cadastro_completo = models.BooleanField(default=False)

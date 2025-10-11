@@ -5,7 +5,8 @@ from .views import (
     VagaViewSet, CandidaturaViewSet, EventoViewSet, FreelanceViewSet,
     EmpresaViewSet, EmpresaContratanteViewSet, UserProfileView, EmpresaDataView,
     TokenVerifyView, PasswordResetView, PasswordResetConfirmView,
-    CustomTokenObtainPairView, CustomTokenRefreshView
+    CustomTokenObtainPairView, CustomTokenRefreshView,
+    RegistrarDeviceTokenView, DesativarNotificacoesView
 )
 from .views_funcoes import FuncaoViewSet, FreelancerFuncaoViewSet
 from .views_avancadas import VagaAvancadaViewSet, CandidaturaAvancadaViewSet
@@ -37,4 +38,8 @@ urlpatterns = [
     path('token/verify/', TokenVerifyView.as_view(), name='token-verify'),
     path('password/password-reset/', PasswordResetView.as_view(), name='password-reset'),
     path('password/password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    
+    # Notificações Push
+    path('notificacoes/registrar-token/', RegistrarDeviceTokenView.as_view(), name='registrar-device-token'),
+    path('notificacoes/desativar/', DesativarNotificacoesView.as_view(), name='desativar-notificacoes'),
 ]

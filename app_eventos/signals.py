@@ -1,7 +1,8 @@
 # app_eventos/signals.py
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
-from .models import Candidatura, ContratoFreelance, User, GrupoUsuario, ComissaoEventix
+from .models import Candidatura, ContratoFreelance, User, GrupoUsuario, ComissaoEventix, Vaga, Freelance, FreelancerFuncao
+from .services.notificacoes_push import NotificacaoPushService
 
 @receiver(post_save, sender=Candidatura)
 def criar_contrato_ao_aprovar(sender, instance, created, **kwargs):
@@ -174,4 +175,58 @@ def atualizar_comissao_ao_alterar_status(sender, instance, **kwargs):
             comissao.save()
         except ComissaoEventix.DoesNotExist:
             pass  # Comissão não existe ainda
+
+
+@receiver(post_save, sender=Vaga)
+def notificar_freelancers_vaga_criada(sender, instance, created, **kwargs):
+    """
+    Quando uma vaga é criada, notifica todos os freelancers que têm a função cadastrada.
+    """
+    # Só notifica quando a vaga é criada (não em updates)
+    if not created:
+        return
+    
+    # Só notifica se a vaga está ativa
+    if not instance.ativa:
+        return
+    
+    # Só notifica se a vaga tem uma função associada
+    if not instance.funcao:
+        return
+    
+    try:
+        # Buscar freelancers que têm essa função cadastrada
+        freelancers_funcao = FreelancerFuncao.objects.filter(
+            funcao=instance.funcao,
+            ativo=True
+        ).select_related('freelancer')
+        
+        # Filtrar apenas freelancers com:
+        # 1. Cadastro completo
+        # 2. Notificações ativas
+        # 3. Device token configurado
+        freelancers_notificar = []
+        device_tokens = []
+        
+        for ff in freelancers_funcao:
+            freelancer = ff.freelancer
+            if (freelancer.cadastro_completo and 
+                freelancer.notificacoes_ativas and 
+                freelancer.device_token):
+                freelancers_notificar.append(freelancer)
+                device_tokens.append(freelancer.device_token)
+        
+        if not device_tokens:
+            print(f"ℹ Nenhum freelancer com notificações ativas para a vaga: {instance.titulo}")
+            return
+        
+        # Enviar notificações push
+        servico_push = NotificacaoPushService()
+        enviados = servico_push.enviar_notificacao_multipla(device_tokens, instance)
+        
+        print(f"✓ Notificações enviadas: {enviados}/{len(device_tokens)} freelancers para vaga: {instance.titulo}")
+        
+    except Exception as e:
+        # Em produção, usar logging adequado
+        print(f"✗ Erro ao notificar freelancers sobre vaga: {str(e)}")
 

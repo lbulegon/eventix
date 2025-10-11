@@ -570,3 +570,72 @@ class CustomTokenRefreshView(TokenRefreshView):
     View personalizada para refresh de token
     """
     pass
+
+
+class RegistrarDeviceTokenView(APIView):
+    """
+    Endpoint para registrar o device token do FCM para notificações push
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Registra ou atualiza o device token do freelancer
+        """
+        device_token = request.data.get('device_token')
+        
+        if not device_token:
+            return Response(
+                {'error': 'device_token é obrigatório'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verificar se o usuário tem perfil de freelancer
+        try:
+            freelancer = request.user.freelance
+        except Freelance.DoesNotExist:
+            return Response(
+                {'error': 'Usuário não tem perfil de freelancer'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Atualizar device token
+        freelancer.device_token = device_token
+        freelancer.notificacoes_ativas = True
+        freelancer.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Device token registrado com sucesso',
+            'device_token': device_token,
+            'notificacoes_ativas': freelancer.notificacoes_ativas
+        }, status=status.HTTP_200_OK)
+
+
+class DesativarNotificacoesView(APIView):
+    """
+    Endpoint para desativar notificações push
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Desativa as notificações push do freelancer
+        """
+        try:
+            freelancer = request.user.freelance
+        except Freelance.DoesNotExist:
+            return Response(
+                {'error': 'Usuário não tem perfil de freelancer'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Desativar notificações
+        freelancer.notificacoes_ativas = False
+        freelancer.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Notificações desativadas com sucesso',
+            'notificacoes_ativas': False
+        }, status=status.HTTP_200_OK)

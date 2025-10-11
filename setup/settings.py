@@ -196,3 +196,6 @@ CORS_ALLOW_CREDENTIALS = True
 
 # Integrações
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")  # do painel Mercado Pago
+
+# Firebase Cloud Messaging (FCM) para notificações push
+FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY", "")  # Chave do servidor FCM do Firebase Console
