@@ -476,15 +476,24 @@ def freelancers_empresa(request):
     
     empresa = request.user.empresa_contratante
     
-    # Freelancers que se candidataram a vagas da empresa
-    freelancers = Freelance.objects.filter(
-        candidaturas__vaga__empresa_contratante=empresa
-    ).distinct().order_by('nome_completo')
+    # Buscar parâmetro de filtro
+    filtro = request.GET.get('filtro', 'todos')  # 'todos' ou 'candidatos'
+    
+    if filtro == 'candidatos':
+        # Apenas freelancers que se candidataram a vagas da empresa
+        freelancers = Freelance.objects.filter(
+            candidaturas__vaga__empresa_contratante=empresa
+        ).distinct().order_by('nome_completo')
+    else:
+        # TODOS os freelancers do sistema
+        freelancers = Freelance.objects.all().order_by('nome_completo')
     
     context = {
         'empresa': empresa,
         'freelancers': freelancers,
         'user': request.user,
+        'filtro': filtro,
+        'total_freelancers': freelancers.count(),
     }
     
     return render(request, 'dashboard_empresa/freelancers.html', context)
