@@ -15,7 +15,8 @@ import 'package:eventix/services/eventos_service.dart';
 import 'package:eventix/services/freelancers_service.dart';
 import 'package:eventix/services/notificacoes_service.dart';
 import 'package:eventix/services/funcoes_service.dart';
-// Firebase removido
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:eventix/providers/user_provider.dart';
@@ -49,7 +50,9 @@ Future<void> _initializeServicesInBackground() async {
   try {
     print('🚀 Inicializando serviços em background...');
 
-    // Firebase removido
+    // Inicializa Firebase
+    await Firebase.initializeApp();
+    await _initializeFirebaseMessaging();
 
     // Inicializa formatação de data
     await initializeDateFormatting('pt_BR', null)
@@ -94,6 +97,59 @@ Future<void> _initializeServicesInBackground() async {
       error: e,
     );
   }
+}
+
+/// Inicializa o Firebase Messaging e configura os handlers
+Future<void> _initializeFirebaseMessaging() async {
+  try {
+    final messaging = FirebaseMessaging.instance;
+
+    // Solicita permissão para notificações
+    final settings = await messaging.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    );
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      print('✅ Permissão de notificações concedida');
+
+      // Obtém o token FCM
+      final token = await messaging.getToken();
+      print('📱 FCM Token: $token');
+
+      // TODO: Enviar token para o backend
+      // await AuthService.updateFcmToken(token);
+    } else {
+      print('⚠️ Permissão de notificações negada');
+    }
+
+    // Handler para mensagens quando o app está em foreground
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print(
+          '📬 Mensagem recebida em foreground: ${message.notification?.title}');
+      // TODO: Exibir notificação local
+    });
+
+    // Handler para quando o usuário toca na notificação (app em background)
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('📬 App aberto via notificação: ${message.notification?.title}');
+      // TODO: Navegar para a tela apropriada
+    });
+
+    // Handler para mensagens em background (top-level function)
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  } catch (e) {
+    print('❌ Erro ao inicializar Firebase Messaging: $e');
+  }
+}
+
+/// Handler para mensagens em background (deve ser top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print('📬 Mensagem em background: ${message.notification?.title}');
 }
 
 class MyApp extends StatelessWidget {

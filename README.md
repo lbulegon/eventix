@@ -209,7 +209,7 @@ python -m venv .venv
 # Windows
 
 - .venv\Scripts\activate  
-# Linux/Mac
+# Linux/Mac OS
 source .venv/bin/activate
 ```
 
@@ -420,7 +420,33 @@ Testar Candidaturas: Simular fluxo completo
 Implementar Push Notifications: Para mobile
 Dashboard Analytics: Métricas avançadas
 Sistema de Avaliações: Feedback pós-evento
-O sistema está 100% funcional e pronto para uso! 🎯Sistema de Vagas e Candidaturas Implementado com Sucesso!
+O sistema está 100% funcional e pronto para uso! 🎯
+
+## 🔥 Configuração do Firebase (Push Notifications)
+
+### Arquivos Configurados
+
+O projeto Flutter já está configurado com Firebase Cloud Messaging:
+
+**Arquivos Gradle (Kotlin DSL - seguindo instruções oficiais):**
+- `mobile/eventix/android/build.gradle.kts` - Plugin v4.4.3 com `apply false`
+- `mobile/eventix/android/app/build.gradle.kts` - Plugin aplicado + Firebase BoM v34.3.0
+- `mobile/eventix/android/app/google-services.json` - Configuração do Firebase
+
+**Dependências Flutter (`pubspec.yaml`):**
+- `firebase_core` - Core do Firebase
+- `firebase_messaging` - Push Notifications
+- `firebase_analytics` - Analytics
+- `firebase_crashlytics` - Crash Reporting
+
+### Como usar Push Notifications
+
+Consulte o guia completo em: `docs/GUIA_FLUTTER_FCM.md`
+
+### Identificação do Pacote
+
+- **Package Name/Application ID:** `com.example.eventix`
+- Localização: `mobile/eventix/android/app/build.gradle.kts`Sistema de Vagas e Candidaturas Implementado com Sucesso!
 ✅ O que foi implementado:
 1. Modelos Aprimorados:
 Vaga: Campos completos com requisitos, benefícios, datas, níveis de experiência
@@ -469,3 +495,29 @@ Implementar Push Notifications: Para mobile
 Dashboard Analytics: Métricas avançadas
 Sistema de Avaliações: Feedback pós-evento
 O sistema está 100% funcional e pronto para uso! 🎯
+
+## 🔥 Configuração do Firebase (Push Notifications)
+
+### Arquivos Configurados
+
+O projeto Flutter já está configurado com Firebase Cloud Messaging:
+
+**Arquivos Gradle (Kotlin DSL - seguindo instruções oficiais):**
+- `mobile/eventix/android/build.gradle.kts` - Plugin v4.4.3 com `apply false`
+- `mobile/eventix/android/app/build.gradle.kts` - Plugin aplicado + Firebase BoM v34.3.0
+- `mobile/eventix/android/app/google-services.json` - Configuração do Firebase
+
+**Dependências Flutter (`pubspec.yaml`):**
+- `firebase_core` - Core do Firebase
+- `firebase_messaging` - Push Notifications
+- `firebase_analytics` - Analytics
+- `firebase_crashlytics` - Crash Reporting
+
+### Como usar Push Notifications
+
+Consulte o guia completo em: `docs/GUIA_FLUTTER_FCM.md`
+
+### Identificação do Pacote
+
+- **Package Name/Application ID:** `com.example.eventix`
+- Localização: `mobile/eventix/android/app/build.gradle.kts`
