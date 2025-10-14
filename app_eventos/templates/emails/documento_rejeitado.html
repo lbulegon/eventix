@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento Rejeitado</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background-color: #e74a3b; color: white; padding: 20px; text-align: center; border-radius: 5px;">
+        <h1 style="margin: 0;">❌ Documento Rejeitado</h1>
+    </div>
+    
+    <div style="background-color: #f8f9fc; padding: 20px; margin-top: 20px; border-radius: 5px;">
+        <p>Olá <strong>{{ freelancer_nome }}</strong>,</p>
+        
+        <p>Infelizmente, seu documento foi rejeitado pela empresa <strong>{{ empresa_nome }}</strong>.</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr style="background-color: #e7e7e7;">
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Tipo de Documento:</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ tipo_documento }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px; border: 1px solid #ddd;"><strong>Data de Rejeição:</strong></td>
+                <td style="padding: 10px; border: 1px solid #ddd;">{{ data_rejeicao }}</td>
+            </tr>
+        </table>
+        
+        <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #e74a3b; margin: 15px 0;">
+            <strong>Motivo da Rejeição:</strong>
+            <p>{{ observacoes }}</p>
+        </div>
+        
+        <p><strong>O que fazer agora?</strong></p>
+        <ul>
+            <li>Verifique o motivo da rejeição acima</li>
+            <li>Corrija o problema identificado</li>
+            <li>Envie um novo documento</li>
+        </ul>
+        
+        <p style="text-align: center;">
+            <a href="{{ link_upload }}" style="background-color: #e74a3b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 10px;">
+                📤 Enviar Novo Documento
+            </a>
+        </p>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px; color: #666; font-size: 12px;">
+        <p>Este é um email automático do sistema Eventix.</p>
+        <p>© 2025 Eventix - Sistema de Gestão de Eventos</p>
+    </div>
+</body>
+</html>
+

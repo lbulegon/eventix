@@ -7,42 +7,111 @@
 <div class="row">
     <div class="col-12">
         <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Freelancers Cadastrados</h6>
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    Freelancers Cadastrados
+                    <span class="badge badge-primary ml-2" id="totalFreelancers">{{ total_freelancers|default:0 }}</span>
+                </h6>
             </div>
+            
             <div class="card-body">
+                <!-- Barra de Busca e Filtros -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text bg-primary text-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="searchInput" 
+                                placeholder="Digite o nome do freelancer..."
+                                autocomplete="off"
+                            >
+                            <div class="input-group-append">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            <span id="resultCount">{{ total_freelancers|default:0 }}</span> 
+                            freelancer(s) encontrado(s)
+                        </small>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-primary filter-btn active" data-filter="todos">
+                                <i class="fas fa-users"></i> Todos
+                            </button>
+                            <button type="button" class="btn btn-outline-success filter-btn" data-filter="completo">
+                                <i class="fas fa-check-circle"></i> Completos
+                            </button>
+                            <button type="button" class="btn btn-outline-warning filter-btn" data-filter="incompleto">
+                                <i class="fas fa-exclamation-circle"></i> Incompletos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 {% if freelancers %}
                     <div class="table-responsive">
-                        <table class="table table-bordered">
-                            <thead>
+                        <table class="table table-bordered table-hover" id="freelancersTable">
+                            <thead class="thead-light">
                                 <tr>
                                     <th>Nome</th>
                                     <th>CPF</th>
                                     <th>Telefone</th>
-                                    <th>Email</th>
+                                    <th>Funções</th>
                                     <th>Status</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for freelancer in freelancers %}
-                                <tr>
-                                    <td>{{ freelancer.nome_completo }}</td>
-                                    <td>{{ freelancer.cpf }}</td>
-                                    <td>{{ freelancer.telefone }}</td>
-                                    <td>{{ freelancer.email }}</td>
+                                <tr class="freelancer-row" 
+                                    data-nome="{{ freelancer.nome_completo|lower }}"
+                                    data-cpf="{{ freelancer.cpf }}"
+                                    data-status="{% if freelancer.cadastro_completo %}completo{% else %}incompleto{% endif %}">
                                     <td>
-                                        {% if freelancer.cadastro_completo %}
-                                            <span class="badge bg-success">Completo</span>
+                                        <strong>{{ freelancer.nome_completo }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ freelancer.usuario.email }}</small>
+                                    </td>
+                                    <td>{{ freelancer.cpf|default:"Não informado" }}</td>
+                                    <td>{{ freelancer.telefone|default:"Não informado" }}</td>
+                                    <td>
+                                        {% if freelancer.funcoes.all %}
+                                            {% for ff in freelancer.funcoes.all|slice:":3" %}
+                                                <span class="badge badge-info badge-sm">{{ ff.funcao.nome }}</span>
+                                            {% endfor %}
+                                            {% if freelancer.funcoes.all|length > 3 %}
+                                                <span class="badge badge-secondary">+{{ freelancer.funcoes.all|length|add:"-3" }}</span>
+                                            {% endif %}
                                         {% else %}
-                                            <span class="badge bg-warning">Incompleto</span>
+                                            <span class="text-muted">Sem funções</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-info">
+                                        {% if freelancer.cadastro_completo %}
+                                            <span class="badge badge-success">
+                                                <i class="fas fa-check-circle"></i> Completo
+                                            </span>
+                                        {% else %}
+                                            <span class="badge badge-warning">
+                                                <i class="fas fa-exclamation-circle"></i> Incompleto
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" title="Ver detalhes">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-primary">
+                                        <button class="btn btn-sm btn-primary" title="Enviar mensagem">
                                             <i class="fas fa-envelope"></i>
                                         </button>
                                     </td>
@@ -51,15 +120,145 @@
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Mensagem quando a busca não retorna resultados -->
+                    <div id="noResults" class="text-center py-5" style="display: none;">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum freelancer encontrado</h5>
+                        <p class="text-muted">Tente ajustar os filtros ou a busca</p>
+                    </div>
                 {% else %}
                     <div class="text-center py-5">
                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">Nenhum freelancer encontrado</h5>
-                        <p class="text-muted">Freelancers que se candidatarem às suas vagas aparecerão aqui.</p>
+                        <h5 class="text-muted">Nenhum freelancer cadastrado</h5>
+                        <p class="text-muted">Freelancers aparecerão aqui quando se cadastrarem no sistema.</p>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .filter-btn.active {
+        background-color: #4e73df;
+        color: white;
+        border-color: #4e73df;
+    }
+    
+    .freelancer-row {
+        transition: background-color 0.2s;
+    }
+    
+    .freelancer-row:hover {
+        background-color: #f8f9fc;
+    }
+    
+    .badge-sm {
+        font-size: 0.75rem;
+        margin-right: 2px;
+    }
+    
+    #searchInput:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const clearButton = document.getElementById('clearSearch');
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const freelancerRows = document.querySelectorAll('.freelancer-row');
+    const noResultsDiv = document.getElementById('noResults');
+    const resultCountSpan = document.getElementById('resultCount');
+    const tableBody = document.querySelector('#freelancersTable tbody');
+    
+    let currentFilter = 'todos';
+    
+    // Função para aplicar busca e filtros
+    function applyFilters() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+        
+        freelancerRows.forEach(row => {
+            const nome = row.dataset.nome;
+            const cpf = row.dataset.cpf;
+            const status = row.dataset.status;
+            
+            // Verificar busca por nome ou CPF
+            const matchesSearch = nome.includes(searchTerm) || cpf.includes(searchTerm);
+            
+            // Verificar filtro de status
+            const matchesFilter = currentFilter === 'todos' || status === currentFilter;
+            
+            // Mostrar ou ocultar linha
+            if (matchesSearch && matchesFilter) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Atualizar contador
+        resultCountSpan.textContent = visibleCount;
+        
+        // Mostrar mensagem se não houver resultados
+        if (tableBody) {
+            if (visibleCount === 0) {
+                tableBody.style.display = 'none';
+                noResultsDiv.style.display = 'block';
+            } else {
+                tableBody.style.display = '';
+                noResultsDiv.style.display = 'none';
+            }
+        }
+    }
+    
+    // Event listener para busca em tempo real
+    if (searchInput) {
+        searchInput.addEventListener('input', applyFilters);
+        
+        // Focar no campo de busca ao carregar a página
+        searchInput.focus();
+    }
+    
+    // Limpar busca
+    if (clearButton) {
+        clearButton.addEventListener('click', function() {
+            searchInput.value = '';
+            searchInput.focus();
+            applyFilters();
+        });
+    }
+    
+    // Filtros de status
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remover active de todos
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Adicionar active no clicado
+            this.classList.add('active');
+            
+            // Atualizar filtro atual
+            currentFilter = this.dataset.filter;
+            
+            // Aplicar filtros
+            applyFilters();
+        });
+    });
+    
+    // Atalho de teclado: ESC para limpar busca
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && searchInput) {
+            searchInput.value = '';
+            searchInput.blur();
+            applyFilters();
+        }
+    });
+});
+</script>
 {% endblock %}

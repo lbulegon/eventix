@@ -1,7 +1,7 @@
 """
 URLs para Dashboard da Empresa
 """
-from django.urls import path
+from django.urls import path, include
 from . import views_dashboard_empresa
 
 app_name = 'dashboard_empresa'
@@ -30,4 +30,7 @@ urlpatterns = [
     path('equipamentos/', views_dashboard_empresa.equipamentos_empresa, name='equipamentos_empresa'),
     path('financeiro/', views_dashboard_empresa.financeiro_empresa, name='financeiro_empresa'),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
+    
+    # Sistema de Documentos
+    path('documentos/', include('app_eventos.urls.urls_documentos_empresa')),
 ]

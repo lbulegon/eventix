@@ -1,0 +1,237 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Documentos - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Gestão de Documentos{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Cards de Estatísticas -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pendentes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pendentes }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Aprovados</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.aprovados }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Rejeitados</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.rejeitados }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros e Busca -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-body">
+                <form method="get" class="form-inline">
+                    <input type="text" name="busca" class="form-control mr-2" placeholder="Buscar freelancer..." value="{{ busca }}">
+                    
+                    <select name="status" class="form-control mr-2">
+                        <option value="todos" {% if status_filtro == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="pendente" {% if status_filtro == 'pendente' %}selected{% endif %}>Pendentes</option>
+                        <option value="aprovado" {% if status_filtro == 'aprovado' %}selected{% endif %}>Aprovados</option>
+                        <option value="rejeitado" {% if status_filtro == 'rejeitado' %}selected{% endif %}>Rejeitados</option>
+                    </select>
+                    
+                    <button type="submit" class="btn btn-primary mr-2">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                    
+                    <a href="{% url 'dashboard_empresa:documentos_pendentes' %}" class="btn btn-warning mr-2">
+                        <i class="fas fa-clock"></i> Ver Pendentes ({{ stats.pendentes }})
+                    </a>
+                    
+                    <a href="{% url 'dashboard_empresa:configurar_documentos' %}" class="btn btn-secondary">
+                        <i class="fas fa-cog"></i> Configurar
+                    </a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabela de Documentos -->
+<div class="row">
+    <div class="col-lg-9">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Documentos Recentes</h6>
+            </div>
+            <div class="card-body">
+                {% if documentos %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Freelancer</th>
+                                    <th>Documento</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in documentos %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ doc.freelancer.usuario.get_full_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ doc.freelancer.usuario.email }}</small>
+                                    </td>
+                                    <td>
+                                        <i class="fas fa-file-alt"></i>
+                                        {{ doc.get_tipo_documento_display }}
+                                    </td>
+                                    <td>
+                                        {% if doc.status == 'pendente' %}
+                                            <span class="badge badge-warning">Pendente</span>
+                                        {% elif doc.status == 'aprovado' %}
+                                            <span class="badge badge-success">Aprovado</span>
+                                        {% elif doc.status == 'rejeitado' %}
+                                            <span class="badge badge-danger">Rejeitado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ doc.data_upload|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'dashboard_empresa:validar_documento' doc.id %}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if doc.status == 'pendente' %}
+                                            <button class="btn btn-sm btn-success" onclick="aprovarDocumento({{ doc.id }})">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhum documento encontrado</h5>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-3">
+        <!-- Documentos Expirando -->
+        {% if docs_expirando %}
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-warning">
+                <h6 class="m-0 font-weight-bold text-white">
+                    <i class="fas fa-exclamation-triangle"></i> Expirando
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for doc in docs_expirando %}
+                <div class="mb-2 pb-2 border-bottom">
+                    <small><strong>{{ doc.freelancer.usuario.get_full_name }}</strong></small>
+                    <br>
+                    <span class="badge badge-warning">{{ doc.get_tipo_documento_display }}</span>
+                    <br>
+                    <small class="text-muted">{{ doc.data_vencimento|date:"d/m/Y" }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Top Freelancers -->
+        {% if freelancers_top %}
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Top Freelancers</h6>
+            </div>
+            <div class="card-body">
+                {% for item in freelancers_top %}
+                <div class="mb-2">
+                    <strong>{{ item.freelancer__usuario__first_name }} {{ item.freelancer__usuario__last_name }}</strong>
+                    <br>
+                    <small class="text-muted">{{ item.total_docs }} documento(s)</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function aprovarDocumento(documentoId) {
+    if (confirm('Aprovar este documento?')) {
+        fetch(`/empresa/documentos/ajax/aprovar/${documentoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Documento aprovado!');
+                location.reload();
+            }
+        });
+    }
+}
+</script>
+{% endblock %}
+

@@ -483,10 +483,16 @@ def freelancers_empresa(request):
         # Apenas freelancers que se candidataram a vagas da empresa
         freelancers = Freelance.objects.filter(
             candidaturas__vaga__empresa_contratante=empresa
+        ).select_related('usuario').prefetch_related(
+            'funcoes__funcao'
         ).distinct().order_by('nome_completo')
     else:
         # TODOS os freelancers do sistema
-        freelancers = Freelance.objects.all().order_by('nome_completo')
+        freelancers = Freelance.objects.select_related(
+            'usuario'
+        ).prefetch_related(
+            'funcoes__funcao'
+        ).all().order_by('nome_completo')
     
     context = {
         'empresa': empresa,

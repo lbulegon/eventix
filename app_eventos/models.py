@@ -39,6 +39,13 @@ from django.db.models import Q, F
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
+# Importar modelos de documentos específicos
+from .models_documentos_vaga import (
+    EventoDocumentacao,
+    VagaDocumentacao,
+    TipoDocumentoCustomizado
+)
+
 class GrupoPermissaoEmpresa(models.Model):
     """
     Grupos de permissões específicos por empresa contratante.

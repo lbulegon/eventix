@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}Documentos - {{ empresa.nome_fantasia }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'freelancer_documentos:dashboard' %}">Documentos</a></li>
+            <li class="breadcrumb-item active">{{ empresa.nome_fantasia }}</li>
+        </ol>
+    </nav>
+
+    <!-- Cabeçalho -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-building"></i> {{ empresa.nome_fantasia }}
+        </h1>
+        <a href="{% url 'freelancer_documentos:upload' empresa.id %}" class="btn btn-primary">
+            <i class="fas fa-upload"></i> Enviar Documento
+        </a>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total</div>
+                    <div class="h5 mb-0 font-weight-bold">{{ stats.total }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Aprovados</div>
+                    <div class="h5 mb-0 font-weight-bold">{{ stats.aprovados }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pendentes</div>
+                    <div class="h5 mb-0 font-weight-bold">{{ stats.pendentes }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Faltantes</div>
+                    <div class="h5 mb-0 font-weight-bold">{{ stats.faltantes }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Documentos Faltantes -->
+    {% if docs_faltantes %}
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+        <strong>Documentos Faltantes:</strong>
+        {% for doc in docs_faltantes %}
+            <span class="badge badge-warning">{{ doc }}</span>
+        {% endfor %}
+        <a href="{% url 'freelancer_documentos:upload' empresa.id %}" class="btn btn-sm btn-warning ml-2">
+            <i class="fas fa-upload"></i> Enviar Agora
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Lista de Documentos -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Documentos Enviados</h6>
+        </div>
+        <div class="card-body">
+            {% if documentos %}
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Data Envio</th>
+                                <th>Validade</th>
+                                <th>Observações</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documentos %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-file-alt"></i>
+                                    {{ doc.get_tipo_documento_display }}
+                                </td>
+                                <td>
+                                    {% if doc.status == 'aprovado' %}
+                                        <span class="badge badge-success">
+                                            <i class="fas fa-check-circle"></i> Aprovado
+                                        </span>
+                                    {% elif doc.status == 'pendente' %}
+                                        <span class="badge badge-warning">
+                                            <i class="fas fa-clock"></i> Pendente
+                                        </span>
+                                    {% elif doc.status == 'rejeitado' %}
+                                        <span class="badge badge-danger">
+                                            <i class="fas fa-times-circle"></i> Rejeitado
+                                        </span>
+                                    {% elif doc.status == 'expirado' %}
+                                        <span class="badge badge-secondary">
+                                            <i class="fas fa-exclamation-triangle"></i> Expirado
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ doc.data_upload|date:"d/m/Y H:i" }}</td>
+                                <td>
+                                    {% if doc.data_vencimento %}
+                                        {{ doc.data_vencimento|date:"d/m/Y" }}
+                                        {% if not doc.esta_valido %}
+                                            <span class="badge badge-danger">Vencido</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if doc.observacoes %}
+                                        <button class="btn btn-sm btn-info" data-toggle="modal" data-target="#obsModal{{ doc.id }}">
+                                            <i class="fas fa-comment"></i> Ver
+                                        </button>
+                                        
+                                        <!-- Modal -->
+                                        <div class="modal fade" id="obsModal{{ doc.id }}">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Observações</h5>
+                                                        <button type="button" class="close" data-dismiss="modal">
+                                                            <span>&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        {{ doc.observacoes }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ doc.arquivo.url }}" target="_blank" class="btn btn-sm btn-primary" title="Visualizar">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if doc.status == 'pendente' or doc.status == 'rejeitado' %}
+                                        <button class="btn btn-sm btn-danger" onclick="excluirDocumento({{ doc.id }})" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhum documento enviado ainda</h5>
+                    <a href="{% url 'freelancer_documentos:upload' empresa.id %}" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Enviar Primeiro Documento
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function excluirDocumento(documentoId) {
+    if (confirm('Tem certeza que deseja excluir este documento?')) {
+        fetch(`/freelancer/documentos/excluir/${documentoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Documento excluído com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao excluir documento');
+            console.error(error);
+        });
+    }
+}
+</script>
+
+<style>
+.border-left-primary {
+    border-left: 0.25rem solid #4e73df !important;
+}
+.border-left-success {
+    border-left: 0.25rem solid #1cc88a !important;
+}
+.border-left-warning {
+    border-left: 0.25rem solid #f6c23e !important;
+}
+.border-left-danger {
+    border-left: 0.25rem solid #e74a3b !important;
+}
+</style>
+{% endblock %}
+

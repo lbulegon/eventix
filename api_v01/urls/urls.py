@@ -48,4 +48,7 @@ urlpatterns = [
     path('fornecedores/criar/', criar_fornecedor, name='criar_fornecedor'),
     path('fornecedores/<int:fornecedor_id>/atualizar/', atualizar_fornecedor, name='atualizar_fornecedor'),
     path('fornecedores/<int:fornecedor_id>/despesas/', fornecedor_despesas, name='fornecedor_despesas'),
+    
+    # Sistema de Documentos (API)
+    path('', include('app_eventos.urls.urls_documentos')),
 ]

@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Enviar Documento - {{ empresa.nome_fantasia }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'freelancer_documentos:dashboard' %}">Documentos</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'freelancer_documentos:documentos_empresa' empresa.id %}">{{ empresa.nome_fantasia }}</a></li>
+            <li class="breadcrumb-item active">Enviar Documento</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-upload"></i> Enviar Documento para {{ empresa.nome_fantasia }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="form-group">
+                            <label for="tipo_documento">Tipo de Documento *</label>
+                            <select class="form-control" id="tipo_documento" name="tipo_documento" required>
+                                <option value="">Selecione...</option>
+                                {% for codigo, nome in tipos_documentos %}
+                                    <option value="{{ codigo }}">{{ nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="arquivo">Arquivo *</label>
+                            <input type="file" class="form-control-file" id="arquivo" name="arquivo" accept=".pdf,.jpg,.jpeg,.png" required>
+                            <small class="form-text text-muted">
+                                Formatos aceitos: PDF, JPG, PNG. Tamanho máximo: 5MB
+                            </small>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <strong>Importante:</strong>
+                            <ul class="mb-0">
+                                <li>Certifique-se que o documento está legível</li>
+                                <li>O documento será validado pela empresa</li>
+                                <li>Você receberá uma notificação quando for validado</li>
+                            </ul>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Enviar Documento
+                        </button>
+                        <a href="{% url 'freelancer_documentos:documentos_empresa' empresa.id %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Documentos Obrigatórios -->
+            {% if docs_obrigatorios %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-primary">
+                    <h6 class="m-0 font-weight-bold text-white">
+                        <i class="fas fa-list-check"></i> Documentos Obrigatórios
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        {% for doc in docs_obrigatorios %}
+                            {% if doc in docs_enviados|dictsort:"tipo_documento" %}
+                                <li class="mb-2">
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    {{ doc }}
+                                </li>
+                            {% else %}
+                                <li class="mb-2">
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                    {{ doc }}
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Documentos Já Enviados -->
+            {% if docs_enviados %}
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Documentos Enviados</h6>
+                </div>
+                <div class="card-body">
+                    {% for doc in docs_enviados %}
+                        <div class="mb-2">
+                            <span class="badge badge-{% if doc.status == 'aprovado' %}success{% elif doc.status == 'pendente' %}warning{% else %}danger{% endif %}">
+                                {{ doc.get_tipo_documento_display }}
+                            </span>
+                            <small class="text-muted">{{ doc.get_status_display }}</small>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
