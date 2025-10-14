@@ -7,7 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from .models_documentos import DocumentoFreelancerEmpresa
-from .models_notificacoes import Notificacao, TipoNotificacao
+from .models_notificacoes import Notificacao
 
 
 @receiver(post_save, sender=DocumentoFreelancerEmpresa)
@@ -17,19 +17,6 @@ def notificar_documento_enviado(sender, instance, created, **kwargs):
     """
     if created:
         # Notificar empresa
-        try:
-            tipo_notif = TipoNotificacao.objects.get(codigo='documento_enviado')
-        except TipoNotificacao.DoesNotExist:
-            # Criar tipo se não existir
-            tipo_notif = TipoNotificacao.objects.create(
-                codigo='documento_enviado',
-                nome='Documento Enviado',
-                descricao='Freelancer enviou novo documento',
-                icone='fas fa-file-upload',
-                cor='info'
-            )
-        
-        # Buscar usuários da empresa que devem receber
         from .models import User
         usuarios_empresa = User.objects.filter(
             empresa_contratante=instance.empresa_contratante,
@@ -38,11 +25,11 @@ def notificar_documento_enviado(sender, instance, created, **kwargs):
         
         for usuario in usuarios_empresa:
             Notificacao.objects.create(
-                tipo=tipo_notif,
+                tipo='nova_candidatura',  # Usar tipo existente
                 usuario=usuario,
                 titulo='Novo Documento Enviado',
                 mensagem=f'{instance.freelancer.usuario.get_full_name()} enviou {instance.get_tipo_documento_display()}',
-                link=f'/empresa/documentos/validar/{instance.id}/'
+                prioridade='media'
             )
 
 
@@ -57,29 +44,8 @@ def notificar_documento_validado(sender, instance, created, update_fields, **kwa
             return  # Evitar duplicação
         
         # Notificar freelancer
-        try:
-            if instance.status == 'aprovado':
-                tipo_notif = TipoNotificacao.objects.get(codigo='documento_aprovado')
-            else:
-                tipo_notif = TipoNotificacao.objects.get(codigo='documento_rejeitado')
-        except TipoNotificacao.DoesNotExist:
-            # Criar tipo se não existir
-            if instance.status == 'aprovado':
-                tipo_notif = TipoNotificacao.objects.create(
-                    codigo='documento_aprovado',
-                    nome='Documento Aprovado',
-                    descricao='Documento foi aprovado pela empresa',
-                    icone='fas fa-check-circle',
-                    cor='success'
-                )
-            else:
-                tipo_notif = TipoNotificacao.objects.create(
-                    codigo='documento_rejeitado',
-                    nome='Documento Rejeitado',
-                    descricao='Documento foi rejeitado pela empresa',
-                    icone='fas fa-times-circle',
-                    cor='danger'
-                )
+        tipo_notif = 'candidatura_aprovada' if instance.status == 'aprovado' else 'candidatura_rejeitada'
+        prioridade = 'media' if instance.status == 'aprovado' else 'alta'
         
         titulo = 'Documento Aprovado!' if instance.status == 'aprovado' else 'Documento Rejeitado'
         mensagem = f'Seu {instance.get_tipo_documento_display()} foi {instance.get_status_display().lower()} pela empresa {instance.empresa_contratante.nome_fantasia}'
@@ -92,7 +58,7 @@ def notificar_documento_validado(sender, instance, created, update_fields, **kwa
             usuario=instance.freelancer.usuario,
             titulo=titulo,
             mensagem=mensagem,
-            link='/freelancer/documentos/'
+            prioridade=prioridade
         )
 
 
@@ -125,64 +91,48 @@ def verificar_documentos_proximos_vencimento():
         data_vencimento__date=data_7_dias
     ).select_related('freelancer__usuario', 'empresa_contratante')
     
-    # Tipo de notificação
-    try:
-        tipo_notif = TipoNotificacao.objects.get(codigo='documento_vencimento')
-    except TipoNotificacao.DoesNotExist:
-        tipo_notif = TipoNotificacao.objects.create(
-            codigo='documento_vencimento',
-            nome='Documento Próximo ao Vencimento',
-            descricao='Documento está próximo ao vencimento',
-            icone='fas fa-exclamation-triangle',
-            cor='warning'
-        )
-    
     # Notificar para cada grupo
     notificacoes_criadas = 0
     
     for documento in documentos_30_dias:
         # Verificar se já foi notificado
         if not Notificacao.objects.filter(
-            tipo=tipo_notif,
             usuario=documento.freelancer.usuario,
             mensagem__contains=str(documento.id)
         ).exists():
             Notificacao.objects.create(
-                tipo=tipo_notif,
+                tipo='lembrete_candidatura',
                 usuario=documento.freelancer.usuario,
                 titulo='Documento vence em 30 dias',
                 mensagem=f'Seu {documento.get_tipo_documento_display()} para {documento.empresa_contratante.nome_fantasia} vence em 30 dias. Doc ID: {documento.id}',
-                link='/freelancer/documentos/'
+                prioridade='media'
             )
             notificacoes_criadas += 1
     
     for documento in documentos_15_dias:
         if not Notificacao.objects.filter(
-            tipo=tipo_notif,
             usuario=documento.freelancer.usuario,
             mensagem__contains=str(documento.id)
         ).exists():
             Notificacao.objects.create(
-                tipo=tipo_notif,
+                tipo='lembrete_candidatura',
                 usuario=documento.freelancer.usuario,
                 titulo='⚠️ Documento vence em 15 dias',
                 mensagem=f'Seu {documento.get_tipo_documento_display()} para {documento.empresa_contratante.nome_fantasia} vence em 15 dias. Doc ID: {documento.id}',
-                link='/freelancer/documentos/'
+                prioridade='media'
             )
             notificacoes_criadas += 1
     
     for documento in documentos_7_dias:
         if not Notificacao.objects.filter(
-            tipo=tipo_notif,
             usuario=documento.freelancer.usuario,
             mensagem__contains=str(documento.id)
         ).exists():
             Notificacao.objects.create(
-                tipo=tipo_notif,
+                tipo='lembrete_candidatura',
                 usuario=documento.freelancer.usuario,
                 titulo='🚨 URGENTE: Documento vence em 7 dias',
                 mensagem=f'Seu {documento.get_tipo_documento_display()} para {documento.empresa_contratante.nome_fantasia} vence em 7 dias! Doc ID: {documento.id}',
-                link='/freelancer/documentos/',
                 prioridade='alta'
             )
             notificacoes_criadas += 1
@@ -209,24 +159,12 @@ def marcar_documentos_expirados():
     documentos_expirados.update(status='expirado')
     
     # Notificar freelancers
-    try:
-        tipo_notif = TipoNotificacao.objects.get(codigo='documento_expirado')
-    except TipoNotificacao.DoesNotExist:
-        tipo_notif = TipoNotificacao.objects.create(
-            codigo='documento_expirado',
-            nome='Documento Expirado',
-            descricao='Documento expirou',
-            icone='fas fa-times-circle',
-            cor='danger'
-        )
-    
     for documento in documentos_expirados:
         Notificacao.objects.create(
-            tipo=tipo_notif,
+            tipo='vaga_encerrada',  # Usar tipo existente
             usuario=documento.freelancer.usuario,
             titulo='Documento Expirado',
             mensagem=f'Seu {documento.get_tipo_documento_display()} para {documento.empresa_contratante.nome_fantasia} expirou. Por favor, envie um novo documento.',
-            link='/freelancer/documentos/',
             prioridade='alta'
         )
     
