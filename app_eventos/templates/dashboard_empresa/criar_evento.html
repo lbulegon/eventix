@@ -1,0 +1,118 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Criar Evento - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Criar Novo Evento{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:eventos_empresa' %}">Eventos</a></li>
+        <li class="breadcrumb-item active">Criar Evento</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-calendar-plus me-2"></i>Criar Novo Evento</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="nome" class="form-label">Nome do Evento *</label>
+                                <input type="text" class="form-control" id="nome" name="nome" required 
+                                       placeholder="Ex: Festival de Música 2025">
+                                <small class="text-muted">Nome que identifica o evento</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="ativo" class="form-label">Status</label>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="ativo" name="ativo" checked>
+                                    <label class="form-check-label" for="ativo">Ativo</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_inicio" class="form-label">Data de Início *</label>
+                                <input type="date" class="form-control" id="data_inicio" name="data_inicio" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_fim" class="form-label">Data de Fim *</label>
+                                <input type="date" class="form-control" id="data_fim" name="data_fim" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="local" class="form-label">Local do Evento *</label>
+                        <select class="form-select" id="local" name="local" required>
+                            <option value="">Selecione um local</option>
+                            {% for local in locais %}
+                            <option value="{{ local.id }}">{{ local.nome }} - {{ local.endereco }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Selecione onde o evento acontecerá</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="empresa_produtora" class="form-label">Empresa Produtora (Opcional)</label>
+                        <select class="form-select" id="empresa_produtora" name="empresa_produtora">
+                            <option value="">Nenhuma</option>
+                            {% for empresa_prod in empresas_produtoras %}
+                            <option value="{{ empresa_prod.id }}">{{ empresa_prod.nome }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Empresa parceira que concede/fornece a oportunidade do evento</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição do Evento</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="4"
+                                  placeholder="Descreva os detalhes do evento..."></textarea>
+                        <small class="text-muted">Opcional: Informações adicionais sobre o evento</small>
+                    </div>
+                    
+                    {% if not locais %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Atenção:</strong> Não há locais cadastrados. Você precisa cadastrar um local antes de criar um evento.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Dica:</strong> Após criar o evento, você poderá adicionar setores e vagas.
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'dashboard_empresa:eventos_empresa' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary" {% if not locais %}disabled{% endif %}>
+                            <i class="fas fa-save me-2"></i>Criar Evento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

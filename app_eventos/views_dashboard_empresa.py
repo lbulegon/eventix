@@ -237,6 +237,150 @@ def detalhe_evento(request, evento_id):
 
 
 @login_required(login_url='/empresa/login/')
+def criar_evento(request):
+    """
+    Criar novo evento
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        data_inicio = request.POST.get('data_inicio')
+        data_fim = request.POST.get('data_fim')
+        descricao = request.POST.get('descricao', '')
+        local_id = request.POST.get('local')
+        empresa_produtora_id = request.POST.get('empresa_produtora')
+        ativo = request.POST.get('ativo') == 'on'
+        
+        # Validações
+        if not nome or not data_inicio or not data_fim or not local_id:
+            messages.error(request, 'Preencha todos os campos obrigatórios.')
+        else:
+            try:
+                # Buscar local
+                local = LocalEvento.objects.get(id=local_id)
+                
+                # Buscar empresa produtora (opcional)
+                empresa_produtora = None
+                if empresa_produtora_id:
+                    empresa_produtora = Empresa.objects.get(id=empresa_produtora_id, empresa_contratante=empresa)
+                
+                # Criar evento
+                evento = Evento.objects.create(
+                    empresa_contratante=empresa,
+                    nome=nome,
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
+                    descricao=descricao,
+                    local=local,
+                    empresa_produtora=empresa_produtora,
+                    ativo=ativo
+                )
+                
+                messages.success(request, f'Evento "{evento.nome}" criado com sucesso!')
+                return redirect('dashboard_empresa:detalhe_evento', evento_id=evento.id)
+                
+            except LocalEvento.DoesNotExist:
+                messages.error(request, 'Local não encontrado.')
+            except Empresa.DoesNotExist:
+                messages.error(request, 'Empresa produtora não encontrada.')
+            except Exception as e:
+                messages.error(request, f'Erro ao criar evento: {str(e)}')
+    
+    # Buscar locais e empresas para o formulário
+    locais = LocalEvento.objects.filter(ativo=True)
+    empresas_produtoras = Empresa.objects.filter(empresa_contratante=empresa, ativo=True)
+    
+    context = {
+        'empresa': empresa,
+        'locais': locais,
+        'empresas_produtoras': empresas_produtoras,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/criar_evento.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def editar_evento(request, evento_id):
+    """
+    Editar evento existente
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar evento
+    evento = get_object_or_404(
+        Evento,
+        id=evento_id,
+        empresa_contratante=empresa
+    )
+    
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        data_inicio = request.POST.get('data_inicio')
+        data_fim = request.POST.get('data_fim')
+        descricao = request.POST.get('descricao', '')
+        local_id = request.POST.get('local')
+        empresa_produtora_id = request.POST.get('empresa_produtora')
+        ativo = request.POST.get('ativo') == 'on'
+        
+        # Validações
+        if not nome or not data_inicio or not data_fim or not local_id:
+            messages.error(request, 'Preencha todos os campos obrigatórios.')
+        else:
+            try:
+                # Buscar local
+                local = LocalEvento.objects.get(id=local_id)
+                
+                # Buscar empresa produtora (opcional)
+                empresa_produtora = None
+                if empresa_produtora_id:
+                    empresa_produtora = Empresa.objects.get(id=empresa_produtora_id, empresa_contratante=empresa)
+                
+                # Atualizar evento
+                evento.nome = nome
+                evento.data_inicio = data_inicio
+                evento.data_fim = data_fim
+                evento.descricao = descricao
+                evento.local = local
+                evento.empresa_produtora = empresa_produtora
+                evento.ativo = ativo
+                evento.save()
+                
+                messages.success(request, f'Evento "{evento.nome}" atualizado com sucesso!')
+                return redirect('dashboard_empresa:detalhe_evento', evento_id=evento.id)
+                
+            except LocalEvento.DoesNotExist:
+                messages.error(request, 'Local não encontrado.')
+            except Empresa.DoesNotExist:
+                messages.error(request, 'Empresa produtora não encontrada.')
+            except Exception as e:
+                messages.error(request, f'Erro ao atualizar evento: {str(e)}')
+    
+    # Buscar locais e empresas para o formulário
+    locais = LocalEvento.objects.filter(ativo=True)
+    empresas_produtoras = Empresa.objects.filter(empresa_contratante=empresa, ativo=True)
+    
+    context = {
+        'empresa': empresa,
+        'evento': evento,
+        'locais': locais,
+        'empresas_produtoras': empresas_produtoras,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/editar_evento.html', context)
+
+
+@login_required(login_url='/empresa/login/')
 def criar_setor(request, evento_id):
     """
     Criar novo setor para o evento

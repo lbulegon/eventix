@@ -19,7 +19,9 @@ urlpatterns = [
     
     # Módulos específicos
     path('eventos/', views_dashboard_empresa.eventos_empresa, name='eventos_empresa'),
+    path('eventos/criar/', views_dashboard_empresa.criar_evento, name='criar_evento'),
     path('eventos/<int:evento_id>/', views_dashboard_empresa.detalhe_evento, name='detalhe_evento'),
+    path('eventos/<int:evento_id>/editar/', views_dashboard_empresa.editar_evento, name='editar_evento'),
     path('eventos/<int:evento_id>/criar-setor/', views_dashboard_empresa.criar_setor, name='criar_setor'),
     path('setores/<int:setor_id>/criar-vaga/', views_dashboard_empresa.criar_vaga, name='criar_vaga'),
     path('candidaturas/', views_dashboard_empresa.candidaturas_empresa, name='candidaturas_empresa'),
