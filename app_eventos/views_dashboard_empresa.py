@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from .models import (
     Evento, SetorEvento, Vaga, Candidatura, ContratoFreelance, Freelance,
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
-    User, GrupoPermissaoEmpresa
+    User, GrupoPermissaoEmpresa, LocalEvento, Empresa
 )
 from .mixins import EmpresaContratanteRequiredMixin
 
