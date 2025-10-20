@@ -477,6 +477,164 @@ def criar_vaga(request, setor_id):
 
 
 @login_required(login_url='/empresa/login/')
+def gerenciar_vagas_evento(request, evento_id):
+    """
+    Gerenciar todas as vagas de um evento com filtros por setor
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar evento
+    evento = get_object_or_404(
+        Evento,
+        id=evento_id,
+        empresa_contratante=empresa
+    )
+    
+    # Filtros
+    setor_id = request.GET.get('setor')
+    status = request.GET.get('status', 'todas')
+    
+    # Buscar vagas
+    vagas = Vaga.objects.filter(setor__evento=evento).select_related('setor', 'funcao')
+    
+    if setor_id:
+        vagas = vagas.filter(setor__id=setor_id)
+    
+    if status == 'ativas':
+        vagas = vagas.filter(ativa=True)
+    elif status == 'inativas':
+        vagas = vagas.filter(ativa=False)
+    
+    vagas = vagas.order_by('setor__nome', 'titulo')
+    
+    # Buscar setores do evento
+    setores = SetorEvento.objects.filter(evento=evento).order_by('nome')
+    
+    # Estatísticas por setor
+    stats_setores = []
+    for setor in setores:
+        vagas_setor = Vaga.objects.filter(setor=setor)
+        candidaturas_setor = Candidatura.objects.filter(vaga__setor=setor)
+        
+        stats_setores.append({
+            'setor': setor,
+            'total_vagas': vagas_setor.count(),
+            'vagas_ativas': vagas_setor.filter(ativa=True).count(),
+            'total_candidaturas': candidaturas_setor.count(),
+            'aprovadas': candidaturas_setor.filter(status='aprovado').count(),
+        })
+    
+    # Estatísticas gerais
+    total_vagas = Vaga.objects.filter(setor__evento=evento)
+    stats_gerais = {
+        'total_vagas': total_vagas.count(),
+        'vagas_ativas': total_vagas.filter(ativa=True).count(),
+        'vagas_inativas': total_vagas.filter(ativa=False).count(),
+        'total_candidaturas': Candidatura.objects.filter(vaga__setor__evento=evento).count(),
+    }
+    
+    context = {
+        'empresa': empresa,
+        'evento': evento,
+        'vagas': vagas,
+        'setores': setores,
+        'stats_setores': stats_setores,
+        'stats_gerais': stats_gerais,
+        'setor_filtro': setor_id,
+        'status_filtro': status,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/gerenciar_vagas.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def editar_vaga(request, vaga_id):
+    """
+    Editar vaga existente
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar vaga
+    vaga = get_object_or_404(
+        Vaga.objects.select_related('setor', 'setor__evento'),
+        id=vaga_id,
+        empresa_contratante=empresa
+    )
+    
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descricao = request.POST.get('descricao', '')
+        quantidade = request.POST.get('quantidade')
+        remuneracao = request.POST.get('remuneracao')
+        tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
+        nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
+        ativa = request.POST.get('ativa') == 'on'
+        
+        if titulo and quantidade and remuneracao:
+            vaga.titulo = titulo
+            vaga.descricao = descricao
+            vaga.quantidade = int(quantidade)
+            vaga.remuneracao = float(remuneracao)
+            vaga.tipo_remuneracao = tipo_remuneracao
+            vaga.nivel_experiencia = nivel_experiencia
+            vaga.ativa = ativa
+            vaga.save()
+            
+            messages.success(request, f'Vaga "{titulo}" atualizada com sucesso!')
+            return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
+        else:
+            messages.error(request, 'Preencha todos os campos obrigatórios.')
+    
+    context = {
+        'empresa': empresa,
+        'vaga': vaga,
+        'setor': vaga.setor,
+        'evento': vaga.setor.evento,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/editar_vaga.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def desativar_vaga(request, vaga_id):
+    """
+    Desativar/Ativar vaga
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar vaga
+    vaga = get_object_or_404(
+        Vaga.objects.select_related('setor', 'setor__evento'),
+        id=vaga_id,
+        empresa_contratante=empresa
+    )
+    
+    # Toggle status
+    vaga.ativa = not vaga.ativa
+    vaga.save()
+    
+    status_texto = "ativada" if vaga.ativa else "desativada"
+    messages.success(request, f'Vaga "{vaga.titulo}" {status_texto} com sucesso!')
+    
+    # Redirecionar para a página anterior ou para gerenciar vagas
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard_empresa:gerenciar_vagas_evento'), evento_id=vaga.setor.evento.id)
+
+
+@login_required(login_url='/empresa/login/')
 def candidaturas_empresa(request):
     """
     Lista de candidaturas da empresa
