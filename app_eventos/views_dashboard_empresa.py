@@ -267,7 +267,7 @@ def criar_evento(request):
                 # Buscar empresa produtora (opcional)
                 empresa_produtora = None
                 if empresa_produtora_id:
-                    empresa_produtora = Empresa.objects.get(id=empresa_produtora_id, empresa_contratante=empresa)
+                    empresa_produtora = Empresa.objects.get(id=empresa_produtora_id)
                 
                 # Criar evento
                 evento = Evento.objects.create(
@@ -293,7 +293,7 @@ def criar_evento(request):
     
     # Buscar locais e empresas para o formulário
     locais = LocalEvento.objects.filter(ativo=True)
-    empresas_produtoras = Empresa.objects.filter(empresa_contratante=empresa, ativo=True)
+    empresas_produtoras = Empresa.objects.filter(ativo=True)
     
     context = {
         'empresa': empresa,
@@ -343,7 +343,7 @@ def editar_evento(request, evento_id):
                 # Buscar empresa produtora (opcional)
                 empresa_produtora = None
                 if empresa_produtora_id:
-                    empresa_produtora = Empresa.objects.get(id=empresa_produtora_id, empresa_contratante=empresa)
+                    empresa_produtora = Empresa.objects.get(id=empresa_produtora_id)
                 
                 # Atualizar evento
                 evento.nome = nome
@@ -367,7 +367,7 @@ def editar_evento(request, evento_id):
     
     # Buscar locais e empresas para o formulário
     locais = LocalEvento.objects.filter(ativo=True)
-    empresas_produtoras = Empresa.objects.filter(empresa_contratante=empresa, ativo=True)
+    empresas_produtoras = Empresa.objects.filter(ativo=True)
     
     context = {
         'empresa': empresa,
