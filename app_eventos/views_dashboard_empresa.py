@@ -6,13 +6,13 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.contrib import messages
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import (
     Evento, SetorEvento, Vaga, Candidatura, ContratoFreelance, Freelance,
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
-    User, GrupoPermissaoEmpresa, LocalEvento, Empresa
+    User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao
 )
 from .mixins import EmpresaContratanteRequiredMixin
 
@@ -104,8 +104,8 @@ def dashboard_empresa(request):
     stats = {
         'total_eventos': Evento.objects.filter(empresa_contratante=empresa).count(),
         'eventos_ativos': Evento.objects.filter(empresa_contratante=empresa, ativo=True).count(),
-        'total_vagas': Vaga.objects.filter(empresa_contratante=empresa).count(),
-        'vagas_ativas': Vaga.objects.filter(empresa_contratante=empresa, ativa=True).count(),
+        'total_vagas': Vaga.objects.filter(empresa_contratante=empresa).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+        'vagas_ativas': Vaga.objects.filter(empresa_contratante=empresa, ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'total_candidaturas': Candidatura.objects.filter(vaga__empresa_contratante=empresa).count(),
         'candidaturas_pendentes': Candidatura.objects.filter(vaga__empresa_contratante=empresa, status='pendente').count(),
         'total_freelancers': Freelance.objects.filter(
@@ -214,8 +214,8 @@ def detalhe_evento(request, evento_id):
     # Estatísticas do evento
     stats_evento = {
         'total_setores': setores.count(),
-        'total_vagas': vagas.count(),
-        'vagas_ativas': vagas.filter(ativa=True).count(),
+        'total_vagas': vagas.aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+        'vagas_ativas': vagas.filter(ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'total_candidaturas': todas_candidaturas.count(),
         'aprovadas': todas_candidaturas.filter(status='aprovado').count(),
         'pendentes': todas_candidaturas.filter(status='pendente').count(),
@@ -448,28 +448,43 @@ def criar_vaga(request, setor_id):
         remuneracao = request.POST.get('remuneracao')
         tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
         nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
+        funcao_id = request.POST.get('funcao')
         
-        if titulo and quantidade and remuneracao:
-            vaga = Vaga.objects.create(
-                setor=setor,
-                empresa_contratante=empresa,
-                titulo=titulo,
-                descricao=descricao,
-                quantidade=int(quantidade),
-                remuneracao=float(remuneracao),
-                tipo_remuneracao=tipo_remuneracao,
-                nivel_experiencia=nivel_experiencia,
-                ativa=True
-            )
-            messages.success(request, f'Vaga "{titulo}" criada com sucesso!')
-            return redirect('dashboard_empresa:detalhe_evento', evento_id=setor.evento.id)
+        if titulo and quantidade and remuneracao and funcao_id:
+            try:
+                funcao = Funcao.objects.get(id=funcao_id)
+                
+                vaga = Vaga.objects.create(
+                    setor=setor,
+                    empresa_contratante=empresa,
+                    titulo=titulo,
+                    descricao=descricao,
+                    quantidade=int(quantidade),
+                    remuneracao=float(remuneracao),
+                    tipo_remuneracao=tipo_remuneracao,
+                    nivel_experiencia=nivel_experiencia,
+                    funcao=funcao,
+                    ativa=True
+                )
+                messages.success(request, f'Vaga "{titulo}" criada com sucesso!')
+                return redirect('dashboard_empresa:detalhe_evento', evento_id=setor.evento.id)
+            except Funcao.DoesNotExist:
+                messages.error(request, 'Função selecionada não encontrada.')
         else:
-            messages.error(request, 'Preencha todos os campos obrigatórios.')
+            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
+    
+    # Buscar funções disponíveis (globais ou da empresa)
+    funcoes = Funcao.objects.filter(
+        Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
+        ativo=True,
+        disponivel_para_vagas=True
+    ).select_related('tipo_funcao').order_by('tipo_funcao__nome', 'nome')
     
     context = {
         'empresa': empresa,
         'setor': setor,
         'evento': setor.evento,
+        'funcoes': funcoes,
         'user': request.user,
     }
     
@@ -522,8 +537,8 @@ def gerenciar_vagas_evento(request, evento_id):
         
         stats_setores.append({
             'setor': setor,
-            'total_vagas': vagas_setor.count(),
-            'vagas_ativas': vagas_setor.filter(ativa=True).count(),
+            'total_vagas': vagas_setor.aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+            'vagas_ativas': vagas_setor.filter(ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
             'total_candidaturas': candidaturas_setor.count(),
             'aprovadas': candidaturas_setor.filter(status='aprovado').count(),
         })
@@ -531,9 +546,9 @@ def gerenciar_vagas_evento(request, evento_id):
     # Estatísticas gerais
     total_vagas = Vaga.objects.filter(setor__evento=evento)
     stats_gerais = {
-        'total_vagas': total_vagas.count(),
-        'vagas_ativas': total_vagas.filter(ativa=True).count(),
-        'vagas_inativas': total_vagas.filter(ativa=False).count(),
+        'total_vagas': total_vagas.aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+        'vagas_ativas': total_vagas.filter(ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+        'vagas_inativas': total_vagas.filter(ativa=False).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'total_candidaturas': Candidatura.objects.filter(vaga__setor__evento=evento).count(),
     }
     
@@ -577,28 +592,43 @@ def editar_vaga(request, vaga_id):
         remuneracao = request.POST.get('remuneracao')
         tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
         nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
+        funcao_id = request.POST.get('funcao')
         ativa = request.POST.get('ativa') == 'on'
         
-        if titulo and quantidade and remuneracao:
-            vaga.titulo = titulo
-            vaga.descricao = descricao
-            vaga.quantidade = int(quantidade)
-            vaga.remuneracao = float(remuneracao)
-            vaga.tipo_remuneracao = tipo_remuneracao
-            vaga.nivel_experiencia = nivel_experiencia
-            vaga.ativa = ativa
-            vaga.save()
-            
-            messages.success(request, f'Vaga "{titulo}" atualizada com sucesso!')
-            return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
+        if titulo and quantidade and remuneracao and funcao_id:
+            try:
+                funcao = Funcao.objects.get(id=funcao_id)
+                
+                vaga.titulo = titulo
+                vaga.descricao = descricao
+                vaga.quantidade = int(quantidade)
+                vaga.remuneracao = float(remuneracao)
+                vaga.tipo_remuneracao = tipo_remuneracao
+                vaga.nivel_experiencia = nivel_experiencia
+                vaga.funcao = funcao
+                vaga.ativa = ativa
+                vaga.save()
+                
+                messages.success(request, f'Vaga "{titulo}" atualizada com sucesso!')
+                return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
+            except Funcao.DoesNotExist:
+                messages.error(request, 'Função selecionada não encontrada.')
         else:
-            messages.error(request, 'Preencha todos os campos obrigatórios.')
+            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
+    
+    # Buscar funções disponíveis (globais ou da empresa)
+    funcoes = Funcao.objects.filter(
+        Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
+        ativo=True,
+        disponivel_para_vagas=True
+    ).select_related('tipo_funcao').order_by('tipo_funcao__nome', 'nome')
     
     context = {
         'empresa': empresa,
         'vaga': vaga,
         'setor': vaga.setor,
         'evento': vaga.setor.evento,
+        'funcoes': funcoes,
         'user': request.user,
     }
     

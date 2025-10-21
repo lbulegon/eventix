@@ -34,16 +34,33 @@
                             <div class="mb-3">
                                 <label for="titulo" class="form-label">Título da Vaga *</label>
                                 <input type="text" class="form-control" id="titulo" name="titulo" required 
-                                       placeholder="Ex: Segurança do Evento, Garçom, etc.">
+                                       placeholder="Ex: Segurança de Portaria, Garçom VIP, etc.">
                             </div>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label for="quantidade" class="form-label">Quantidade *</label>
+                                <label for="quantidade" class="form-label">Quantidade de Vagas *</label>
                                 <input type="number" class="form-control" id="quantidade" name="quantidade" 
                                        required min="1" value="1">
+                                <small class="text-muted">Número de profissionais</small>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="funcao" class="form-label">Função/Tipo da Vaga *</label>
+                        <select class="form-select" id="funcao" name="funcao" required>
+                            <option value="">Selecione a função</option>
+                            {% regroup funcoes by tipo_funcao as funcoes_agrupadas %}
+                            {% for grupo in funcoes_agrupadas %}
+                                <optgroup label="{{ grupo.grouper.nome }}">
+                                    {% for funcao in grupo.list %}
+                                    <option value="{{ funcao.id }}">{{ funcao.nome }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted"><strong>Importante:</strong> Apenas freelancers com esta função poderão ver e se candidatar à vaga</small>
                     </div>
                     
                     <div class="mb-3">

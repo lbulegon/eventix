@@ -30,7 +30,7 @@
                             <div class="mb-3">
                                 <label for="titulo" class="form-label">Título da Vaga *</label>
                                 <input type="text" class="form-control" id="titulo" name="titulo" value="{{ vaga.titulo }}" required 
-                                       placeholder="Ex: Segurança, Garçom, Técnico de Som">
+                                       placeholder="Ex: Segurança de Portaria, Garçom VIP">
                                 <small class="text-muted">Nome que identifica a vaga</small>
                             </div>
                         </div>
@@ -45,6 +45,24 @@
                                 <small class="text-muted">Vagas inativas não aparecem para freelancers</small>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="funcao" class="form-label">Função/Tipo da Vaga *</label>
+                        <select class="form-select" id="funcao" name="funcao" required>
+                            <option value="">Selecione a função</option>
+                            {% regroup funcoes by tipo_funcao as funcoes_agrupadas %}
+                            {% for grupo in funcoes_agrupadas %}
+                                <optgroup label="{{ grupo.grouper.nome }}">
+                                    {% for funcao in grupo.list %}
+                                    <option value="{{ funcao.id }}" {% if vaga.funcao and vaga.funcao.id == funcao.id %}selected{% endif %}>
+                                        {{ funcao.nome }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted"><strong>Importante:</strong> Apenas freelancers com esta função poderão ver e se candidatar à vaga</small>
                     </div>
                     
                     <div class="mb-3">
