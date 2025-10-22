@@ -3,7 +3,7 @@ Comando para enviar WhatsApp/SMS para todos os freelancers cadastrados
 """
 from django.core.management.base import BaseCommand
 from app_eventos.models import Freelance, EmpresaContratante
-from app_eventos.services.twilio_service import TwilioService
+from app_eventos.services.twilio_service_sandbox import TwilioServiceSandbox as TwilioService
 
 
 class Command(BaseCommand):
@@ -43,6 +43,11 @@ class Command(BaseCommand):
             type=str,
             help='Filtrar por função específica (nome da função)'
         )
+        parser.add_argument(
+            '--force',
+            action='store_true',
+            help='Pula confirmação (usa com cuidado!)'
+        )
 
     def handle(self, *args, **options):
         mensagem = options['mensagem']
@@ -51,6 +56,7 @@ class Command(BaseCommand):
         apenas_verificados = options['apenas_verificados']
         dry_run = options['dry_run']
         funcao_nome = options.get('funcao')
+        force = options.get('force')
 
         self.stdout.write('\n' + '=' * 70)
         self.stdout.write('📱 ENVIO DE MENSAGENS PARA FREELANCERS')
@@ -99,13 +105,14 @@ class Command(BaseCommand):
             self.stdout.write('\n' + self.style.SUCCESS('✅ Simulação concluída. Use sem --dry-run para enviar.'))
             return
 
-        # Confirmação
-        self.stdout.write('\n' + self.style.WARNING('⚠️  ATENÇÃO: Esta operação enviará mensagens reais!'))
-        confirmacao = input('\nDeseja continuar? (digite SIM em maiúsculas): ')
+        # Confirmação (se não for --force)
+        if not force:
+            self.stdout.write('\n' + self.style.WARNING('⚠️  ATENÇÃO: Esta operação enviará mensagens reais!'))
+            confirmacao = input('\nDeseja continuar? (digite SIM em maiúsculas): ')
 
-        if confirmacao != 'SIM':
-            self.stdout.write(self.style.ERROR('\n❌ Operação cancelada pelo usuário.'))
-            return
+            if confirmacao != 'SIM':
+                self.stdout.write(self.style.ERROR('\n❌ Operação cancelada pelo usuário.'))
+                return
 
         # Inicializar Twilio
         twilio = TwilioService()

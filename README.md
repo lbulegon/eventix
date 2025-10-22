@@ -521,3 +521,10 @@ Consulte o guia completo em: `docs/GUIA_FLUTTER_FCM.md`
 
 - **Package Name/Application ID:** `com.example.eventix`
 - Localização: `mobile/eventix/android/app/build.gradle.kts`
+
+
+
+
+
+Login: admin_diego / diego123
+Login: admin_simone / simone123

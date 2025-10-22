@@ -1,0 +1,289 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% load static %}
+
+{% block title %}Notificar Freelancers - {{ evento.nome }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .funcao-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background: #f9f9f9;
+    }
+    
+    .funcao-card h4 {
+        color: #2c3e50;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .vaga-item {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .vaga-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .btn-notificar {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        color: white;
+        padding: 12px 30px;
+        border-radius: 25px;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-notificar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        color: white;
+    }
+    
+    .btn-notificar:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .loading {
+        display: none;
+    }
+    
+    .loading.show {
+        display: inline-block;
+    }
+    
+    .alert-custom {
+        border-radius: 10px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-1">📱 Notificar Freelancers</h2>
+                    <p class="text-muted mb-0">Envie notificações sobre vagas do evento</p>
+                </div>
+                <a href="{% url 'detalhe_evento' evento.id %}" class="btn btn-outline-secondary">
+                    ← Voltar ao Evento
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="stats-card">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h3 class="mb-1">{{ total_vagas }}</h3>
+                        <p class="mb-0">Vagas Ativas</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="mb-1">{{ total_freelancers }}</h3>
+                        <p class="mb-0">Freelancers</p>
+                    </div>
+                    <div class="col-md-3">
+                        <h3 class="mb-1">{{ vagas_por_funcao|length }}</h3>
+                        <p class="mb-0">Funções</p>
+                    </div>
+                    <div class="col-md-3">
+                        <button id="btn-notificar-todos" class="btn btn-notificar">
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Notificar Todos
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vagas por Função -->
+    <div class="row">
+        <div class="col-12">
+            {% if vagas_por_funcao %}
+                {% for funcao_nome, vagas in vagas_por_funcao.items %}
+                <div class="funcao-card">
+                    <h4>
+                        <i class="fas fa-briefcase text-primary"></i>
+                        {{ funcao_nome }}
+                        <span class="badge bg-primary ms-2">{{ freelancers_por_funcao|default:0 }} freelancers</span>
+                    </h4>
+                    
+                    <div class="row">
+                        {% for vaga in vagas %}
+                        <div class="col-md-6 mb-3">
+                            <div class="vaga-item">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-1">{{ vaga.setor.nome|default:"Geral" }}</h6>
+                                    <span class="badge bg-success">{{ vaga.quantidade }} vagas</span>
+                                </div>
+                                <p class="text-muted mb-2">{{ vaga.descricao|truncatechars:100 }}</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-success">R$ {{ vaga.valor_hora|floatformat:2 }}/h</span>
+                                    <button class="btn btn-sm btn-outline-primary notificar-vaga" 
+                                            data-vaga-id="{{ vaga.id }}">
+                                        <i class="fas fa-paper-plane me-1"></i>
+                                        Notificar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-warning alert-custom">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Nenhuma vaga ativa encontrada neste evento.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading text-center mt-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Enviando...</span>
+        </div>
+        <p class="mt-2">Enviando notificações...</p>
+    </div>
+</div>
+
+<!-- Toast para feedback -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toast-notificacao" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="fas fa-bell text-primary me-2"></i>
+            <strong class="me-auto">Notificação</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toast-message">
+            <!-- Mensagem será inserida aqui -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnNotificarTodos = document.getElementById('btn-notificar-todos');
+    const loading = document.querySelector('.loading');
+    const toast = document.getElementById('toast-notificacao');
+    const toastMessage = document.getElementById('toast-message');
+    
+    // Notificar todos os freelancers
+    btnNotificarTodos.addEventListener('click', function() {
+        if (confirm('Deseja enviar notificações para todos os freelancers das vagas ativas?')) {
+            enviarNotificacoesTodos();
+        }
+    });
+    
+    // Notificar vaga específica
+    document.querySelectorAll('.notificar-vaga').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const vagaId = this.dataset.vagaId;
+            if (confirm('Deseja enviar notificação para esta vaga específica?')) {
+                enviarNotificacaoVaga(vagaId, this);
+            }
+        });
+    });
+    
+    function enviarNotificacoesTodos() {
+        btnNotificarTodos.disabled = true;
+        loading.classList.add('show');
+        
+        fetch(`{% url 'notificar_freelancers_evento' evento.id %}`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            loading.classList.remove('show');
+            btnNotificarTodos.disabled = false;
+            
+            if (data.sucesso) {
+                mostrarToast('success', `✅ ${data.mensagem}`);
+            } else {
+                mostrarToast('error', `❌ ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            loading.classList.remove('show');
+            btnNotificarTodos.disabled = false;
+            mostrarToast('error', `❌ Erro: ${error.message}`);
+        });
+    }
+    
+    function enviarNotificacaoVaga(vagaId, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+        
+        fetch(`/empresa/notificar-vaga/${vagaId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.sucesso) {
+                btn.innerHTML = '<i class="fas fa-check me-1"></i>Enviado';
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-success');
+                mostrarToast('success', `✅ ${data.mensagem}`);
+            } else {
+                btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Notificar';
+                btn.disabled = false;
+                mostrarToast('error', `❌ ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Notificar';
+            btn.disabled = false;
+            mostrarToast('error', `❌ Erro: ${error.message}`);
+        });
+    }
+    
+    function mostrarToast(tipo, mensagem) {
+        toastMessage.textContent = mensagem;
+        const toastInstance = new bootstrap.Toast(toast);
+        toastInstance.show();
+    }
+});
+</script>
+{% endblock %}

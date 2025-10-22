@@ -205,3 +205,4 @@ TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
 TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID", "")  # Serviço Verify para OTP
 TWILIO_MESSAGING_SERVICE_SID = os.getenv("TWILIO_MESSAGING_SERVICE_SID", "")  # Para broadcast
+TWILIO_NOTIFICACOES_ATIVAS = os.getenv("TWILIO_NOTIFICACOES_ATIVAS", "True").lower() == "true"  # Notificações automáticas

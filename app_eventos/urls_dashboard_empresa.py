@@ -37,6 +37,10 @@ urlpatterns = [
     path('freelancers/', views_dashboard_empresa.freelancers_empresa, name='freelancers_empresa'),
     path('freelancers/<int:freelancer_id>/', views_dashboard_empresa.detalhe_freelancer, name='detalhe_freelancer'),
     path('equipamentos/', views_dashboard_empresa.equipamentos_empresa, name='equipamentos_empresa'),
+    
+    # Notificações
+    path('eventos/<int:evento_id>/notificar-freelancers/', NotificarFreelancersEventoView.as_view(), name='notificar_freelancers_evento'),
+    path('notificar-vaga/<int:vaga_id>/', notificar_freelancers_vaga_especifica, name='notificar_freelancers_vaga'),
     path('financeiro/', views_dashboard_empresa.financeiro_empresa, name='financeiro_empresa'),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
     
