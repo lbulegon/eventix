@@ -64,7 +64,7 @@ class TwilioServiceSandbox:
     
     def send_sms(self, phone_e164, body):
         """
-        Envia SMS
+        Envia SMS com timeout
         
         Args:
             phone_e164: Número no formato E.164
@@ -78,6 +78,9 @@ class TwilioServiceSandbox:
             return None
         
         try:
+            import socket
+            socket.setdefaulttimeout(10)  # Timeout de 10 segundos
+            
             # Usar Messaging Service SID se disponível
             if self.messaging_service_sid and self.messaging_service_sid != 'CRIAR_NO_CONSOLE_TWILIO':
                 message = self.client.messages.create(
