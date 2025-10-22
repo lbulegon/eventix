@@ -1,0 +1,344 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}{{ freelancer.nome_completo }} - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Detalhes do Freelancer{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:freelancers_empresa' %}">Freelancers</a></li>
+        <li class="breadcrumb-item active">{{ freelancer.nome_completo }}</li>
+    </ol>
+</nav>
+
+<!-- Cabeçalho do Freelancer -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header bg-gradient-primary text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-circle me-2"></i>{{ freelancer.nome_completo }}
+                        </h4>
+                        <small>{{ freelancer.usuario.email }}</small>
+                    </div>
+                    <div>
+                        {% if freelancer.cadastro_completo %}
+                            <span class="badge bg-success" style="font-size: 1rem;">
+                                <i class="fas fa-check-circle"></i> Cadastro Completo
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning" style="font-size: 1rem;">
+                                <i class="fas fa-exclamation-circle"></i> Cadastro Incompleto
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estatísticas Rápidas -->
+<div class="row mb-4">
+    <div class="col-md-2">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Candidaturas</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.total_candidaturas }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Aprovadas</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.aprovadas }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pendentes</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.pendentes }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Rejeitadas</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.rejeitadas }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Contratos Ativos</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.contratos_ativos }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-left-secondary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Finalizados</div>
+                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ stats.contratos_finalizados }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Coluna Esquerda: Dados Pessoais -->
+    <div class="col-md-4 mb-4">
+        <!-- Dados Pessoais -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-id-card me-2"></i>Dados Pessoais
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>Nome Completo:</strong><br>{{ freelancer.nome_completo }}</p>
+                <p class="mb-2"><strong>CPF:</strong><br>{{ freelancer.cpf|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>RG:</strong><br>{{ freelancer.rg|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>Data de Nascimento:</strong><br>{{ freelancer.data_nascimento|date:"d/m/Y"|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>Telefone:</strong><br>{{ freelancer.telefone|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>Email:</strong><br>{{ freelancer.usuario.email }}</p>
+            </div>
+        </div>
+
+        <!-- Endereço -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-map-marker-alt me-2"></i>Endereço
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="mb-2"><strong>CEP:</strong><br>{{ freelancer.cep|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>Logradouro:</strong><br>{{ freelancer.logradouro|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>Número:</strong><br>{{ freelancer.numero|default:"Não informado" }}</p>
+                {% if freelancer.complemento %}
+                <p class="mb-2"><strong>Complemento:</strong><br>{{ freelancer.complemento }}</p>
+                {% endif %}
+                <p class="mb-2"><strong>Bairro:</strong><br>{{ freelancer.bairro|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>Cidade:</strong><br>{{ freelancer.cidade|default:"Não informado" }}</p>
+                <p class="mb-2"><strong>UF:</strong><br>{{ freelancer.uf|default:"Não informado" }}</p>
+            </div>
+        </div>
+
+        <!-- Funções e Habilidades -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-briefcase me-2"></i>Funções e Habilidades
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if freelancer.funcoes.all %}
+                    {% regroup freelancer.funcoes.all by funcao.tipo_funcao as funcoes_agrupadas %}
+                    {% for grupo in funcoes_agrupadas %}
+                        <h6 class="text-primary mb-2">{{ grupo.grouper.nome }}</h6>
+                        {% for ff in grupo.list %}
+                            <div class="mb-2">
+                                <span class="badge badge-info">{{ ff.funcao.nome }}</span>
+                                <small class="text-muted">- {{ ff.get_nivel_display }}</small>
+                            </div>
+                        {% endfor %}
+                        {% if not forloop.last %}<hr>{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Nenhuma função cadastrada</p>
+                {% endif %}
+                
+                {% if freelancer.habilidades %}
+                    <hr>
+                    <h6 class="text-primary mb-2">Outras Habilidades</h6>
+                    <p class="small">{{ freelancer.habilidades }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna Direita: Candidaturas e Contratos -->
+    <div class="col-md-8">
+        <!-- Candidaturas -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-file-alt me-2"></i>Histórico de Candidaturas
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if candidaturas %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Vaga</th>
+                                    <th>Evento</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for candidatura in candidaturas %}
+                                <tr>
+                                    <td>{{ candidatura.data_candidatura|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <strong>{{ candidatura.vaga.titulo }}</strong><br>
+                                        <small class="text-muted">{{ candidatura.vaga.setor.nome }}</small>
+                                    </td>
+                                    <td>{{ candidatura.vaga.setor.evento.nome }}</td>
+                                    <td>
+                                        {% if candidatura.status == 'aprovado' %}
+                                            <span class="badge badge-success">Aprovado</span>
+                                        {% elif candidatura.status == 'pendente' %}
+                                            <span class="badge badge-warning">Pendente</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Rejeitado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhuma candidatura para vagas desta empresa.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Contratos -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-file-contract me-2"></i>Contratos
+                </h6>
+            </div>
+            <div class="card-body">
+                {% if contratos %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Data Contratação</th>
+                                    <th>Vaga</th>
+                                    <th>Evento</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for contrato in contratos %}
+                                <tr>
+                                    <td>{{ contrato.data_contratacao|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <strong>{{ contrato.vaga.titulo }}</strong><br>
+                                        <small class="text-muted">{{ contrato.vaga.setor.nome }}</small>
+                                    </td>
+                                    <td>{{ contrato.vaga.setor.evento.nome }}</td>
+                                    <td>
+                                        {% if contrato.status == 'ativo' %}
+                                            <span class="badge badge-success">Ativo</span>
+                                        {% elif contrato.status == 'finalizado' %}
+                                            <span class="badge badge-secondary">Finalizado</span>
+                                        {% else %}
+                                            <span class="badge badge-danger">Cancelado</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Nenhum contrato com esta empresa.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Informações Adicionais -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-info-circle me-2"></i>Informações Adicionais
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Dados Bancários</h6>
+                        <p class="mb-1"><strong>Banco:</strong> {{ freelancer.banco|default:"Não informado" }}</p>
+                        <p class="mb-1"><strong>Agência:</strong> {{ freelancer.agencia|default:"Não informado" }}</p>
+                        <p class="mb-1"><strong>Conta:</strong> {{ freelancer.conta|default:"Não informado" }}</p>
+                        <p class="mb-1"><strong>Tipo:</strong> {{ freelancer.get_tipo_conta_display|default:"Não informado" }}</p>
+                        <p class="mb-1"><strong>Chave PIX:</strong> {{ freelancer.chave_pix|default:"Não informado" }}</p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-primary">Emergência e Saúde</h6>
+                        <p class="mb-1"><strong>Contato de Emergência:</strong> {{ freelancer.contato_emergencia|default:"Não informado" }}</p>
+                        <p class="mb-1"><strong>Telefone Emergência:</strong> {{ freelancer.telefone_emergencia|default:"Não informado" }}</p>
+                        {% if freelancer.tipo_sanguineo %}
+                        <p class="mb-1"><strong>Tipo Sanguíneo:</strong> {{ freelancer.tipo_sanguineo }}</p>
+                        {% endif %}
+                        {% if freelancer.alergias %}
+                        <p class="mb-1"><strong>Alergias:</strong> {{ freelancer.alergias }}</p>
+                        {% endif %}
+                        {% if freelancer.observacoes_medicas %}
+                        <p class="mb-1"><strong>Observações Médicas:</strong> {{ freelancer.observacoes_medicas }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% if freelancer.experiencia_profissional %}
+                <hr>
+                <h6 class="text-primary">Experiência Profissional</h6>
+                <p class="small">{{ freelancer.experiencia_profissional|linebreaks }}</p>
+                {% endif %}
+                
+                {% if freelancer.observacoes %}
+                <hr>
+                <h6 class="text-primary">Observações</h6>
+                <p class="small">{{ freelancer.observacoes|linebreaks }}</p>
+                {% endif %}
+                
+                <hr>
+                <div class="row text-center">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Notificações Push:</strong></p>
+                        {% if freelancer.notificacoes_ativas %}
+                            <span class="badge badge-success"><i class="fas fa-bell"></i> Ativas</span>
+                        {% else %}
+                            <span class="badge badge-secondary"><i class="fas fa-bell-slash"></i> Desativadas</span>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Cadastro em:</strong></p>
+                        <span class="text-muted">{{ freelancer.usuario.date_joined|date:"d/m/Y" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botão de Voltar -->
+<div class="row">
+    <div class="col-12 text-center">
+        <a href="{% url 'dashboard_empresa:freelancers_empresa' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar para Lista de Freelancers
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+

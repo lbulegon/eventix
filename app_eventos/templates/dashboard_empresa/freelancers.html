@@ -17,7 +17,7 @@
             <div class="card-body">
                 <!-- Barra de Busca e Filtros -->
                 <div class="row mb-4">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <div class="input-group">
                             <div class="input-group-prepend">
                                 <span class="input-group-text bg-primary text-white">
@@ -28,7 +28,7 @@
                                 type="text" 
                                 class="form-control" 
                                 id="searchInput" 
-                                placeholder="Digite o nome do freelancer..."
+                                placeholder="Nome ou CPF..."
                                 autocomplete="off"
                             >
                             <div class="input-group-append">
@@ -43,7 +43,22 @@
                         </small>
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-md-4">
+                        <select class="form-select" id="funcaoFilter">
+                            <option value="">🔍 Buscar por Função...</option>
+                            {% regroup funcoes_disponiveis by tipo_funcao as funcoes_agrupadas %}
+                            {% for grupo in funcoes_agrupadas %}
+                                <optgroup label="{{ grupo.grouper.nome }}">
+                                    {% for funcao in grupo.list %}
+                                    <option value="{{ funcao.nome|lower }}">{{ funcao.nome }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Filtrar por função específica</small>
+                    </div>
+                    
+                    <div class="col-md-4">
                         <div class="btn-group w-100" role="group">
                             <button type="button" class="btn btn-outline-primary filter-btn active" data-filter="todos">
                                 <i class="fas fa-users"></i> Todos
@@ -66,7 +81,6 @@
                                     <th>Nome</th>
                                     <th>CPF</th>
                                     <th>Telefone</th>
-                                    <th>Funções</th>
                                     <th>Status</th>
                                     <th>Ações</th>
                                 </tr>
@@ -76,26 +90,27 @@
                                 <tr class="freelancer-row" 
                                     data-nome="{{ freelancer.nome_completo|lower }}"
                                     data-cpf="{{ freelancer.cpf }}"
+                                    data-funcoes="{% for ff in freelancer.funcoes.all %}{{ ff.funcao.nome|lower }}{% if not forloop.last %},{% endif %}{% endfor %}"
                                     data-status="{% if freelancer.cadastro_completo %}completo{% else %}incompleto{% endif %}">
                                     <td>
                                         <strong>{{ freelancer.nome_completo }}</strong>
                                         <br>
                                         <small class="text-muted">{{ freelancer.usuario.email }}</small>
+                                        {% if freelancer.funcoes.all %}
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-briefcase"></i>
+                                            {% for ff in freelancer.funcoes.all|slice:":2" %}
+                                                {{ ff.funcao.nome }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                            {% if freelancer.funcoes.all|length > 2 %}
+                                                <span class="badge badge-secondary badge-sm">+{{ freelancer.funcoes.all|length|add:"-2" }}</span>
+                                            {% endif %}
+                                        </small>
+                                        {% endif %}
                                     </td>
                                     <td>{{ freelancer.cpf|default:"Não informado" }}</td>
                                     <td>{{ freelancer.telefone|default:"Não informado" }}</td>
-                                    <td>
-                                        {% if freelancer.funcoes.all %}
-                                            {% for ff in freelancer.funcoes.all|slice:":3" %}
-                                                <span class="badge badge-info badge-sm">{{ ff.funcao.nome }}</span>
-                                            {% endfor %}
-                                            {% if freelancer.funcoes.all|length > 3 %}
-                                                <span class="badge badge-secondary">+{{ freelancer.funcoes.all|length|add:"-3" }}</span>
-                                            {% endif %}
-                                        {% else %}
-                                            <span class="text-muted">Sem funções</span>
-                                        {% endif %}
-                                    </td>
                                     <td>
                                         {% if freelancer.cadastro_completo %}
                                             <span class="badge badge-success">
@@ -108,9 +123,9 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-info" title="Ver detalhes">
+                                        <a href="{% url 'dashboard_empresa:detalhe_freelancer' freelancer.id %}" class="btn btn-sm btn-info" title="Ver detalhes completos">
                                             <i class="fas fa-eye"></i>
-                                        </button>
+                                        </a>
                                         <button class="btn btn-sm btn-primary" title="Enviar mensagem">
                                             <i class="fas fa-envelope"></i>
                                         </button>
@@ -174,8 +189,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const noResultsDiv = document.getElementById('noResults');
     const resultCountSpan = document.getElementById('resultCount');
     const tableBody = document.querySelector('#freelancersTable tbody');
+    const funcaoFilter = document.getElementById('funcaoFilter');
     
     let currentFilter = 'todos';
+    let currentFuncao = '';
     
     // Função para aplicar busca e filtros
     function applyFilters() {
@@ -186,6 +203,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const nome = row.dataset.nome;
             const cpf = row.dataset.cpf;
             const status = row.dataset.status;
+            const funcoes = row.dataset.funcoes || '';
             
             // Verificar busca por nome ou CPF
             const matchesSearch = nome.includes(searchTerm) || cpf.includes(searchTerm);
@@ -193,8 +211,11 @@ document.addEventListener('DOMContentLoaded', function() {
             // Verificar filtro de status
             const matchesFilter = currentFilter === 'todos' || status === currentFilter;
             
+            // Verificar filtro de função
+            const matchesFuncao = !currentFuncao || funcoes.includes(currentFuncao);
+            
             // Mostrar ou ocultar linha
-            if (matchesSearch && matchesFilter) {
+            if (matchesSearch && matchesFilter && matchesFuncao) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -250,6 +271,14 @@ document.addEventListener('DOMContentLoaded', function() {
             applyFilters();
         });
     });
+    
+    // Filtro por função
+    if (funcaoFilter) {
+        funcaoFilter.addEventListener('change', function() {
+            currentFuncao = this.value.toLowerCase();
+            applyFilters();
+        });
+    }
     
     // Atalho de teclado: ESC para limpar busca
     document.addEventListener('keydown', function(e) {

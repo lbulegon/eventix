@@ -826,15 +826,73 @@ def freelancers_empresa(request):
             'funcoes__funcao'
         ).all().order_by('nome_completo')
     
+    # Buscar funções disponíveis para o filtro
+    funcoes_disponiveis = Funcao.objects.filter(
+        Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
+        ativo=True
+    ).select_related('tipo_funcao').order_by('tipo_funcao__nome', 'nome')
+    
     context = {
         'empresa': empresa,
         'freelancers': freelancers,
+        'funcoes_disponiveis': funcoes_disponiveis,
         'user': request.user,
         'filtro': filtro,
         'total_freelancers': freelancers.count(),
     }
     
     return render(request, 'dashboard_empresa/freelancers.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def detalhe_freelancer(request, freelancer_id):
+    """
+    Detalhes completos do freelancer
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar freelancer
+    freelancer = get_object_or_404(
+        Freelance.objects.select_related('usuario').prefetch_related('funcoes__funcao__tipo_funcao'),
+        id=freelancer_id
+    )
+    
+    # Buscar candidaturas deste freelancer para vagas da empresa
+    candidaturas = Candidatura.objects.filter(
+        freelance=freelancer,
+        vaga__empresa_contratante=empresa
+    ).select_related('vaga', 'vaga__setor', 'vaga__setor__evento').order_by('-data_candidatura')
+    
+    # Buscar contratos ativos
+    contratos = ContratoFreelance.objects.filter(
+        freelance=freelancer,
+        vaga__empresa_contratante=empresa
+    ).select_related('vaga', 'vaga__setor', 'vaga__setor__evento').order_by('-data_contratacao')
+    
+    # Estatísticas do freelancer com a empresa
+    stats = {
+        'total_candidaturas': candidaturas.count(),
+        'aprovadas': candidaturas.filter(status='aprovado').count(),
+        'pendentes': candidaturas.filter(status='pendente').count(),
+        'rejeitadas': candidaturas.filter(status='rejeitado').count(),
+        'contratos_ativos': contratos.filter(status='ativo').count(),
+        'contratos_finalizados': contratos.filter(status='finalizado').count(),
+    }
+    
+    context = {
+        'empresa': empresa,
+        'freelancer': freelancer,
+        'candidaturas': candidaturas,
+        'contratos': contratos,
+        'stats': stats,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/detalhe_freelancer.html', context)
 
 
 @login_required(login_url='/empresa/login/')
