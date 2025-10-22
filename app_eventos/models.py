@@ -1353,7 +1353,25 @@ class Vaga(models.Model):
         ('especialista', 'Especialista'),
     ]
     
-    setor = models.ForeignKey(SetorEvento, on_delete=models.CASCADE, related_name="vagas")
+    # Relacionamentos - Evento é obrigatório, Setor é opcional
+    evento = models.ForeignKey(
+        'Evento',
+        on_delete=models.CASCADE,
+        related_name="vagas_diretas",
+        verbose_name="Evento",
+        null=True,  # Temporário para migration
+        blank=True,
+        help_text="Evento ao qual a vaga pertence"
+    )
+    setor = models.ForeignKey(
+        SetorEvento, 
+        on_delete=models.CASCADE, 
+        related_name="vagas",
+        null=True,
+        blank=True,
+        verbose_name="Setor (Opcional)",
+        help_text="Setor específico (deixe vazio para vaga genérica do evento)"
+    )
     empresa_contratante = models.ForeignKey(
         EmpresaContratante,
         on_delete=models.CASCADE,
@@ -4960,3 +4978,6 @@ from .models_freelancers import *
 
 # Importar modelos de documentos
 from .models_documentos import *
+
+# Importar modelos de Twilio (WhatsApp + SMS)
+from .models_twilio import UserContact, OtpLog, BroadcastLog, BroadcastMessage

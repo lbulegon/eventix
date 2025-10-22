@@ -455,6 +455,7 @@ def criar_vaga(request, setor_id):
                 funcao = Funcao.objects.get(id=funcao_id)
                 
                 vaga = Vaga.objects.create(
+                    evento=setor.evento,
                     setor=setor,
                     empresa_contratante=empresa,
                     titulo=titulo,
@@ -492,6 +493,150 @@ def criar_vaga(request, setor_id):
 
 
 @login_required(login_url='/empresa/login/')
+def criar_vaga_generica(request, evento_id):
+    """
+    Criar vaga genérica (sem setor) para o evento
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar evento
+    evento = get_object_or_404(
+        Evento,
+        id=evento_id,
+        empresa_contratante=empresa
+    )
+    
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo')
+        descricao = request.POST.get('descricao', '')
+        quantidade = request.POST.get('quantidade')
+        remuneracao = request.POST.get('remuneracao')
+        tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
+        nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
+        funcao_id = request.POST.get('funcao')
+        
+        if titulo and quantidade and remuneracao and funcao_id:
+            try:
+                funcao = Funcao.objects.get(id=funcao_id)
+                
+                vaga = Vaga.objects.create(
+                    evento=evento,
+                    setor=None,  # Vaga genérica sem setor
+                    empresa_contratante=empresa,
+                    titulo=titulo,
+                    descricao=descricao,
+                    quantidade=int(quantidade),
+                    remuneracao=float(remuneracao),
+                    tipo_remuneracao=tipo_remuneracao,
+                    nivel_experiencia=nivel_experiencia,
+                    funcao=funcao,
+                    ativa=True
+                )
+                messages.success(request, f'Vaga genérica "{titulo}" criada com sucesso!')
+                return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=evento.id)
+            except Funcao.DoesNotExist:
+                messages.error(request, 'Função selecionada não encontrada.')
+        else:
+            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
+    
+    # Buscar funções disponíveis
+    funcoes = Funcao.objects.filter(
+        Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
+        ativo=True,
+        disponivel_para_vagas=True
+    ).select_related('tipo_funcao').order_by('tipo_funcao__nome', 'nome')
+    
+    context = {
+        'empresa': empresa,
+        'evento': evento,
+        'funcoes': funcoes,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/criar_vaga_generica.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def atrelar_vaga_setor(request, vaga_id):
+    """
+    Atrelar vaga a um setor
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar vaga
+    vaga = get_object_or_404(
+        Vaga.objects.select_related('evento'),
+        id=vaga_id,
+        empresa_contratante=empresa
+    )
+    
+    if request.method == 'POST':
+        setor_id = request.POST.get('setor')
+        
+        if setor_id:
+            try:
+                setor = SetorEvento.objects.get(id=setor_id, evento=vaga.evento)
+                vaga.setor = setor
+                vaga.save()
+                messages.success(request, f'Vaga "{vaga.titulo}" atrelada ao setor "{setor.nome}"!')
+                return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.evento.id)
+            except SetorEvento.DoesNotExist:
+                messages.error(request, 'Setor não encontrado.')
+        else:
+            messages.error(request, 'Selecione um setor.')
+    
+    # Buscar setores do evento
+    setores = SetorEvento.objects.filter(evento=vaga.evento).order_by('nome')
+    
+    context = {
+        'empresa': empresa,
+        'vaga': vaga,
+        'evento': vaga.evento,
+        'setores': setores,
+        'user': request.user,
+    }
+    
+    return render(request, 'dashboard_empresa/atrelar_vaga_setor.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def desatrelar_vaga_setor(request, vaga_id):
+    """
+    Desatrelar vaga de um setor (torna genérica)
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
+    # Buscar vaga
+    vaga = get_object_or_404(
+        Vaga,
+        id=vaga_id,
+        empresa_contratante=empresa
+    )
+    
+    if vaga.setor:
+        setor_nome = vaga.setor.nome
+        vaga.setor = None
+        vaga.save()
+        messages.success(request, f'Vaga "{vaga.titulo}" desatrelada do setor "{setor_nome}" e agora é genérica!')
+    else:
+        messages.info(request, 'Vaga já é genérica (sem setor).')
+    
+    return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.evento.id)
+
+
+@login_required(login_url='/empresa/login/')
 def gerenciar_vagas_evento(request, evento_id):
     """
     Gerenciar todas as vagas de um evento com filtros por setor
@@ -511,19 +656,29 @@ def gerenciar_vagas_evento(request, evento_id):
     
     # Filtros
     setor_id = request.GET.get('setor')
-    status = request.GET.get('status', 'todas')
+    status_filtro = request.GET.get('status', 'todas')
+    tipo_filtro = request.GET.get('tipo', 'todas')  # todas, genericas, setores
     
-    # Buscar vagas
-    vagas = Vaga.objects.filter(setor__evento=evento).select_related('setor', 'funcao')
+    # Buscar vagas do evento (com ou sem setor)
+    vagas = Vaga.objects.filter(evento=evento).select_related('setor', 'funcao')
     
+    # Filtro por tipo (genéricas ou de setores)
+    if tipo_filtro == 'genericas':
+        vagas = vagas.filter(setor__isnull=True)
+    elif tipo_filtro == 'setores':
+        vagas = vagas.filter(setor__isnull=False)
+    
+    # Filtro por setor específico
     if setor_id:
         vagas = vagas.filter(setor__id=setor_id)
     
-    if status == 'ativas':
+    # Filtro por status
+    if status_filtro == 'ativas':
         vagas = vagas.filter(ativa=True)
-    elif status == 'inativas':
+    elif status_filtro == 'inativas':
         vagas = vagas.filter(ativa=False)
     
+    # Ordenar: genéricas primeiro, depois por setor
     vagas = vagas.order_by('setor__nome', 'titulo')
     
     # Buscar setores do evento
@@ -544,12 +699,17 @@ def gerenciar_vagas_evento(request, evento_id):
         })
     
     # Estatísticas gerais
-    total_vagas = Vaga.objects.filter(setor__evento=evento)
+    total_vagas = Vaga.objects.filter(evento=evento)
+    vagas_genericas = total_vagas.filter(setor__isnull=True)
+    vagas_com_setor = total_vagas.filter(setor__isnull=False)
+    
     stats_gerais = {
         'total_vagas': total_vagas.aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'vagas_ativas': total_vagas.filter(ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'vagas_inativas': total_vagas.filter(ativa=False).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
-        'total_candidaturas': Candidatura.objects.filter(vaga__setor__evento=evento).count(),
+        'vagas_genericas': vagas_genericas.aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+        'vagas_com_setor': vagas_com_setor.aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
+        'total_candidaturas': Candidatura.objects.filter(vaga__evento=evento).count(),
     }
     
     context = {
@@ -560,7 +720,8 @@ def gerenciar_vagas_evento(request, evento_id):
         'stats_setores': stats_setores,
         'stats_gerais': stats_gerais,
         'setor_filtro': setor_id,
-        'status_filtro': status,
+        'status_filtro': status_filtro,
+        'tipo_filtro': tipo_filtro,
         'user': request.user,
     }
     

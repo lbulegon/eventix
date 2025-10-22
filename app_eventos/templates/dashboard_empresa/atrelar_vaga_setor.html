@@ -1,0 +1,78 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Atrelar Vaga a Setor - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Atrelar Vaga a Setor{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:eventos_empresa' %}">Eventos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}">{{ evento.nome }}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:gerenciar_vagas_evento' evento.id %}">Gerenciar Vagas</a></li>
+        <li class="breadcrumb-item active">Atrelar a Setor</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-link me-2"></i>Atrelar Vaga a Setor</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-briefcase me-2"></i>Vaga</h6>
+                    <p class="mb-1"><strong>Título:</strong> {{ vaga.titulo }}</p>
+                    <p class="mb-1"><strong>Quantidade:</strong> {{ vaga.quantidade }} vaga(s)</p>
+                    <p class="mb-1"><strong>Remuneração:</strong> R$ {{ vaga.remuneracao }} ({{ vaga.get_tipo_remuneracao_display }})</p>
+                    <p class="mb-0"><strong>Status Atual:</strong> 
+                        {% if vaga.setor %}
+                            <span class="badge bg-primary">Atrelada ao setor "{{ vaga.setor.nome }}"</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Vaga Genérica (sem setor)</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="setor" class="form-label">Selecione o Setor *</label>
+                        <select class="form-select form-select-lg" id="setor" name="setor" required>
+                            <option value="">Escolha um setor...</option>
+                            {% for setor in setores %}
+                            <option value="{{ setor.id }}" {% if vaga.setor and vaga.setor.id == setor.id %}selected{% endif %}>
+                                {{ setor.nome }}
+                                {% if setor.descricao %} - {{ setor.descricao|truncatewords:10 }}{% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">A vaga ficará vinculada a este setor específico</small>
+                    </div>
+                    
+                    {% if not setores %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Atenção:</strong> Não há setores cadastrados neste evento.
+                        <a href="{% url 'dashboard_empresa:criar_setor' evento.id %}">Criar primeiro setor</a>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'dashboard_empresa:gerenciar_vagas_evento' evento.id %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-warning" {% if not setores %}disabled{% endif %}>
+                            <i class="fas fa-link me-2"></i>Atrelar ao Setor
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -199,3 +199,9 @@ MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")  # do paine
 
 # Firebase Cloud Messaging (FCM) para notificações push
 FCM_SERVER_KEY = os.getenv("FCM_SERVER_KEY", "")  # Chave do servidor FCM do Firebase Console
+
+# Twilio (WhatsApp + SMS)
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+TWILIO_VERIFY_SID = os.getenv("TWILIO_VERIFY_SID", "")  # Serviço Verify para OTP
+TWILIO_MESSAGING_SERVICE_SID = os.getenv("TWILIO_MESSAGING_SERVICE_SID", "")  # Para broadcast

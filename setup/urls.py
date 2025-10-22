@@ -27,6 +27,9 @@ urlpatterns = [
     # API Desktop
     path("api/desktop/", include("api_desktop.urls")),
     
+    # API Twilio (WhatsApp + SMS)
+    path("api/v1/twilio/", include("app_eventos.urls.urls_twilio")),
+    
     # Dashboards
     path("dashboard/", dashboard_redirect, name="dashboard_redirect"),
     path("empresa/dashboard/", dashboard_empresa, name="dashboard_empresa"),

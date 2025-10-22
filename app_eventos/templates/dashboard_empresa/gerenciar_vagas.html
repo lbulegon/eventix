@@ -20,9 +20,14 @@
         <div class="card shadow">
             <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Vagas do Evento: {{ evento.nome }}</h5>
-                <a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}" class="btn btn-light btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i>Voltar ao Evento
-                </a>
+                <div>
+                    <a href="{% url 'dashboard_empresa:criar_vaga_generica' evento.id %}" class="btn btn-success btn-sm me-2">
+                        <i class="fas fa-plus me-1"></i>Vaga Genérica
+                    </a>
+                    <a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}" class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
             </div>
             <div class="card-body">
                 <div class="row text-center">
@@ -38,15 +43,21 @@
                             <small class="text-muted">Vagas Ativas</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="border-end">
                             <h3 class="text-secondary">{{ stats_gerais.vagas_inativas }}</h3>
                             <small class="text-muted">Vagas Inativas</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <div class="border-end">
+                            <h3 class="text-warning">{{ stats_gerais.vagas_genericas }}</h3>
+                            <small class="text-muted">Vagas Genéricas</small>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
                         <h3 class="text-info">{{ stats_gerais.total_candidaturas }}</h3>
-                        <small class="text-muted">Total de Candidaturas</small>
+                        <small class="text-muted">Candidaturas</small>
                     </div>
                 </div>
             </div>
@@ -60,7 +71,15 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <form method="get" class="row g-3">
-                    <div class="col-md-5">
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo de Vaga</label>
+                        <select name="tipo" class="form-select" onchange="this.form.submit()">
+                            <option value="todas" {% if tipo_filtro == "todas" %}selected{% endif %}>Todas</option>
+                            <option value="genericas" {% if tipo_filtro == "genericas" %}selected{% endif %}>Somente Genéricas</option>
+                            <option value="setores" {% if tipo_filtro == "setores" %}selected{% endif %}>Somente de Setores</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label">Filtrar por Setor</label>
                         <select name="setor" class="form-select" onchange="this.form.submit()">
                             <option value="">Todos os Setores</option>
@@ -71,7 +90,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label class="form-label">Status</label>
                         <select name="status" class="form-select" onchange="this.form.submit()">
                             <option value="todas" {% if status_filtro == "todas" %}selected{% endif %}>Todas</option>
@@ -79,9 +98,9 @@
                             <option value="inativas" {% if status_filtro == "inativas" %}selected{% endif %}>Somente Inativas</option>
                         </select>
                     </div>
-                    <div class="col-md-3 d-flex align-items-end">
+                    <div class="col-md-2 d-flex align-items-end">
                         <a href="?" class="btn btn-secondary w-100">
-                            <i class="fas fa-redo me-1"></i>Limpar Filtros
+                            <i class="fas fa-redo me-1"></i>Limpar
                         </a>
                     </div>
                 </form>
@@ -156,9 +175,9 @@
                 {% if vagas %}
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover">
-                        <thead class="table-light">
+                            <thead class="table-light">
                             <tr>
-                                <th>Setor</th>
+                                <th>Tipo/Setor</th>
                                 <th>Título da Vaga</th>
                                 <th class="text-center">Quantidade</th>
                                 <th>Remuneração</th>
@@ -169,11 +188,20 @@
                         <tbody>
                             {% for vaga in vagas %}
                             <tr>
-                                <td><span class="badge bg-secondary">{{ vaga.setor.nome }}</span></td>
+                                <td>
+                                    {% if vaga.setor %}
+                                        <span class="badge bg-primary">{{ vaga.setor.nome }}</span>
+                                    {% else %}
+                                        <span class="badge bg-warning">Genérica</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     <strong>{{ vaga.titulo }}</strong>
+                                    {% if vaga.funcao %}
+                                        <br><small class="text-muted"><i class="fas fa-tag"></i> {{ vaga.funcao.nome }}</small>
+                                    {% endif %}
                                     {% if vaga.descricao %}
-                                    <br><small class="text-muted">{{ vaga.descricao|truncatewords:15 }}</small>
+                                    <br><small class="text-muted">{{ vaga.descricao|truncatewords:12 }}</small>
                                     {% endif %}
                                 </td>
                                 <td class="text-center">
@@ -195,6 +223,18 @@
                                         <a href="{% url 'dashboard_empresa:editar_vaga' vaga.id %}" class="btn btn-warning" title="Editar vaga">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                        {% if vaga.setor %}
+                                            <a href="{% url 'dashboard_empresa:desatrelar_vaga_setor' vaga.id %}" class="btn btn-info" 
+                                               onclick="return confirm('Deseja desatrelar esta vaga do setor e torná-la genérica?')"
+                                               title="Desatrelar do setor">
+                                                <i class="fas fa-unlink"></i>
+                                            </a>
+                                        {% else %}
+                                            <a href="{% url 'dashboard_empresa:atrelar_vaga_setor' vaga.id %}" class="btn btn-info" 
+                                               title="Atrelar a um setor">
+                                                <i class="fas fa-link"></i>
+                                            </a>
+                                        {% endif %}
                                         <a href="{% url 'dashboard_empresa:desativar_vaga' vaga.id %}" class="btn btn-{% if vaga.ativa %}secondary{% else %}success{% endif %}" 
                                            onclick="return confirm('Deseja {% if vaga.ativa %}desativar{% else %}ativar{% endif %} esta vaga?')"
                                            title="{% if vaga.ativa %}Desativar{% else %}Ativar{% endif %} vaga">

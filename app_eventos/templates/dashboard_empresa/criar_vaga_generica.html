@@ -1,0 +1,120 @@
+{% extends 'dashboard_empresa/base.html' %}
+
+{% block title %}Criar Vaga Genérica - {{ empresa.nome_fantasia }}{% endblock %}
+{% block page_title %}Criar Vaga Genérica do Evento{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:eventos_empresa' %}">Eventos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}">{{ evento.nome }}</a></li>
+        <li class="breadcrumb-item active">Criar Vaga Genérica</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i>Criar Vaga Genérica do Evento</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Vaga Genérica:</strong> Esta vaga não está vinculada a um setor específico.
+                    Você poderá atrelá-la a um setor posteriormente se desejar.
+                    <br><strong>Evento:</strong> {{ evento.nome }}
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="titulo" class="form-label">Título da Vaga *</label>
+                                <input type="text" class="form-control" id="titulo" name="titulo" required 
+                                       placeholder="Ex: Segurança Geral, Equipe de Apoio, etc.">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="quantidade" class="form-label">Quantidade de Vagas *</label>
+                                <input type="number" class="form-control" id="quantidade" name="quantidade" 
+                                       required min="1" value="1">
+                                <small class="text-muted">Número de profissionais</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="funcao" class="form-label">Função/Tipo da Vaga *</label>
+                        <select class="form-select" id="funcao" name="funcao" required>
+                            <option value="">Selecione a função</option>
+                            {% regroup funcoes by tipo_funcao as funcoes_agrupadas %}
+                            {% for grupo in funcoes_agrupadas %}
+                                <optgroup label="{{ grupo.grouper.nome }}">
+                                    {% for funcao in grupo.list %}
+                                    <option value="{{ funcao.id }}">{{ funcao.nome }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted"><strong>Importante:</strong> Apenas freelancers com esta função poderão ver e se candidatar à vaga</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="descricao" class="form-label">Descrição da Vaga *</label>
+                        <textarea class="form-control" id="descricao" name="descricao" rows="4" required
+                                  placeholder="Descreva as responsabilidades, requisitos e atividades da vaga..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="remuneracao" class="form-label">Remuneração (R$) *</label>
+                                <input type="number" class="form-control" id="remuneracao" name="remuneracao" 
+                                       required min="0" step="0.01" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="tipo_remuneracao" class="form-label">Tipo de Remuneração *</label>
+                                <select class="form-select" id="tipo_remuneracao" name="tipo_remuneracao" required>
+                                    <option value="por_hora">Por Hora</option>
+                                    <option value="por_dia" selected>Por Dia</option>
+                                    <option value="por_evento">Por Evento</option>
+                                    <option value="fixo">Valor Fixo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="nivel_experiencia" class="form-label">Nível de Experiência *</label>
+                                <select class="form-select" id="nivel_experiencia" name="nivel_experiencia" required>
+                                    <option value="iniciante" selected>Iniciante</option>
+                                    <option value="intermediario">Intermediário</option>
+                                    <option value="avancado">Avançado</option>
+                                    <option value="especialista">Especialista</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'dashboard_empresa:gerenciar_vagas_evento' evento.id %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save me-2"></i>Criar Vaga Genérica
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
