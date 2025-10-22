@@ -1056,6 +1056,11 @@ def detalhe_freelancer(request, freelancer_id):
     return render(request, 'dashboard_empresa/detalhe_freelancer.html', context)
 
 
+# Views de notificação (importadas)
+notificar_freelancers_evento = NotificarFreelancersEventoView.as_view()
+notificar_freelancers_vaga_especifica = notificar_freelancers_vaga_especifica
+
+
 @login_required(login_url='/empresa/login/')
 def usuarios_empresa(request):
     """
