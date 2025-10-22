@@ -91,7 +91,7 @@
                     <h2 class="mb-1">📱 Notificar Freelancers</h2>
                     <p class="text-muted mb-0">Envie notificações sobre vagas do evento</p>
                 </div>
-                <a href="{% url 'detalhe_evento' evento.id %}" class="btn btn-outline-secondary">
+                <a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}" class="btn btn-outline-secondary">
                     ← Voltar ao Evento
                 </a>
             </div>
@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnNotificarTodos.disabled = true;
         loading.classList.add('show');
         
-        fetch(`{% url 'notificar_freelancers_evento' evento.id %}`, {
+        fetch(`{% url 'dashboard_empresa:notificar_freelancers_evento' evento.id %}`, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
