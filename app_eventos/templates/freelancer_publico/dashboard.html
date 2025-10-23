@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - {{ freelancer.nome_completo }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 0;
+        }
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .welcome {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .welcome h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .welcome p {
+            color: #666;
+            margin: 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .candidatura-item {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 15px 0;
+        }
+        .candidatura-item:last-child {
+            border-bottom: none;
+        }
+        .candidatura-titulo {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .candidatura-detalhes {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-pendente {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-aprovada {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-rejeitada {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .vaga-item {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 15px 0;
+        }
+        .vaga-item:last-child {
+            border-bottom: none;
+        }
+        .vaga-titulo {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .vaga-detalhes {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .nav-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="logo">Eventix</div>
+            <div class="user-info">
+                <div class="user-avatar">{{ freelancer.nome_completo|first|upper }}</div>
+                <div>
+                    <div>{{ freelancer.nome_completo }}</div>
+                    <div style="font-size: 12px; opacity: 0.8;">Freelancer</div>
+                </div>
+                <a href="{% url 'freelancer_publico:logout' %}" style="color: white; text-decoration: none; margin-left: 15px;">Sair</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="welcome">
+            <h1>Olá, {{ freelancer.nome_completo }}! 👋</h1>
+            <p>Bem-vindo ao seu dashboard. Aqui você pode acompanhar suas candidaturas e encontrar novas oportunidades.</p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_candidaturas }}</div>
+                <div class="stat-label">Total de Candidaturas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.candidaturas_pendentes }}</div>
+                <div class="stat-label">Pendentes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.candidaturas_aprovadas }}</div>
+                <div class="stat-label">Aprovadas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ stats.total_vagas_ativas }}</div>
+                <div class="stat-label">Vagas Ativas</div>
+            </div>
+        </div>
+        
+        <div class="content-grid">
+            <div class="card">
+                <h3>📋 Últimas Candidaturas</h3>
+                {% if candidaturas %}
+                    {% for candidatura in candidaturas %}
+                    <div class="candidatura-item">
+                        <div class="candidatura-titulo">{{ candidatura.vaga.titulo }}</div>
+                        <div class="candidatura-detalhes">
+                            {{ candidatura.vaga.evento.nome }} • {{ candidatura.data_candidatura|date:"d/m/Y" }}
+                        </div>
+                        <span class="status status-{{ candidatura.status }}">
+                            {{ candidatura.get_status_display }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #666; text-align: center; padding: 20px;">Nenhuma candidatura ainda</p>
+                {% endif %}
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="{% url 'freelancer_publico:minhas_candidaturas' %}" class="btn">Ver Todas</a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>🎯 Vagas Disponíveis</h3>
+                {% if vagas_ativas %}
+                    {% for vaga in vagas_ativas %}
+                    <div class="vaga-item">
+                        <div class="vaga-titulo">{{ vaga.titulo }}</div>
+                        <div class="vaga-detalhes">
+                            {% if vaga.funcao %}{{ vaga.funcao.nome }} • {% endif %}
+                            R$ {{ vaga.remuneracao }}/{{ vaga.get_tipo_remuneracao_display }}
+                        </div>
+                        <a href="{% url 'freelancer_publico:candidatar_vaga' vaga.id %}" class="btn">Candidatar-se</a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: #666; text-align: center; padding: 20px;">Nenhuma vaga disponível</p>
+                {% endif %}
+                <div style="text-align: center; margin-top: 15px;">
+                    <a href="{% url 'freelancer_publico:vagas_disponiveis' %}" class="btn">Ver Todas</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="nav-links">
+            <a href="{% url 'freelancer_publico:vagas_disponiveis' %}">🔍 Buscar Vagas</a>
+            <a href="{% url 'freelancer_publico:minhas_candidaturas' %}">📋 Minhas Candidaturas</a>
+            <a href="{% url 'freelancer_publico:perfil' %}">👤 Meu Perfil</a>
+        </div>
+    </div>
+</body>
+</html>

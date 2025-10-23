@@ -54,6 +54,9 @@ urlpatterns = [
     
     # Links curtos (Deep Links + Fallback Web)
     path("links/", include("app_eventos.urls.urls_links_curtos")),
+    
+    # Dashboard público do freelancer
+    path("freelancer/", include("app_eventos.urls.urls_freelancer_publico")),
 ]
 
 if settings.DEBUG:

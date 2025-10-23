@@ -101,16 +101,13 @@ def redirecionar_freelancer(request, freelancer_id):
         })
 
 def vaga_web(request, vaga_id):
-    """Página web da vaga (fallback)"""
+    """Página web da vaga (fallback) - Redireciona para área pública"""
     try:
         vaga = get_object_or_404(Vaga, id=vaga_id)
-        logger.info(f"🌐 Acessando vaga web {vaga_id}")
+        logger.info(f"🌐 Redirecionando vaga {vaga_id} para área pública")
         
-        return render(request, 'links_curtos/vaga_web.html', {
-            'vaga': vaga,
-            'evento': vaga.evento,
-            'setor': vaga.setor
-        })
+        # Redirecionar para a página pública da vaga
+        return redirect('freelancer_publico:vaga_publica', vaga_id=vaga_id)
         
     except Exception as e:
         logger.error(f"❌ Erro ao acessar vaga web {vaga_id}: {str(e)}")
@@ -119,18 +116,13 @@ def vaga_web(request, vaga_id):
         })
 
 def evento_web(request, evento_id):
-    """Página web do evento (fallback)"""
+    """Página web do evento (fallback) - Redireciona para área pública"""
     try:
         evento = get_object_or_404(Evento, id=evento_id)
-        logger.info(f"🌐 Acessando evento web {evento_id}")
+        logger.info(f"🌐 Redirecionando evento {evento_id} para área pública")
         
-        # Buscar vagas ativas do evento
-        vagas = Vaga.objects.filter(evento=evento, ativa=True)
-        
-        return render(request, 'links_curtos/evento_web.html', {
-            'evento': evento,
-            'vagas': vagas
-        })
+        # Redirecionar para a página pública do evento
+        return redirect('freelancer_publico:evento_publico', evento_id=evento_id)
         
     except Exception as e:
         logger.error(f"❌ Erro ao acessar evento web {evento_id}: {str(e)}")
