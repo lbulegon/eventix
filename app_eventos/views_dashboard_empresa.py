@@ -1194,14 +1194,17 @@ class NotificarFreelancersEventoView(View):
                             telefone_e164 = f"+55{freelancer.telefone}" if not freelancer.telefone.startswith('+') else freelancer.telefone
                             
                             logger.info(f"📱 Enviando SMS para {freelancer.nome_completo} ({telefone_e164})")
+                            logger.info(f"💬 Mensagem: {mensagem[:100]}...")
                             resultado = twilio_service.send_sms(telefone_e164, mensagem)
                             
+                            logger.info(f"📊 RESULTADO SMS: {resultado}")
                             if resultado:
                                 vaga_enviados += 1
                                 logger.info(f"✅ SMS enviado para {freelancer.nome_completo} (SID: {resultado.sid})")
+                                logger.info(f"📊 STATUS: {resultado.status}")
                             else:
                                 vaga_erros += 1
-                                logger.error(f"❌ Falha ao enviar para {freelancer.nome_completo}")
+                                logger.error(f"❌ Falha ao enviar para {freelancer.nome_completo} - resultado None")
                                 
                         except Exception as e:
                             vaga_erros += 1
