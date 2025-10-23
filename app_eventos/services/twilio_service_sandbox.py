@@ -86,22 +86,13 @@ class TwilioServiceSandbox:
             socket.setdefaulttimeout(10)  # Timeout de 10 segundos
             logger.info("⏱️ TWILIO: Timeout configurado para 10 segundos")
             
-            # Usar Messaging Service SID se disponível
-            if self.messaging_service_sid and self.messaging_service_sid != 'CRIAR_NO_CONSOLE_TWILIO':
-                logger.info(f"🔧 TWILIO: Usando Messaging Service SID: {self.messaging_service_sid}")
-                message = self.client.messages.create(
-                    messaging_service_sid=self.messaging_service_sid,
-                    to=phone_e164,
-                    body=body
-                )
-            else:
-                # Fallback: usar número direto (precisa ter número Trial)
-                logger.info(f"🔧 TWILIO: Usando número direto: {self.sandbox_number}")
-                message = self.client.messages.create(
-                    from_=self.sandbox_number,
-                    to=phone_e164,
-                    body=body
-                )
+            # SEMPRE usar número direto do sandbox (mais confiável)
+            logger.info(f"🔧 TWILIO: Usando número direto do sandbox: {self.sandbox_number}")
+            message = self.client.messages.create(
+                from_=self.sandbox_number,
+                to=phone_e164,
+                body=body
+            )
             
             logger.info(f"✅ TWILIO: SMS ENVIADO COM SUCESSO para {phone_e164} (SID: {message.sid})")
             return message

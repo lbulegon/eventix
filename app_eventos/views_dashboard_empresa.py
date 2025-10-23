@@ -1262,6 +1262,49 @@ def notificar_freelancers_vaga_especifica(request, vaga_id):
         }, status=500)
 
 
+@login_required(login_url='/empresa/login/')
+def testar_sms_simples(request):
+    """Testa envio de SMS simples para o Liandro"""
+    try:
+        logger.info("🧪 TESTE SMS SIMPLES - Iniciando...")
+        
+        # Usar serviço Twilio direto
+        from app_eventos.services.twilio_service_sandbox import TwilioServiceSandbox
+        twilio_service = TwilioServiceSandbox()
+        
+        if not twilio_service.is_configured():
+            return JsonResponse({
+                'erro': 'Twilio não configurado'
+            }, status=400)
+        
+        # Mensagem de teste
+        mensagem = "🧪 TESTE SMS SIMPLES - Sistema funcionando perfeitamente! ✅"
+        telefone = "+5551994523847"
+        
+        logger.info(f"📱 Enviando SMS de teste para {telefone}")
+        resultado = twilio_service.send_sms(telefone, mensagem)
+        
+        if resultado:
+            logger.info(f"✅ SMS de teste enviado com sucesso (SID: {resultado.sid})")
+            return JsonResponse({
+                'sucesso': True,
+                'mensagem': f'SMS de teste enviado com sucesso! (SID: {resultado.sid})',
+                'sid': resultado.sid,
+                'status': resultado.status
+            })
+        else:
+            logger.error("❌ Falha ao enviar SMS de teste")
+            return JsonResponse({
+                'erro': 'Falha ao enviar SMS de teste'
+            }, status=500)
+            
+    except Exception as e:
+        logger.error(f"💥 Erro no teste SMS simples: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'erro': f'Erro interno: {str(e)}'
+        }, status=500)
+
+
 # Aliases para as views
 notificar_freelancers_evento = NotificarFreelancersEventoView.as_view()
 

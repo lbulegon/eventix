@@ -41,6 +41,7 @@ urlpatterns = [
     # Notificações
     path('eventos/<int:evento_id>/notificar-freelancers/', views_dashboard_empresa.notificar_freelancers_evento, name='notificar_freelancers_evento'),
     path('notificar-vaga/<int:vaga_id>/', views_dashboard_empresa.notificar_freelancers_vaga_especifica, name='notificar_freelancers_vaga'),
+    path('testar-sms-simples/', views_dashboard_empresa.testar_sms_simples, name='testar_sms_simples'),
     path('financeiro/', views_dashboard_empresa.financeiro_empresa, name='financeiro_empresa'),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
     
