@@ -1222,13 +1222,19 @@ class NotificarFreelancersEventoView(View):
                 else:
                     logger.warning(f"⚠️ Vaga {vaga.id} sem função definida")
             
-            return JsonResponse({
+            logger.info(f"📊 RESULTADO FINAL: {total_enviados} enviados, {total_erros} erros")
+            logger.info(f"📊 RESULTADOS: {resultados}")
+            
+            response_data = {
                 'sucesso': True,
                 'total_enviados': total_enviados,
                 'total_erros': total_erros,
                 'resultados': resultados,
                 'mensagem': f'Notificações enviadas: {total_enviados} sucessos, {total_erros} erros'
-            })
+            }
+            
+            logger.info(f"📤 ENVIANDO RESPOSTA: {response_data}")
+            return JsonResponse(response_data)
             
         except Exception as e:
             logger.error(f"Erro ao enviar notificações: {str(e)}")

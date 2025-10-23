@@ -250,8 +250,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('📡 Resposta recebida:', response);
+            return response.json();
+        })
         .then(data => {
+            console.log('📊 Dados recebidos:', data);
             loading.classList.remove('show');
             btnNotificarTodos.disabled = false;
             
