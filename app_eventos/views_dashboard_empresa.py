@@ -1175,17 +1175,8 @@ class NotificarFreelancersEventoView(View):
                     
                     for freelancer in freelancers:
                         try:
-                            # Criar mensagem simplificada (igual ao teste)
-                            mensagem = f"""🎉 NOVA VAGA DISPONÍVEL!
-
-📅 Evento: {vaga.evento.nome if vaga.evento else "Evento"}
-💼 Função: {vaga.funcao.nome}
-👥 Vagas: {vaga.quantidade}
-💰 Valor: R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()}
-
-🔗 Acesse: https://eventix-development.up.railway.app/
-
-#Eventix #Vagas #Trabalho"""
+                            # Criar mensagem ULTRA simplificada (igual ao teste)
+                            mensagem = f"🎉 NOVA VAGA: {vaga.funcao.nome} - R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()} - Eventix"
                             
                             # Formatar telefone usando código do país
                             telefone = freelancer.telefone
