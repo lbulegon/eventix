@@ -243,6 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
         btnNotificarTodos.disabled = true;
         loading.classList.add('show');
         
+        // Timeout de segurança para evitar loading infinito
+        const timeoutId = setTimeout(() => {
+            loading.classList.remove('show');
+            btnNotificarTodos.disabled = false;
+            mostrarToast('warning', '⏰ Timeout - Verifique os logs do sistema');
+        }, 30000); // 30 segundos
+        
         fetch(`{% url 'dashboard_empresa:notificar_freelancers_evento' evento.id %}`, {
             method: 'POST',
             headers: {
@@ -252,6 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             console.log('📡 Resposta recebida:', response);
+            clearTimeout(timeoutId); // Cancelar timeout
             return response.json();
         })
         .then(data => {
@@ -266,6 +274,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         })
         .catch(error => {
+            clearTimeout(timeoutId); // Cancelar timeout
             loading.classList.remove('show');
             btnNotificarTodos.disabled = false;
             mostrarToast('error', `❌ Erro: ${error.message}`);

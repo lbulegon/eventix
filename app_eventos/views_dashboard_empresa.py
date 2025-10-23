@@ -1190,21 +1190,9 @@ class NotificarFreelancersEventoView(View):
                             logger.info(f"📱 Enviando SMS para {freelancer.nome_completo} ({telefone_e164})")
                             logger.info(f"💬 Mensagem: {mensagem[:100]}...")
                             
-                            # Timeout para evitar travamento
-                            import signal
-                            import time
-                            
-                            def timeout_handler(signum, frame):
-                                raise TimeoutError("SMS timeout")
-                            
+                            # Enviar SMS sem timeout (como no botão teste)
                             try:
-                                # Configurar timeout de 30 segundos
-                                signal.signal(signal.SIGALRM, timeout_handler)
-                                signal.alarm(30)
-                                
                                 resultado = twilio_service.send_sms(telefone_e164, mensagem)
-                                
-                                signal.alarm(0)  # Cancelar timeout
                                 
                                 logger.info(f"📊 RESULTADO SMS: {resultado}")
                                 if resultado:
@@ -1215,12 +1203,7 @@ class NotificarFreelancersEventoView(View):
                                     vaga_erros += 1
                                     logger.error(f"❌ Falha ao enviar para {freelancer.nome_completo} - resultado None")
                                     
-                            except TimeoutError:
-                                signal.alarm(0)
-                                vaga_erros += 1
-                                logger.error(f"⏰ TIMEOUT ao enviar para {freelancer.nome_completo}")
                             except Exception as e:
-                                signal.alarm(0)
                                 vaga_erros += 1
                                 logger.error(f"💥 ERRO ao enviar para {freelancer.nome_completo}: {str(e)}")
                                 
@@ -1257,8 +1240,11 @@ class NotificarFreelancersEventoView(View):
         except Exception as e:
             logger.error(f"Erro ao enviar notificações: {str(e)}")
             return JsonResponse({
-                'erro': f'Erro interno: {str(e)}'
-            }, status=500)
+                'sucesso': False,
+                'erro': f'Erro interno: {str(e)}',
+                'total_enviados': 0,
+                'total_erros': 1
+            })
     
     def _enviar_notificacoes_form(self, request, evento):
         """Envia notificações via formulário tradicional"""
