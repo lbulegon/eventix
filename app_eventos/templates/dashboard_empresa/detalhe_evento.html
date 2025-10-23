@@ -29,9 +29,6 @@
                     <a href="{% url 'dashboard_empresa:notificar_freelancers_evento' evento.id %}" class="btn btn-success btn-sm me-2">
                         <i class="fas fa-paper-plane"></i> Notificar Freelancers
                     </a>
-                    <button id="btn-teste-sms" class="btn btn-warning btn-sm">
-                        <i class="fas fa-flask"></i> Teste SMS
-                    </button>
                 </div>
             </div>
             <div class="card-body">
@@ -299,46 +296,9 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const btnTesteSMS = document.getElementById('btn-teste-sms');
     const toast = document.getElementById('toast-notificacao');
     const toastMessage = document.getElementById('toast-message');
     
-    // Teste SMS simples
-    btnTesteSMS.addEventListener('click', function() {
-        if (confirm('Deseja enviar um SMS de teste para o Liandro (+5551994523847)?')) {
-            testarSMSSimples();
-        }
-    });
-    
-    function testarSMSSimples() {
-        const btn = document.getElementById('btn-teste-sms');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Testando...';
-        
-        fetch('{% url "dashboard_empresa:testar_sms_simples" %}', {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            btn.innerHTML = '<i class="fas fa-flask me-2"></i>Teste SMS';
-            btn.disabled = false;
-            
-            if (data.sucesso) {
-                mostrarToast('success', `✅ ${data.mensagem}`);
-            } else {
-                mostrarToast('error', `❌ ${data.erro}`);
-            }
-        })
-        .catch(error => {
-            btn.innerHTML = '<i class="fas fa-flask me-2"></i>Teste SMS';
-            btn.disabled = false;
-            mostrarToast('error', `❌ Erro: ${error.message}`);
-        });
-    }
     
     function mostrarToast(tipo, mensagem) {
         toastMessage.textContent = mensagem;

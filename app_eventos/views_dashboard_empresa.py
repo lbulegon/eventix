@@ -1134,6 +1134,18 @@ class NotificarFreelancersEventoView(View):
         try:
             logger.info(f"🌐 RAILWAY: Iniciando notificação AJAX para evento {evento.id}")
             
+            # Verificar se é notificação específica por função
+            import json
+            funcao_especifica = None
+            if request.content_type == 'application/json':
+                try:
+                    data = json.loads(request.body)
+                    funcao_especifica = data.get('funcao')
+                    if funcao_especifica:
+                        logger.info(f"🎯 Notificação específica para função: {funcao_especifica}")
+                except:
+                    pass
+            
             # Usar serviço Twilio direto (mesmo que funciona no botão)
             from app_eventos.services.twilio_service_sandbox import TwilioServiceSandbox
             twilio_service = TwilioServiceSandbox()
@@ -1141,6 +1153,11 @@ class NotificarFreelancersEventoView(View):
             
             # Buscar vagas ativas do evento
             vagas = Vaga.objects.filter(evento=evento, ativa=True)
+            if funcao_especifica:
+                # Filtrar apenas vagas da função específica
+                vagas = vagas.filter(funcao__nome=funcao_especifica)
+                logger.info(f"🎯 Filtrado para função específica: {funcao_especifica}")
+            
             logger.info(f"📋 Encontradas {vagas.count()} vagas ativas no evento {evento.id}")
             
             if not vagas.exists():
@@ -1354,83 +1371,6 @@ def notificar_freelancers_vaga_especifica(request, vaga_id):
         }, status=500)
 
 
-@login_required(login_url='/empresa/login/')
-def testar_sms_simples(request):
-    """Testa envio de SMS simples para o Liandro"""
-    try:
-        logger.info("🧪 TESTE SMS SIMPLES - INICIANDO...")
-        logger.info(f"🌐 RAILWAY: Requisição recebida de {request.user.username}")
-        logger.info(f"📱 User-Agent: {request.META.get('HTTP_USER_AGENT', 'N/A')}")
-        logger.info(f"🌍 IP: {request.META.get('REMOTE_ADDR', 'N/A')}")
-        
-        # Verificar configurações do Django
-        from django.conf import settings
-        logger.info(f"⚙️ DJANGO: DEBUG = {settings.DEBUG}")
-        logger.info(f"⚙️ DJANGO: ALLOWED_HOSTS = {settings.ALLOWED_HOSTS}")
-        
-        # Verificar variáveis do Twilio
-        logger.info(f"🔧 TWILIO: ACCOUNT_SID = {settings.TWILIO_ACCOUNT_SID[:10] if settings.TWILIO_ACCOUNT_SID else 'NÃO CONFIGURADO'}...")
-        logger.info(f"🔧 TWILIO: AUTH_TOKEN = {'CONFIGURADO' if settings.TWILIO_AUTH_TOKEN else 'NÃO CONFIGURADO'}")
-        logger.info(f"🔧 TWILIO: MESSAGING_SERVICE_SID = {settings.TWILIO_MESSAGING_SERVICE_SID[:10] if settings.TWILIO_MESSAGING_SERVICE_SID else 'NÃO CONFIGURADO'}...")
-        
-        # Usar serviço Twilio direto
-        logger.info("🔧 TWILIO: Inicializando TwilioServiceSandbox...")
-        from app_eventos.services.twilio_service_sandbox import TwilioServiceSandbox
-        twilio_service = TwilioServiceSandbox()
-        
-        logger.info(f"🔧 TWILIO: Serviço inicializado - Configurado: {twilio_service.is_configured()}")
-        logger.info(f"🔧 TWILIO: Sandbox Number: {twilio_service.sandbox_number}")
-        
-        if not twilio_service.is_configured():
-            logger.error("❌ TWILIO: Serviço não configurado - Account SID ou Auth Token ausentes")
-            return JsonResponse({
-                'erro': 'Twilio não configurado'
-            }, status=400)
-        
-        # Mensagem de teste
-        mensagem = "🧪 TESTE SMS SIMPLES - Sistema funcionando perfeitamente! ✅"
-        telefone = "+5551994523847"
-        
-        logger.info(f"📱 SMS: Preparando envio para {telefone}")
-        logger.info(f"📱 SMS: Mensagem: {mensagem}")
-        logger.info(f"📱 SMS: Tamanho da mensagem: {len(mensagem)} caracteres")
-        
-        logger.info("🚀 TWILIO: Chamando send_sms...")
-        resultado = twilio_service.send_sms(telefone, mensagem)
-        
-        if resultado:
-            logger.info(f"✅ TWILIO: SMS enviado com sucesso!")
-            logger.info(f"📊 TWILIO: SID = {resultado.sid}")
-            logger.info(f"📊 TWILIO: Status = {resultado.status}")
-            logger.info(f"📊 TWILIO: Para = {resultado.to}")
-            logger.info(f"📊 TWILIO: De = {resultado.from_}")
-            logger.info(f"📊 TWILIO: Data = {resultado.date_sent}")
-            logger.info(f"📊 TWILIO: Direção = {resultado.direction}")
-            logger.info(f"📊 TWILIO: Preço = {resultado.price}")
-            logger.info(f"📊 TWILIO: Preço Unidade = {resultado.price_unit}")
-            
-            return JsonResponse({
-                'sucesso': True,
-                'mensagem': f'SMS de teste enviado com sucesso! (SID: {resultado.sid})',
-                'sid': resultado.sid,
-                'status': resultado.status,
-                'para': resultado.to,
-                'de': resultado.from_,
-                'data': str(resultado.date_sent)
-            })
-        else:
-            logger.error("❌ TWILIO: Falha ao enviar SMS - resultado None")
-            return JsonResponse({
-                'erro': 'Falha ao enviar SMS de teste - resultado None'
-            }, status=500)
-            
-    except Exception as e:
-        logger.error(f"💥 ERRO CRÍTICO no teste SMS simples: {str(e)}", exc_info=True)
-        logger.error(f"💥 TIPO DO ERRO: {type(e).__name__}")
-        logger.error(f"💥 ARGS DO ERRO: {e.args}")
-        return JsonResponse({
-            'erro': f'Erro interno: {str(e)}'
-        }, status=500)
 
 
 # Aliases para as views
