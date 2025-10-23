@@ -1134,10 +1134,10 @@ class NotificarFreelancersEventoView(View):
         try:
             logger.info(f"🌐 RAILWAY: Iniciando notificação AJAX para evento {evento.id}")
             
-            # Usar serviço real do Twilio
-            from app_eventos.services.notificacao_vagas import NotificacaoVagasService
-            notificacao_service = NotificacaoVagasService()
-            logger.info("✅ Serviço de notificação inicializado")
+            # Usar serviço Twilio direto (mesmo que funciona no botão)
+            from app_eventos.services.twilio_service_sandbox import TwilioServiceSandbox
+            twilio_service = TwilioServiceSandbox()
+            logger.info("✅ Serviço Twilio direto inicializado")
             
             # Buscar vagas ativas do evento
             vagas = Vaga.objects.filter(evento=evento, ativa=True)
@@ -1158,15 +1158,64 @@ class NotificarFreelancersEventoView(View):
             for vaga in vagas:
                 if vaga.funcao:
                     logger.info(f"📤 Processando vaga {vaga.id} - Função: {vaga.funcao.nome}")
-                    resultado = notificacao_service.notificar_nova_vaga(vaga)
-                    resultados[vaga.funcao.nome] = resultado
                     
-                    if 'erro' not in resultado:
-                        total_enviados += resultado.get('enviados', 0)
-                        total_erros += resultado.get('erros', 0)
-                        logger.info(f"✅ Vaga {vaga.id} processada: {resultado.get('enviados', 0)} enviados, {resultado.get('erros', 0)} erros")
-                    else:
-                        logger.error(f"❌ Erro na vaga {vaga.id}: {resultado.get('erro', 'Erro desconhecido')}")
+                    # Buscar freelancers para esta função
+                    from app_eventos.models import Freelance
+                    freelancers = Freelance.objects.filter(
+                        funcoes__funcao=vaga.funcao,
+                        notificacoes_ativas=True,
+                        telefone__isnull=False,
+                        telefone__gt=''
+                    ).distinct()
+                    
+                    logger.info(f"👥 Encontrados {freelancers.count()} freelancers para função {vaga.funcao.nome}")
+                    
+                    vaga_enviados = 0
+                    vaga_erros = 0
+                    
+                    for freelancer in freelancers:
+                        try:
+                            # Criar mensagem personalizada
+                            mensagem = f"""🎉 NOVA VAGA DISPONÍVEL!
+
+📅 Evento: {vaga.evento.nome if vaga.evento else "Evento"}
+🏢 Setor: {vaga.setor.nome if vaga.setor else "Geral"}
+💼 Função: {vaga.funcao.nome}
+👥 Vagas: {vaga.quantidade}
+
+💰 Valor: R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()}
+📝 Descrição: {vaga.descricao[:100]}{'...' if len(vaga.descricao) > 100 else ''}
+
+🔗 Acesse: https://eventix-development.up.railway.app/
+
+#Eventix #Vagas #Trabalho"""
+                            
+                            # Formatar telefone
+                            telefone_e164 = f"+55{freelancer.telefone}" if not freelancer.telefone.startswith('+') else freelancer.telefone
+                            
+                            logger.info(f"📱 Enviando SMS para {freelancer.nome_completo} ({telefone_e164})")
+                            resultado = twilio_service.send_sms(telefone_e164, mensagem)
+                            
+                            if resultado:
+                                vaga_enviados += 1
+                                logger.info(f"✅ SMS enviado para {freelancer.nome_completo} (SID: {resultado.sid})")
+                            else:
+                                vaga_erros += 1
+                                logger.error(f"❌ Falha ao enviar para {freelancer.nome_completo}")
+                                
+                        except Exception as e:
+                            vaga_erros += 1
+                            logger.error(f"💥 Erro ao enviar para {freelancer.nome_completo}: {str(e)}")
+                    
+                    resultados[vaga.funcao.nome] = {
+                        'enviados': vaga_enviados,
+                        'erros': vaga_erros,
+                        'total_freelancers': freelancers.count()
+                    }
+                    
+                    total_enviados += vaga_enviados
+                    total_erros += vaga_erros
+                    logger.info(f"✅ Vaga {vaga.id} processada: {vaga_enviados} enviados, {vaga_erros} erros")
                 else:
                     logger.warning(f"⚠️ Vaga {vaga.id} sem função definida")
             

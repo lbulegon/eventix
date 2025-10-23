@@ -144,25 +144,33 @@
                     </h4>
                     
                     <div class="row">
-                        {% for vaga in vagas %}
-                        <div class="col-md-6 mb-3">
+                        <div class="col-12">
                             <div class="vaga-item">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="mb-1">{{ vaga.setor.nome|default:"Geral" }}</h6>
-                                    <span class="badge bg-success">{{ vaga.quantidade }} vagas</span>
+                                    <h6 class="mb-1">{{ funcao_nome }} - Resumo das Vagas</h6>
+                                    <span class="badge bg-success">{{ vagas|length }} vagas diferentes</span>
                                 </div>
-                                <p class="text-muted mb-2">{{ vaga.descricao|truncatechars:100 }}</p>
+                                <p class="text-muted mb-2">
+                                    {% for vaga in vagas %}
+                                        {{ vaga.setor.nome|default:"Geral" }}: {{ vaga.quantidade }} vagas
+                                        {% if not forloop.last %} | {% endif %}
+                                    {% endfor %}
+                                </p>
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-bold text-success">R$ {{ vaga.valor_hora|floatformat:2 }}/h</span>
-                                    <button class="btn btn-sm btn-outline-primary notificar-vaga" 
-                                            data-vaga-id="{{ vaga.id }}">
+                                    <span class="fw-bold text-success">
+                                        {% for vaga in vagas %}
+                                            R$ {{ vaga.remuneracao|floatformat:2 }}/{{ vaga.get_tipo_remuneracao_display }}
+                                            {% if not forloop.last %} | {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                    <button class="btn btn-primary notificar-funcao" 
+                                            data-funcao="{{ funcao_nome }}">
                                         <i class="fas fa-paper-plane me-1"></i>
-                                        Notificar
+                                        Notificar {{ funcao_nome }}
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        {% endfor %}
                     </div>
                 </div>
                 {% endfor %}
@@ -222,12 +230,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Notificar vaga específica
-    document.querySelectorAll('.notificar-vaga').forEach(btn => {
+    // Notificar por função
+    document.querySelectorAll('.notificar-funcao').forEach(btn => {
         btn.addEventListener('click', function() {
-            const vagaId = this.dataset.vagaId;
-            if (confirm('Deseja enviar notificação para esta vaga específica?')) {
-                enviarNotificacaoVaga(vagaId, this);
+            const funcao = this.dataset.funcao;
+            if (confirm(`Deseja enviar notificação para todos os freelancers da função ${funcao}?`)) {
+                enviarNotificacaoFuncao(funcao, this);
             }
         });
     });
@@ -287,6 +295,39 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Notificar';
+            btn.disabled = false;
+            mostrarToast('error', `❌ Erro: ${error.message}`);
+        });
+    }
+    
+    function enviarNotificacaoFuncao(funcao, btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
+        
+        fetch('{% url "dashboard_empresa:notificar_freelancers_evento" evento.id %}', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                'funcao': funcao
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Notificar ' + funcao;
+            btn.disabled = false;
+            
+            if (data.sucesso) {
+                mostrarToast('success', `✅ ${data.mensagem}`);
+            } else {
+                mostrarToast('error', `❌ ${data.erro}`);
+            }
+        })
+        .catch(error => {
+            btn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Notificar ' + funcao;
             btn.disabled = false;
             mostrarToast('error', `❌ Erro: ${error.message}`);
         });
