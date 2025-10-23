@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ evento.nome }} - Eventix</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: #667eea;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        .evento-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        .evento-nome {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        .evento-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .info-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #666;
+        }
+        .vagas-section {
+            margin-top: 30px;
+        }
+        .vagas-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .vaga-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #28a745;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .vaga-titulo {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .vaga-detalhes {
+            color: #666;
+            font-size: 14px;
+        }
+        .cta-section {
+            text-align: center;
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            color: white;
+        }
+        .cta-title {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        .cta-text {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        .btn {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+            transition: transform 0.3s;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        .app-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">E</div>
+            <h1>Eventix</h1>
+            <p class="subtitle">Plataforma de Eventos e Freelancers</p>
+        </div>
+        
+        <div class="evento-card">
+            <div class="evento-nome">{{ evento.nome }}</div>
+            
+            <div class="evento-info">
+                {% if evento.data_inicio %}
+                <div class="info-item">
+                    <div class="info-label">Data de Início</div>
+                    <div class="info-value">{{ evento.data_inicio|date:"d/m/Y" }}</div>
+                </div>
+                {% endif %}
+                
+                {% if evento.data_fim %}
+                <div class="info-item">
+                    <div class="info-label">Data de Fim</div>
+                    <div class="info-value">{{ evento.data_fim|date:"d/m/Y" }}</div>
+                </div>
+                {% endif %}
+                
+                {% if evento.local %}
+                <div class="info-item">
+                    <div class="info-label">Local</div>
+                    <div class="info-value">{{ evento.local.nome }}</div>
+                </div>
+                {% endif %}
+                
+                <div class="info-item">
+                    <div class="info-label">Status</div>
+                    <div class="info-value">
+                        {% if evento.ativo %}
+                            <span style="color: green; font-weight: bold;">Ativo</span>
+                        {% else %}
+                            <span style="color: red; font-weight: bold;">Inativo</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            {% if evento.descricao %}
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px;">
+                <div class="info-label">Descrição</div>
+                <div class="info-value">{{ evento.descricao }}</div>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if vagas %}
+        <div class="vagas-section">
+            <div class="vagas-title">📋 Vagas Disponíveis ({{ vagas.count }})</div>
+            {% for vaga in vagas %}
+            <div class="vaga-item">
+                <div class="vaga-titulo">{{ vaga.titulo }}</div>
+                <div class="vaga-detalhes">
+                    {% if vaga.funcao %}
+                        <strong>{{ vaga.funcao.nome }}</strong> • 
+                    {% endif %}
+                    R$ {{ vaga.remuneracao }}/{{ vaga.get_tipo_remuneracao_display }} • 
+                    {{ vaga.quantidade }} vaga(s)
+                    {% if vaga.setor %}
+                        • Setor: {{ vaga.setor.nome }}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="cta-section">
+            <div class="cta-title">🎉 Interessado neste evento?</div>
+            <div class="cta-text">
+                Baixe o app Eventix para se candidatar às vagas e acompanhar seus eventos
+            </div>
+            <a href="#" class="btn">Baixar App Eventix</a>
+            <div class="app-badge">
+                📱 Disponível para Android e iOS
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecionando para o Eventix</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: #667eea;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+        .vaga-info {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .vaga-titulo {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .vaga-detalhes {
+            color: #666;
+            font-size: 14px;
+        }
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5a6fd8;
+        }
+        .fallback {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        .fallback a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">E</div>
+        <h1>Eventix</h1>
+        <p class="subtitle">Redirecionando para o app...</p>
+        
+        <div class="vaga-info">
+            <div class="vaga-titulo">{{ vaga.titulo }}</div>
+            <div class="vaga-detalhes">
+                {% if vaga.funcao %}
+                    <strong>{{ vaga.funcao.nome }}</strong><br>
+                {% endif %}
+                R$ {{ vaga.remuneracao }}/{{ vaga.get_tipo_remuneracao_display }}<br>
+                {% if vaga.setor %}
+                    Setor: {{ vaga.setor.nome }}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <span>Abrindo no app...</span>
+        </div>
+        
+        <div class="fallback">
+            <p>Se o app não abrir automaticamente:</p>
+            <a href="{{ web_url }}" class="btn">Abrir no navegador</a>
+        </div>
+    </div>
+
+    <script>
+        const deepLink = '{{ deep_link }}';
+        const webUrl = '{{ web_url }}';
+        
+        // Tentar abrir o app
+        window.location.href = deepLink;
+        
+        // Fallback para web após 3 segundos
+        setTimeout(() => {
+            window.location.href = webUrl;
+        }, 3000);
+        
+        // Se o usuário clicar em qualquer lugar, ir para web
+        document.addEventListener('click', () => {
+            window.location.href = webUrl;
+        });
+    </script>
+</body>
+</html>

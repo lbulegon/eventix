@@ -1222,8 +1222,10 @@ class NotificarFreelancersEventoView(View):
                 
                 for freelancer in freelancers:
                     try:
-                        # Criar mensagem ULTRA simplificada (igual ao teste)
-                        mensagem = f"🎉 NOVA VAGA: {funcao.nome} - R$ {remuneracao:.2f}/{tipo_remuneracao} - Eventix"
+                        # Criar mensagem com link curto
+                        from app_eventos.views_links_curtos import gerar_link_curto
+                        link_curto = gerar_link_curto('vaga', vagas_grupo[0].id)  # Usar primeira vaga do grupo
+                        mensagem = f"🎉 NOVA VAGA: {funcao.nome} - R$ {remuneracao:.2f}/{tipo_remuneracao} - Eventix\n{link_curto}"
                         logger.info(f"💬 Mensagem criada: {mensagem}")
                         
                         # Formatar telefone usando código do país

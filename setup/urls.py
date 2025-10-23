@@ -51,6 +51,9 @@ urlpatterns = [
     # APIs existentes
     path("api/equipamentos/", include("app_eventos.urls.urls_equipamentos")),
     path("setor/<int:setor_id>/equipamentos/", equipamentos_setor, name="equipamentos_setor"),
+    
+    # Links curtos (Deep Links + Fallback Web)
+    path("links/", include("app_eventos.urls.urls_links_curtos")),
 ]
 
 if settings.DEBUG:
