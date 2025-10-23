@@ -21,6 +21,8 @@ class Command(BaseCommand):
             
             self.stdout.write(f"👤 Nome: {freelancer.nome_completo}")
             self.stdout.write(f"📱 Telefone: {freelancer.telefone}")
+            self.stdout.write(f"🌍 Código País: {freelancer.codigo_telefonico_pais}")
+            self.stdout.write(f"📞 Telefone Formatado: +{freelancer.codigo_telefonico_pais}{freelancer.telefone}")
             self.stdout.write(f"🔔 Notificações Ativas: {freelancer.notificacoes_ativas}")
             self.stdout.write(f"✅ Cadastro Completo: {freelancer.cadastro_completo}")
             self.stdout.write(f"📧 Email: {freelancer.usuario.email if freelancer.usuario else 'N/A'}")

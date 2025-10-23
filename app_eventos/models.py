@@ -1491,6 +1491,12 @@ class Freelance(models.Model):
     # Dados pessoais
     nome_completo   = models.CharField(max_length=255)
     telefone        = models.CharField(max_length=20, blank=True, null=True)
+    codigo_telefonico_pais = models.CharField(
+        max_length=5,
+        default='55',
+        verbose_name="Código Telefônico do País",
+        help_text="Código do país para formatação internacional (ex: 55 para Brasil)"
+    )
     documento       = models.CharField(max_length=50, blank=True, null=True)
     habilidades     = models.TextField(blank=True, null=True)
 

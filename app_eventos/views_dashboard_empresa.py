@@ -1187,8 +1187,14 @@ class NotificarFreelancersEventoView(View):
 
 #Eventix #Vagas #Trabalho"""
                             
-                            # Formatar telefone
-                            telefone_e164 = f"+55{freelancer.telefone}" if not freelancer.telefone.startswith('+') else freelancer.telefone
+                            # Formatar telefone usando código do país
+                            telefone = freelancer.telefone
+                            codigo_pais = freelancer.codigo_telefonico_pais or '55'
+                            
+                            if telefone.startswith('+'):
+                                telefone_e164 = telefone
+                            else:
+                                telefone_e164 = f"+{codigo_pais}{telefone}"
                             
                             logger.info(f"📱 Enviando SMS para {freelancer.nome_completo} ({telefone_e164})")
                             logger.info(f"💬 Mensagem: {mensagem[:100]}...")
