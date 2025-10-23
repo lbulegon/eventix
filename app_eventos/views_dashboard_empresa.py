@@ -1149,79 +1149,100 @@ class NotificarFreelancersEventoView(View):
                     'erro': 'Nenhuma vaga ativa encontrada neste evento'
                 })
             
-            # Enviar notificações por função
-            logger.info(f"🔄 Iniciando envio para {vagas.count()} vagas...")
+            # Agrupar vagas por função e valor para evitar SMS duplicados
+            logger.info(f"🔄 Agrupando {vagas.count()} vagas por função e valor...")
+            
+            # Agrupar vagas por função e remuneração
+            vagas_agrupadas = {}
+            for vaga in vagas:
+                if vaga.funcao:
+                    chave = f"{vaga.funcao.nome}_{vaga.remuneracao}_{vaga.get_tipo_remuneracao_display()}"
+                    if chave not in vagas_agrupadas:
+                        vagas_agrupadas[chave] = {
+                            'funcao': vaga.funcao,
+                            'remuneracao': vaga.remuneracao,
+                            'tipo_remuneracao': vaga.get_tipo_remuneracao_display(),
+                            'vagas': []
+                        }
+                    vagas_agrupadas[chave]['vagas'].append(vaga)
+            
+            logger.info(f"📊 Encontrados {len(vagas_agrupadas)} grupos únicos de função/valor")
+            
             resultados = {}
             total_enviados = 0
             total_erros = 0
             
-            for vaga in vagas:
-                if vaga.funcao:
-                    logger.info(f"📤 Processando vaga {vaga.id} - Função: {vaga.funcao.nome}")
-                    
-                    # Buscar freelancers para esta função
-                    from app_eventos.models import Freelance
-                    freelancers = Freelance.objects.filter(
-                        funcoes__funcao=vaga.funcao,
-                        notificacoes_ativas=True,
-                        telefone__isnull=False,
-                        telefone__gt=''
-                    ).distinct()
-                    
-                    logger.info(f"👥 Encontrados {freelancers.count()} freelancers para função {vaga.funcao.nome}")
-                    
-                    vaga_enviados = 0
-                    vaga_erros = 0
-                    
-                    for freelancer in freelancers:
+            # Enviar 1 SMS por grupo (função + valor)
+            for chave, grupo in vagas_agrupadas.items():
+                funcao = grupo['funcao']
+                remuneracao = grupo['remuneracao']
+                tipo_remuneracao = grupo['tipo_remuneracao']
+                vagas_grupo = grupo['vagas']
+                
+                logger.info(f"📤 Processando grupo: {funcao.nome} - R$ {remuneracao:.2f}/{tipo_remuneracao} ({len(vagas_grupo)} vagas)")
+                
+                # Buscar freelancers para esta função
+                from app_eventos.models import Freelance
+                freelancers = Freelance.objects.filter(
+                    funcoes__funcao=funcao,
+                    notificacoes_ativas=True,
+                    telefone__isnull=False,
+                    telefone__gt=''
+                ).distinct()
+                
+                logger.info(f"👥 Encontrados {freelancers.count()} freelancers para função {funcao.nome}")
+                
+                grupo_enviados = 0
+                grupo_erros = 0
+                
+                for freelancer in freelancers:
+                    try:
+                        # Criar mensagem ULTRA simplificada (igual ao teste)
+                        mensagem = f"🎉 NOVA VAGA: {funcao.nome} - R$ {remuneracao:.2f}/{tipo_remuneracao} - Eventix"
+                        
+                        # Formatar telefone usando código do país
+                        telefone = freelancer.telefone
+                        codigo_pais = freelancer.codigo_telefonico_pais or '55'
+                        
+                        if telefone.startswith('+'):
+                            telefone_e164 = telefone
+                        else:
+                            telefone_e164 = f"+{codigo_pais}{telefone}"
+                        
+                        logger.info(f"📱 Enviando SMS para {freelancer.nome_completo} ({telefone_e164})")
+                        logger.info(f"💬 Mensagem: {mensagem}")
+                        
+                        # Enviar SMS sem timeout (como no botão teste)
                         try:
-                            # Criar mensagem ULTRA simplificada (igual ao teste)
-                            mensagem = f"🎉 NOVA VAGA: {vaga.funcao.nome} - R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()} - Eventix"
+                            resultado = twilio_service.send_sms(telefone_e164, mensagem)
                             
-                            # Formatar telefone usando código do país
-                            telefone = freelancer.telefone
-                            codigo_pais = freelancer.codigo_telefonico_pais or '55'
-                            
-                            if telefone.startswith('+'):
-                                telefone_e164 = telefone
+                            logger.info(f"📊 RESULTADO SMS: {resultado}")
+                            if resultado:
+                                grupo_enviados += 1
+                                logger.info(f"✅ SMS enviado para {freelancer.nome_completo} (SID: {resultado.sid})")
+                                logger.info(f"📊 STATUS: {resultado.status}")
                             else:
-                                telefone_e164 = f"+{codigo_pais}{telefone}"
-                            
-                            logger.info(f"📱 Enviando SMS para {freelancer.nome_completo} ({telefone_e164})")
-                            logger.info(f"💬 Mensagem: {mensagem[:100]}...")
-                            
-                            # Enviar SMS sem timeout (como no botão teste)
-                            try:
-                                resultado = twilio_service.send_sms(telefone_e164, mensagem)
-                                
-                                logger.info(f"📊 RESULTADO SMS: {resultado}")
-                                if resultado:
-                                    vaga_enviados += 1
-                                    logger.info(f"✅ SMS enviado para {freelancer.nome_completo} (SID: {resultado.sid})")
-                                    logger.info(f"📊 STATUS: {resultado.status}")
-                                else:
-                                    vaga_erros += 1
-                                    logger.error(f"❌ Falha ao enviar para {freelancer.nome_completo} - resultado None")
-                                    
-                            except Exception as e:
-                                vaga_erros += 1
-                                logger.error(f"💥 ERRO ao enviar para {freelancer.nome_completo}: {str(e)}")
+                                grupo_erros += 1
+                                logger.error(f"❌ Falha ao enviar para {freelancer.nome_completo} - resultado None")
                                 
                         except Exception as e:
-                            vaga_erros += 1
-                            logger.error(f"💥 Erro ao enviar para {freelancer.nome_completo}: {str(e)}")
-                    
-                    resultados[vaga.funcao.nome] = {
-                        'enviados': vaga_enviados,
-                        'erros': vaga_erros,
-                        'total_freelancers': freelancers.count()
-                    }
-                    
-                    total_enviados += vaga_enviados
-                    total_erros += vaga_erros
-                    logger.info(f"✅ Vaga {vaga.id} processada: {vaga_enviados} enviados, {vaga_erros} erros")
-                else:
-                    logger.warning(f"⚠️ Vaga {vaga.id} sem função definida")
+                            grupo_erros += 1
+                            logger.error(f"💥 ERRO ao enviar para {freelancer.nome_completo}: {str(e)}")
+                            
+                    except Exception as e:
+                        grupo_erros += 1
+                        logger.error(f"💥 Erro ao enviar para {freelancer.nome_completo}: {str(e)}")
+                
+                resultados[funcao.nome] = {
+                    'enviados': grupo_enviados,
+                    'erros': grupo_erros,
+                    'total_freelancers': freelancers.count(),
+                    'vagas_processadas': len(vagas_grupo)
+                }
+                
+                total_enviados += grupo_enviados
+                total_erros += grupo_erros
+                logger.info(f"✅ Grupo {funcao.nome} processado: {grupo_enviados} enviados, {grupo_erros} erros ({len(vagas_grupo)} vagas agrupadas)")
             
             logger.info(f"📊 RESULTADO FINAL: {total_enviados} enviados, {total_erros} erros")
             logger.info(f"📊 RESULTADOS: {resultados}")
