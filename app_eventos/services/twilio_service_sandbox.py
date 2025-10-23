@@ -73,16 +73,22 @@ class TwilioServiceSandbox:
         Returns:
             Message object do Twilio ou None
         """
+        logger.info(f"📱 TWILIO: Iniciando envio SMS para {phone_e164}")
+        
         if not self.is_configured():
-            logger.error("Twilio não configurado")
+            logger.error("❌ TWILIO: Não configurado - Account SID ou Auth Token ausentes")
             return None
+        
+        logger.info("✅ TWILIO: Configuração OK")
         
         try:
             import socket
             socket.setdefaulttimeout(10)  # Timeout de 10 segundos
+            logger.info("⏱️ TWILIO: Timeout configurado para 10 segundos")
             
             # Usar Messaging Service SID se disponível
             if self.messaging_service_sid and self.messaging_service_sid != 'CRIAR_NO_CONSOLE_TWILIO':
+                logger.info(f"🔧 TWILIO: Usando Messaging Service SID: {self.messaging_service_sid}")
                 message = self.client.messages.create(
                     messaging_service_sid=self.messaging_service_sid,
                     to=phone_e164,
@@ -90,17 +96,18 @@ class TwilioServiceSandbox:
                 )
             else:
                 # Fallback: usar número direto (precisa ter número Trial)
+                logger.info(f"🔧 TWILIO: Usando número direto: {self.sandbox_number}")
                 message = self.client.messages.create(
                     from_=self.sandbox_number,
                     to=phone_e164,
                     body=body
                 )
             
-            logger.info(f"✓ SMS enviado para {phone_e164} (SID: {message.sid})")
+            logger.info(f"✅ TWILIO: SMS ENVIADO COM SUCESSO para {phone_e164} (SID: {message.sid})")
             return message
             
         except Exception as e:
-            logger.error(f"✗ Erro ao enviar SMS: {str(e)}")
+            logger.error(f"💥 TWILIO: ERRO ao enviar SMS para {phone_e164}: {str(e)}", exc_info=True)
             return None
     
     def send_with_fallback(self, phone_e164, body, preferred_channel='whatsapp'):

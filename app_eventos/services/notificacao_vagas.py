@@ -28,23 +28,34 @@ class NotificacaoVagasService:
         Returns:
             dict: Estatísticas do envio
         """
+        logger.info(f"🚀 INICIANDO NOTIFICAÇÃO - Vaga ID: {vaga.id}, Função: {vaga.funcao.nome if vaga.funcao else 'Sem função'}")
+        
         if not self.twilio.is_configured():
-            logger.warning("Twilio não configurado - pulando notificação")
+            logger.error("❌ Twilio não configurado - pulando notificação")
             return {'erro': 'Twilio não configurado'}
         
+        logger.info("✅ Twilio configurado corretamente")
+        
         # Buscar freelancers com a função da vaga
+        logger.info(f"🔍 Buscando freelancers para função: {vaga.funcao.nome if vaga.funcao else 'Sem função'}")
         freelancers = self._buscar_freelancers_por_funcao(vaga.funcao)
         
         if not freelancers:
-            logger.info(f"Nenhum freelancer encontrado para função: {vaga.funcao}")
+            logger.warning(f"⚠️ Nenhum freelancer encontrado para função: {vaga.funcao.nome if vaga.funcao else 'Sem função'}")
             return {'freelancers': 0, 'enviados': 0}
         
+        logger.info(f"👥 Encontrados {freelancers.count()} freelancers para notificar")
+        
         # Criar mensagem personalizada
+        logger.info("📝 Criando mensagem personalizada...")
         mensagem = self._criar_mensagem_vaga(vaga)
+        logger.info(f"📄 Mensagem criada: {len(mensagem)} caracteres")
         
         # Enviar notificações
+        logger.info("📤 Iniciando envio de notificações...")
         resultado = self._enviar_notificacoes(freelancers, mensagem, vaga)
         
+        logger.info(f"📊 RESULTADO FINAL: {resultado.get('enviados', 0)}/{resultado.get('total_freelancers', 0)} enviadas, {resultado.get('erros', 0)} erros")
         return resultado
     
     def _buscar_freelancers_por_funcao(self, funcao):
@@ -126,10 +137,14 @@ class NotificacaoVagasService:
         
         for freelancer in freelancers:
             try:
+                logger.info(f"📱 Processando freelancer: {freelancer.nome_completo} (Telefone: {freelancer.telefone})")
+                
                 # Formatar telefone para E.164
                 telefone_e164 = self.twilio.format_phone_e164(freelancer.telefone)
+                logger.info(f"📞 Telefone formatado: {telefone_e164}")
                 
                 # Enviar SMS
+                logger.info(f"🚀 Enviando SMS para {freelancer.nome_completo}...")
                 resultado = self.twilio.send_sms(telefone_e164, mensagem)
                 
                 if resultado:
@@ -140,16 +155,16 @@ class NotificacaoVagasService:
                         'status': 'enviado',
                         'sid': resultado.sid
                     })
-                    logger.info(f"✅ Notificação enviada para {freelancer.nome_completo}")
+                    logger.info(f"✅ SMS ENVIADO COM SUCESSO para {freelancer.nome_completo} (SID: {resultado.sid})")
                 else:
                     stats['erros'] += 1
                     stats['detalhes'].append({
                         'freelancer': freelancer.nome_completo,
                         'telefone': telefone_e164,
                         'status': 'erro',
-                        'erro': 'Falha no envio'
+                        'erro': 'Falha no envio - resultado None'
                     })
-                    logger.error(f"❌ Erro ao enviar para {freelancer.nome_completo}")
+                    logger.error(f"❌ FALHA NO ENVIO para {freelancer.nome_completo} - resultado None")
                     
             except Exception as e:
                 stats['erros'] += 1
@@ -159,7 +174,7 @@ class NotificacaoVagasService:
                     'status': 'erro',
                     'erro': str(e)
                 })
-                logger.error(f"❌ Exceção ao enviar para {freelancer.nome_completo}: {str(e)}")
+                logger.error(f"💥 EXCEÇÃO ao enviar para {freelancer.nome_completo}: {str(e)}", exc_info=True)
         
         # Log do resultado
         logger.info(f"📊 Notificação de vaga '{vaga.funcao.nome if vaga.funcao else 'Sem função'}': "

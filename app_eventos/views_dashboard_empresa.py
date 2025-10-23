@@ -1132,31 +1132,43 @@ class NotificarFreelancersEventoView(View):
     def _enviar_notificacoes_ajax(self, request, evento):
         """Envia notificações via AJAX"""
         try:
+            logger.info(f"🌐 RAILWAY: Iniciando notificação AJAX para evento {evento.id}")
+            
             # Usar serviço real do Twilio
             from app_eventos.services.notificacao_vagas import NotificacaoVagasService
             notificacao_service = NotificacaoVagasService()
+            logger.info("✅ Serviço de notificação inicializado")
             
             # Buscar vagas ativas do evento
             vagas = Vaga.objects.filter(evento=evento, ativa=True)
+            logger.info(f"📋 Encontradas {vagas.count()} vagas ativas no evento {evento.id}")
             
             if not vagas.exists():
+                logger.warning("⚠️ Nenhuma vaga ativa encontrada no evento")
                 return JsonResponse({
                     'erro': 'Nenhuma vaga ativa encontrada neste evento'
                 })
             
             # Enviar notificações por função
+            logger.info(f"🔄 Iniciando envio para {vagas.count()} vagas...")
             resultados = {}
             total_enviados = 0
             total_erros = 0
             
             for vaga in vagas:
                 if vaga.funcao:
+                    logger.info(f"📤 Processando vaga {vaga.id} - Função: {vaga.funcao.nome}")
                     resultado = notificacao_service.notificar_nova_vaga(vaga)
                     resultados[vaga.funcao.nome] = resultado
                     
                     if 'erro' not in resultado:
                         total_enviados += resultado.get('enviados', 0)
                         total_erros += resultado.get('erros', 0)
+                        logger.info(f"✅ Vaga {vaga.id} processada: {resultado.get('enviados', 0)} enviados, {resultado.get('erros', 0)} erros")
+                    else:
+                        logger.error(f"❌ Erro na vaga {vaga.id}: {resultado.get('erro', 'Erro desconhecido')}")
+                else:
+                    logger.warning(f"⚠️ Vaga {vaga.id} sem função definida")
             
             return JsonResponse({
                 'sucesso': True,
