@@ -1157,6 +1157,9 @@ class NotificarFreelancersEventoView(View):
             for vaga in vagas:
                 if vaga.funcao:
                     chave = f"{vaga.funcao.nome}_{vaga.remuneracao}_{vaga.get_tipo_remuneracao_display()}"
+                    logger.info(f"🔍 Vaga {vaga.id}: Função={vaga.funcao.nome}, Valor={vaga.remuneracao}, Tipo={vaga.get_tipo_remuneracao_display()}")
+                    logger.info(f"🔑 Chave: {chave}")
+                    
                     if chave not in vagas_agrupadas:
                         vagas_agrupadas[chave] = {
                             'funcao': vaga.funcao,
@@ -1164,6 +1167,10 @@ class NotificarFreelancersEventoView(View):
                             'tipo_remuneracao': vaga.get_tipo_remuneracao_display(),
                             'vagas': []
                         }
+                        logger.info(f"📝 Criando novo grupo: {vaga.funcao.nome}")
+                    else:
+                        logger.info(f"➕ Adicionando ao grupo existente: {vaga.funcao.nome}")
+                    
                     vagas_agrupadas[chave]['vagas'].append(vaga)
             
             logger.info(f"📊 Encontrados {len(vagas_agrupadas)} grupos únicos de função/valor")
@@ -1180,6 +1187,7 @@ class NotificarFreelancersEventoView(View):
                 vagas_grupo = grupo['vagas']
                 
                 logger.info(f"📤 Processando grupo: {funcao.nome} - R$ {remuneracao:.2f}/{tipo_remuneracao} ({len(vagas_grupo)} vagas)")
+                logger.info(f"🔍 Função do grupo: {funcao.nome} (ID: {funcao.id})")
                 
                 # Buscar freelancers para esta função
                 from app_eventos.models import Freelance
@@ -1199,6 +1207,7 @@ class NotificarFreelancersEventoView(View):
                     try:
                         # Criar mensagem ULTRA simplificada (igual ao teste)
                         mensagem = f"🎉 NOVA VAGA: {funcao.nome} - R$ {remuneracao:.2f}/{tipo_remuneracao} - Eventix"
+                        logger.info(f"💬 Mensagem criada: {mensagem}")
                         
                         # Formatar telefone usando código do país
                         telefone = freelancer.telefone
