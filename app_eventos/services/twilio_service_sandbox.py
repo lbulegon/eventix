@@ -15,16 +15,29 @@ class TwilioServiceSandbox:
     """
     
     def __init__(self):
+        logger.info("🔧 TWILIO: Inicializando TwilioServiceSandbox...")
+        
         self.account_sid = getattr(settings, 'TWILIO_ACCOUNT_SID', None)
         self.auth_token = getattr(settings, 'TWILIO_AUTH_TOKEN', None)
         self.messaging_service_sid = getattr(settings, 'TWILIO_MESSAGING_SERVICE_SID', None)
         self.sandbox_number = getattr(settings, 'TWILIO_SANDBOX_NUMBER', '+12292644322')  # Seu número Trial
         
+        logger.info(f"🔧 TWILIO: Account SID = {self.account_sid[:10] if self.account_sid else 'NONE'}...")
+        logger.info(f"🔧 TWILIO: Auth Token = {'SET' if self.auth_token else 'NONE'}")
+        logger.info(f"🔧 TWILIO: Messaging Service SID = {self.messaging_service_sid[:10] if self.messaging_service_sid else 'NONE'}...")
+        logger.info(f"🔧 TWILIO: Sandbox Number = {self.sandbox_number}")
+        
         if not self.account_sid or not self.auth_token:
-            logger.warning("AVISO: Credenciais Twilio não configuradas")
+            logger.error("❌ TWILIO: Credenciais não configuradas - Account SID ou Auth Token ausentes")
             self.client = None
         else:
-            self.client = Client(self.account_sid, self.auth_token)
+            try:
+                logger.info("🔧 TWILIO: Criando cliente Twilio...")
+                self.client = Client(self.account_sid, self.auth_token)
+                logger.info("✅ TWILIO: Cliente criado com sucesso")
+            except Exception as e:
+                logger.error(f"💥 TWILIO: Erro ao criar cliente: {str(e)}")
+                self.client = None
     
     def is_configured(self):
         """Verifica se o Twilio está configurado"""
@@ -88,13 +101,29 @@ class TwilioServiceSandbox:
             
             # SEMPRE usar número direto do sandbox (mais confiável)
             logger.info(f"🔧 TWILIO: Usando número direto do sandbox: {self.sandbox_number}")
+            logger.info(f"📱 TWILIO: Enviando para: {phone_e164}")
+            logger.info(f"💬 TWILIO: Mensagem: {body}")
+            logger.info(f"📏 TWILIO: Tamanho: {len(body)} caracteres")
+            
+            logger.info("🚀 TWILIO: Chamando client.messages.create...")
             message = self.client.messages.create(
                 from_=self.sandbox_number,
                 to=phone_e164,
                 body=body
             )
             
-            logger.info(f"✅ TWILIO: SMS ENVIADO COM SUCESSO para {phone_e164} (SID: {message.sid})")
+            logger.info(f"✅ TWILIO: SMS ENVIADO COM SUCESSO!")
+            logger.info(f"📊 TWILIO: SID = {message.sid}")
+            logger.info(f"📊 TWILIO: Status = {message.status}")
+            logger.info(f"📊 TWILIO: Para = {message.to}")
+            logger.info(f"📊 TWILIO: De = {message.from_}")
+            logger.info(f"📊 TWILIO: Data = {message.date_sent}")
+            logger.info(f"📊 TWILIO: Direção = {message.direction}")
+            logger.info(f"📊 TWILIO: Preço = {message.price}")
+            logger.info(f"📊 TWILIO: Preço Unidade = {message.price_unit}")
+            logger.info(f"📊 TWILIO: Erro Código = {getattr(message, 'error_code', 'N/A')}")
+            logger.info(f"📊 TWILIO: Erro Mensagem = {getattr(message, 'error_message', 'N/A')}")
+            
             return message
             
         except Exception as e:
