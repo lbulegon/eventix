@@ -3,7 +3,7 @@ Comando simples para testar notificações sem travamento
 """
 from django.core.management.base import BaseCommand
 from app_eventos.models import Vaga, Freelance
-from app_eventos.services.notificacao_vagas_mock import NotificacaoVagasServiceMock
+from app_eventos.services.notificacao_vagas import NotificacaoVagasService
 
 
 class Command(BaseCommand):
@@ -22,8 +22,8 @@ class Command(BaseCommand):
         
         self.stdout.write(f'📋 Vaga: {vaga.funcao.nome if vaga.funcao else "Sem função"}')
         
-        # Usar serviço mock
-        notificacao_service = NotificacaoVagasServiceMock()
+        # Usar serviço real do Twilio
+        notificacao_service = NotificacaoVagasService()
         
         # Testar notificação
         resultado = notificacao_service.notificar_nova_vaga(vaga)

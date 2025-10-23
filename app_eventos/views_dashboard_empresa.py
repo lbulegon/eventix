@@ -1061,7 +1061,6 @@ from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from app_eventos.services.notificacao_vagas import NotificacaoVagasService
-from app_eventos.services.notificacao_vagas_mock import NotificacaoVagasServiceMock
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1133,8 +1132,9 @@ class NotificarFreelancersEventoView(View):
     def _enviar_notificacoes_ajax(self, request, evento):
         """Envia notificações via AJAX"""
         try:
-            # Usar sempre serviço mock por enquanto (para evitar travamento)
-            notificacao_service = NotificacaoVagasServiceMock()
+            # Usar serviço real do Twilio
+            from app_eventos.services.notificacao_vagas import NotificacaoVagasService
+            notificacao_service = NotificacaoVagasService()
             
             # Buscar vagas ativas do evento
             vagas = Vaga.objects.filter(evento=evento, ativa=True)
@@ -1175,8 +1175,9 @@ class NotificarFreelancersEventoView(View):
     def _enviar_notificacoes_form(self, request, evento):
         """Envia notificações via formulário tradicional"""
         try:
-            # Usar sempre serviço mock por enquanto (para evitar travamento)
-            notificacao_service = NotificacaoVagasServiceMock()
+            # Usar serviço real do Twilio
+            from app_eventos.services.notificacao_vagas import NotificacaoVagasService
+            notificacao_service = NotificacaoVagasService()
             
             # Buscar vagas ativas do evento
             vagas = Vaga.objects.filter(evento=evento, ativa=True)
@@ -1225,8 +1226,9 @@ def notificar_freelancers_vaga_especifica(request, vaga_id):
         
         vaga = get_object_or_404(Vaga, id=vaga_id)
         
-        # Enviar notificação (usar mock por enquanto)
-        notificacao_service = NotificacaoVagasServiceMock()
+        # Enviar notificação via Twilio real
+        from app_eventos.services.notificacao_vagas import NotificacaoVagasService
+        notificacao_service = NotificacaoVagasService()
         resultado = notificacao_service.notificar_nova_vaga(vaga)
         
         if 'erro' in resultado:

@@ -96,7 +96,7 @@ class NotificacaoVagasService:
 💼 Função: {funcao_nome}
 👥 Vagas: {quantidade}
 
-💰 Valor: R$ {vaga.valor_hora:.2f}/hora
+💰 Valor: R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()}
 📝 Descrição: {vaga.descricao[:100]}{'...' if len(vaga.descricao) > 100 else ''}
 
 🔗 Acesse: https://eventix-development.up.railway.app/
@@ -211,7 +211,7 @@ class NotificacaoVagasService:
         
         for vaga in vagas[:3]:  # Mostrar até 3 vagas
             evento_nome = vaga.evento.nome if vaga.evento else "Evento"
-            mensagem += f"• {evento_nome}: {vaga.quantidade} vagas - R$ {vaga.valor_hora:.2f}/h\n"
+            mensagem += f"• {evento_nome}: {vaga.quantidade} vagas - R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()}\n"
         
         if vagas.count() > 3:
             mensagem += f"• ... e mais {vagas.count() - 3} vagas\n"
