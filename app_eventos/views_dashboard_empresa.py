@@ -1175,16 +1175,13 @@ class NotificarFreelancersEventoView(View):
                     
                     for freelancer in freelancers:
                         try:
-                            # Criar mensagem personalizada
+                            # Criar mensagem simplificada (igual ao teste)
                             mensagem = f"""🎉 NOVA VAGA DISPONÍVEL!
 
 📅 Evento: {vaga.evento.nome if vaga.evento else "Evento"}
-🏢 Setor: {vaga.setor.nome if vaga.setor else "Geral"}
 💼 Função: {vaga.funcao.nome}
 👥 Vagas: {vaga.quantidade}
-
 💰 Valor: R$ {vaga.remuneracao:.2f}/{vaga.get_tipo_remuneracao_display()}
-📝 Descrição: {vaga.descricao[:100]}{'...' if len(vaga.descricao) > 100 else ''}
 
 🔗 Acesse: https://eventix-development.up.railway.app/
 
