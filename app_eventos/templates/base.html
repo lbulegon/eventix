@@ -5,6 +5,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Eventix{% endblock %}</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="description" content="A plataforma definitiva para transformar eventos em experiências de sucesso. Conectando produtores e profissionais independentes em um só lugar.">
+  <meta name="theme-color" content="#0d6efd">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Eventix">
+  
+  <!-- Manifest -->
+  <link rel="manifest" href="{% static 'manifest.json' %}">
+  
+  <!-- Icons -->
+  <link rel="icon" type="image/png" href="{% static 'logo_eventix.png' %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon-180x180.png' %}">
+  
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -25,5 +42,25 @@
   <footer>
     <p>© {{ now|date:"Y" }} Eventix — Todos os direitos reservados</p>
   </footer>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('{% static "service-worker.js" %}')
+          .then((registration) => {
+            console.log('✅ Service Worker registrado com sucesso:', registration.scope);
+            
+            // Verifica atualizações periodicamente
+            setInterval(() => {
+              registration.update();
+            }, 60000); // A cada 1 minuto
+          })
+          .catch((error) => {
+            console.log('❌ Falha ao registrar Service Worker:', error);
+          });
+      });
+    }
+  </script>
 </body>
 </html>
