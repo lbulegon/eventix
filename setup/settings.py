@@ -38,11 +38,16 @@ ALLOWED_HOSTS = [
 
 CSRF_TRUSTED_ORIGINS = [
     'http://localhost:8000',
-   
+    'http://127.0.0.1:8000',
+    'https://eventix-development.up.railway.app',
     'http://eventix-development.up.railway.app',
-    'https://*.railway.app',  # Permite qualquer subdomínio HTTPS do Railway
-   
 ]
+
+# Configuração para Railway (proxy reverso)
+# Railway passa o protocolo real através do header X-Forwarded-Proto
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # Configurações aplicadas
 
