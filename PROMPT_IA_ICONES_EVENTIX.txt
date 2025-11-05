@@ -1,0 +1,121 @@
+═══════════════════════════════════════════════════════════════
+PROMPT PRONTO PARA COPIAR E COLAR - ÍCONES PWA EVENTIX
+═══════════════════════════════════════════════════════════════
+
+VERSÃO 1: CRIAR ÍCONE PADRÃO (PURPOSE: "any")
+═══════════════════════════════════════════════════════════════
+
+Crie um ícone de aplicativo PWA moderno e profissional para "Eventix", uma plataforma de gestão de eventos.
+
+ESPECIFICAÇÕES:
+- Tamanho: 512x512 pixels, proporção 1:1
+- Estilo: Minimalista, flat design, moderno, profissional
+- Elemento principal: Bilhete de evento estilizado (🎟️) ou calendário com marca de check
+- Cores: Azul primário (#0d6efd) como cor principal, fundo branco sólido
+- Tipografia: Se incluir texto, apenas letra "E" ou "EX" estilizada como elemento decorativo
+- Contraste: Alto contraste para legibilidade em diferentes fundos
+- Bordas: Cantos ligeiramente arredondados (10-15% de radius)
+- Detalhes: Evite elementos muito pequenos ou complexos que se percam em tamanhos pequenos
+
+CONTEXTO:
+- É para um Progressive Web App (PWA)
+- Precisa funcionar bem em tamanhos de 72x72px até 512x512px
+- Deve ser reconhecível mesmo em tamanho pequeno
+- Usado em dispositivos móveis e desktop
+
+RESTRIÇÕES:
+- Não use gradientes complexos (mantenha simples)
+- Evite muitos detalhes ou elementos pequenos
+- Mantenha o design limpo e minimalista
+- Certifique-se de que funciona bem sobre fundo claro e escuro
+
+FORMATO: PNG, fundo branco ou transparente, alta resolução, nítido
+
+═══════════════════════════════════════════════════════════════
+
+VERSÃO 2: CRIAR ÍCONE MASKABLE (PURPOSE: "maskable")
+═══════════════════════════════════════════════════════════════
+
+Crie um ícone maskable para PWA Android do "Eventix" - plataforma de gestão de eventos.
+
+REQUISITOS ESPECÍFICOS MASKABLE:
+- Tamanho: 512x512 pixels
+- Área segura: O conteúdo importante deve estar centralizado em uma área de 410x410 pixels (80% do tamanho total)
+- Margem: 51 pixels de padding em todos os lados (10% do tamanho)
+- Elemento central: Bilhete de evento estilizado ou calendário, centralizado e ocupando 60-70% da área central
+- Fundo: Pode estender até as bordas, mas o conteúdo principal deve estar na área central
+- Cores: Azul (#0d6efd) como cor principal, com bom contraste sobre fundo branco
+
+ESTILO VISUAL:
+- Design que funcione bem quando cortado em diferentes formas (círculo, quadrado com cantos arredondados)
+- Elemento central bem definido e reconhecível
+- Fundo pode ter cor sólida azul claro ou branco
+- Evite elementos importantes nas bordas (últimos 10%)
+
+CONTEXTO:
+- Android usa este ícone para criar ícones adaptativos
+- O sistema pode cortar/mascarar o ícone em diferentes formas
+- O conteúdo central permanece sempre visível
+
+GARANTIR:
+- Conteúdo principal ocupando 60-70% do centro
+- Margens de segurança respeitadas (10% de cada lado)
+- Design que funcione quando cortado
+- Alto contraste
+
+FORMATO: PNG, alta resolução, nítido
+
+═══════════════════════════════════════════════════════════════
+
+VERSÃO 3: AJUSTAR LOGO EXISTENTE
+═══════════════════════════════════════════════════════════════
+
+Ajuste e otimize este logo existente do Eventix para uso como ícone de Progressive Web App (PWA).
+
+[Faça upload do logo_eventix.png ou descreva o logo atual aqui]
+
+AJUSTES NECESSÁRIOS:
+- Formato: Quadrado perfeito (1:1), 512x512 pixels
+- Fundo: Branco sólido ou transparente
+- Otimização: Simplifique elementos se necessário para funcionar bem em tamanhos pequenos
+- Contraste: Aumente o contraste se necessário
+- Espaçamento: Adicione padding adequado (10-15% das bordas) se o logo atual vai até as bordas
+- Cores: Mantenha as cores originais mas garanta que sejam vibrantes
+- Detalhes: Remova elementos muito pequenos que não aparecerão em 72x72px
+
+VERSÕES NECESSÁRIAS:
+1. Versão padrão (conteúdo pode ir até as bordas)
+2. Versão maskable (conteúdo importante centralizado com 10% de margem)
+
+CONTEXTO:
+- Será usado em dispositivos móveis e desktop
+- Precisa ser reconhecível de 72px até 512px
+- Para instalação como PWA
+
+FORMATO: PNG, alta resolução, nítido
+
+═══════════════════════════════════════════════════════════════
+
+VERSÃO 4: PROMPT SIMPLES E DIRETO
+═══════════════════════════════════════════════════════════════
+
+Crie um ícone de aplicativo 512x512 pixels para "Eventix" - plataforma de gestão de eventos. 
+Estilo: Minimalista, flat design, azul (#0d6efd) como cor principal, fundo branco. 
+Elemento central: Bilhete de evento estilizado. 
+Alto contraste, sem elementos pequenos, funciona bem em tamanhos de 72px até 512px. 
+Para Progressive Web App (PWA), moderno e profissional. 
+PNG, alta resolução, nítido.
+
+═══════════════════════════════════════════════════════════════
+
+DICAS DE USO:
+═══════════════════════════════════════════════════════════════
+
+1. Copie o prompt que melhor se adequa à sua necessidade
+2. Se estiver usando ChatGPT/DALL-E: Cole o prompt e faça upload do logo se necessário
+3. Se estiver usando Midjourney: Use /imagine prompt: [cole o prompt] --ar 1:1 --v 6
+4. Se não ficar bom, peça ajustes específicos: "Reduza o tamanho do bilhete em 20%", "Torne o azul mais vibrante", etc.
+5. Gere múltiplas variações e escolha a melhor
+
+═══════════════════════════════════════════════════════════════
+
