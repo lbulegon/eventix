@@ -22,6 +22,10 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/accounts/logout/',
             '/empresa/login/',  # Login do dashboard empresa
             '/empresa/logout/',  # Logout do dashboard empresa
+            '/freelancer-publico/login/',  # Login do freelancer
+            '/freelancer-publico/logout/',  # Logout do freelancer
+            '/service-worker.js',  # Service Worker (PWA)
+            '/manifest.json',  # Manifest (PWA)
             '/api/token/',
             '/api/token/refresh/',
             '/api/auth/',
