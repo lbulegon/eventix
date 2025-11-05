@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Eventix">
   
   <!-- Manifest -->
-  <link rel="manifest" href="{% static 'manifest.json' %}">
+  <link rel="manifest" href="/manifest.json">
   
   <!-- Icons -->
   <link rel="icon" type="image/png" href="{% static 'logo_eventix.png' %}">
@@ -47,7 +47,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('{% static "service-worker.js" %}')
+        navigator.serviceWorker.register('/service-worker.js')
           .then((registration) => {
             console.log('✅ Service Worker registrado com sucesso:', registration.scope);
             

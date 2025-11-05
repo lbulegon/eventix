@@ -11,10 +11,16 @@ from app_eventos.views.views_dashboard import (
     dashboard_redirect, dashboard_empresa, 
     dashboard_freelancer, dashboard_admin_sistema, fluxo_caixa_evento, fornecedores_list
 )
+from app_eventos.views_pwa import service_worker, manifest_json
 
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    
+    # PWA - Service Worker e Manifest (devem estar na raiz)
+    path("service-worker.js", service_worker, name="service_worker"),
+    path("manifest.json", manifest_json, name="manifest_json"),
+    
     path("", views.home, name="home"),
     path("eventos/", views.evento_list, name="evento_list"),
     
