@@ -28,76 +28,25 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-  <!-- Botão Flutuante do Menu -->
-  <button id="menuButton" class="menu-btn" aria-label="Abrir menu">
-    <i class="fas fa-bars"></i>
-  </button>
-
-  <!-- Overlay Escuro -->
-  <div id="menuOverlay" class="menu-overlay"></div>
-
-  <!-- Menu Lateral -->
-  <div id="sideMenu" class="side-menu">
-    <div class="side-menu-header">
-      <h3>🎟️ Eventix</h3>
-      <button class="close-btn" aria-label="Fechar menu">
-        <i class="fas fa-times"></i>
-      </button>
-    </div>
-    <ul class="side-menu-nav">
-      <li>
-        <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">
-          <i class="fas fa-home"></i>
-          <span>Início</span>
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'freelancer_publico:vagas_disponiveis' %}" class="{% if 'vagas' in request.resolver_match.url_name %}active{% endif %}">
-          <i class="fas fa-briefcase"></i>
-          <span>Vagas</span>
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'freelancer_publico:dashboard' %}" class="{% if 'freelancer' in request.resolver_match.url_name or 'freelancer' in request.path %}active{% endif %}">
-          <i class="fas fa-motorcycle"></i>
-          <span>Motoboys</span>
-        </a>
-      </li>
-      <li>
-        <a href="{% url 'dashboard_empresa:login_empresa' %}" class="{% if 'empresa' in request.path %}active{% endif %}">
-          <i class="fas fa-building"></i>
-          <span>Estabelecimentos</span>
-        </a>
-      </li>
-      <li class="side-menu-divider"></li>
-      <li>
-        <a href="#" onclick="alert('Configurações em desenvolvimento'); return false;">
-          <i class="fas fa-cog"></i>
-          <span>Configurações</span>
-        </a>
-      </li>
-      {% if user.is_authenticated %}
-      <li>
-        <a href="{% url 'freelancer_publico:logout' %}" class="text-danger">
-          <i class="fas fa-sign-out-alt"></i>
-          <span>Sair</span>
-        </a>
-      </li>
-      {% else %}
-      <li>
-        <a href="{% url 'freelancer_publico:login' %}">
-          <i class="fas fa-sign-in-alt"></i>
-          <span>Entrar</span>
-        </a>
-      </li>
-      {% endif %}
-    </ul>
-  </div>
-
   <header>
     <div class="container">
-      <h1>🎟️ Eventix</h1>
-      <p class="lead">Organização é o espetáculo.</p>
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h1>🎟️ Eventix</h1>
+          <p class="lead mb-0">Organização é o espetáculo.</p>
+        </div>
+        <div>
+          {% if user.is_authenticated %}
+            <a href="{% url 'freelancer_publico:logout' %}" class="btn btn-outline-light btn-sm">
+              <i class="fas fa-sign-out-alt me-1"></i>Sair
+            </a>
+          {% else %}
+            <a href="{% url 'freelancer_publico:login' %}" class="btn btn-outline-light btn-sm">
+              <i class="fas fa-sign-in-alt me-1"></i>Entrar
+            </a>
+          {% endif %}
+        </div>
+      </div>
     </div>
   </header>
 
@@ -129,52 +78,5 @@
     }
   </script>
 
-  <!-- Script do Menu Lateral -->
-  <script>
-    (function() {
-      const menuButton = document.getElementById('menuButton');
-      const sideMenu = document.getElementById('sideMenu');
-      const menuOverlay = document.getElementById('menuOverlay');
-      const closeButton = sideMenu.querySelector('.close-btn');
-      
-      function openMenu() {
-        sideMenu.classList.add('open');
-        menuOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Previne scroll no body
-      }
-      
-      function closeMenu() {
-        sideMenu.classList.remove('open');
-        menuOverlay.classList.remove('active');
-        document.body.style.overflow = ''; // Restaura scroll
-      }
-      
-      // Abrir menu
-      menuButton.addEventListener('click', openMenu);
-      
-      // Fechar menu
-      closeButton.addEventListener('click', closeMenu);
-      menuOverlay.addEventListener('click', closeMenu);
-      
-      // Fechar ao clicar em um link (opcional - pode remover se quiser que o menu permaneça aberto)
-      const menuLinks = sideMenu.querySelectorAll('.side-menu-nav a');
-      menuLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-          // Se o link não for "#" ou não tiver onclick, fecha o menu
-          if (!this.getAttribute('href') || this.getAttribute('href') !== '#') {
-            // Pequeno delay para melhor UX
-            setTimeout(closeMenu, 150);
-          }
-        });
-      });
-      
-      // Fechar com ESC
-      document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && sideMenu.classList.contains('open')) {
-          closeMenu();
-        }
-      });
-    })();
-  </script>
 </body>
 </html>
