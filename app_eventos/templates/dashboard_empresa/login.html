@@ -133,7 +133,7 @@
                     </div>
                 {% else %}
 
-                <form method="post" action="{% url 'dashboard_empresa:login_empresa' %}">
+                <form method="post" action="{% url 'dashboard_empresa:login_empresa' %}" novalidate>
                     {% csrf_token %}
                     
                     <div class="mb-3">
@@ -150,6 +150,7 @@
                                 id="username" 
                                 name="username" 
                                 placeholder="Digite seu usuário ou email"
+                                autocomplete="username"
                                 required
                                 autofocus
                             >

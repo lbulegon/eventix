@@ -20,7 +20,7 @@ def login_freelancer(request):
         
         logger.info(f"🔐 Tentativa de login freelancer: {email}")
         
-        # Autenticar freelancer
+        # Autenticar freelancer usando email (backend customizado aceita email)
         user = authenticate(request, username=email, password=senha)
         
         if user and hasattr(user, 'freelance'):
