@@ -42,7 +42,7 @@
           <ul class="navbar-nav ms-auto">
             {% if user.is_authenticated %}
               <!-- Menu para usuário autenticado -->
-              {% if user.tipo_usuario == 'freelancer' or hasattr(user, 'freelance') %}
+              {% if user.tipo_usuario == 'freelancer' %}
                 <!-- Menu Freelancer -->
                 <li class="nav-item">
                   <a class="nav-link" href="{% url 'freelancer_publico:dashboard' %}">
@@ -129,7 +129,7 @@
                     <i class="fas fa-user me-2"></i>{{ user.email }}
                   </h6></li>
                   <li><hr class="dropdown-divider"></li>
-                  {% if user.tipo_usuario == 'freelancer' or hasattr(user, 'freelance') %}
+                  {% if user.tipo_usuario == 'freelancer' %}
                     <li><a class="dropdown-item" href="{% url 'freelancer_publico:perfil' %}">
                       <i class="fas fa-user-edit me-2"></i>Meu Perfil
                     </a></li>
@@ -138,7 +138,7 @@
                     <i class="fas fa-home me-2"></i>Página Inicial
                   </a></li>
                   <li><hr class="dropdown-divider"></li>
-                  {% if user.tipo_usuario == 'freelancer' or hasattr(user, 'freelance') %}
+                  {% if user.tipo_usuario == 'freelancer' %}
                     <li><a class="dropdown-item text-danger" href="{% url 'freelancer_publico:logout' %}">
                       <i class="fas fa-sign-out-alt me-2"></i>Sair
                     </a></li>
