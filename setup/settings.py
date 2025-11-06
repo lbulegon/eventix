@@ -82,6 +82,12 @@ STATICFILES_FINDERS = [
 
 AUTH_USER_MODEL = "app_eventos.User"
 
+# Backend de autenticação customizado (aceita email ou username)
+AUTHENTICATION_BACKENDS = [
+    'app_eventos.backends.EmailOrUsernameBackend',  # Custom backend primeiro
+    'django.contrib.auth.backends.ModelBackend',     # Backend padrão como fallback
+]
+
 # ========== MIDDLEWARE ==========
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

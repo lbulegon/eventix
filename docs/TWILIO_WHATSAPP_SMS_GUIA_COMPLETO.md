@@ -676,17 +676,19 @@ python manage.py shell -c "from app_eventos.models_twilio import OtpLog; [print(
 
 **Admin Diego:**
 ```
-Login: admin_diego
+Login: admin_diego (ou email, se configurado)
 Senha: diego123
 Empresa: Diego Segurança (ID: 8)
 ```
 
 **Admin Simone:**
 ```
-Login: admin_simone
+Login: admin_simone (ou email, se configurado)
 Senha: simone123
 Empresa: Irmãos Trevisan (ID: 1)
 ```
+
+**Nota:** O sistema agora aceita login com **username ou email**. Use qualquer um dos dois.
 
 ---
 

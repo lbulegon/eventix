@@ -32,10 +32,11 @@ def login_empresa(request):
         # NÃO redirecionar - isso estava causando o problema
     
     if request.method == 'POST':
-        username = request.POST.get('username')
+        username_or_email = request.POST.get('username')
         password = request.POST.get('password')
         
-        user = authenticate(request, username=username, password=password)
+        # O backend customizado aceita email ou username
+        user = authenticate(request, username=username_or_email, password=password)
         
         if user is not None:
             # Verificar se é usuário de empresa
