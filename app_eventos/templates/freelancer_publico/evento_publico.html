@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% load dict_filters %}
+{% block title %}{{ evento.nome }} - Eventix{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Cabeçalho do Evento -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>{{ evento.nome }}
+            </h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-2">
+                        <i class="fas fa-calendar me-2 text-primary"></i>
+                        <strong>Data:</strong> 
+                        {{ evento.data_inicio|date:"d/m/Y" }}
+                        {% if evento.data_fim and evento.data_fim != evento.data_inicio %}
+                            - {{ evento.data_fim|date:"d/m/Y" }}
+                        {% endif %}
+                    </p>
+                    {% if evento.local %}
+                    <p class="mb-2">
+                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>
+                        <strong>Local:</strong> {{ evento.local }}
+                    </p>
+                    {% endif %}
+                    {% if evento.empresa_contratante %}
+                    <p class="mb-2">
+                        <i class="fas fa-building me-2 text-primary"></i>
+                        <strong>Empresa:</strong> {{ evento.empresa_contratante.nome_fantasia }}
+                    </p>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-2">
+                        <span class="badge {% if evento.ativo %}bg-success{% else %}bg-secondary{% endif %} fs-6">
+                            {% if evento.ativo %}Ativo{% else %}Inativo{% endif %}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            
+            {% if evento.descricao %}
+            <div class="mt-3">
+                <h5>Descrição</h5>
+                <p class="text-muted">{{ evento.descricao }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Vagas Disponíveis -->
+    <div class="card">
+        <div class="card-header bg-success text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">
+                    <i class="fas fa-briefcase me-2"></i>Vagas Disponíveis
+                    <span class="badge bg-light text-dark ms-2">{{ vagas.count }}</span>
+                </h3>
+            </div>
+        </div>
+        <div class="card-body">
+            <!-- Busca de Vagas -->
+            <form method="get" action="{% url 'freelancer_publico:evento_publico' evento.id %}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" class="form-control" name="busca_vaga" 
+                           value="{{ busca_vaga }}" placeholder="Buscar vagas por título, função ou setor...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search me-1"></i>Buscar
+                    </button>
+                    {% if busca_vaga %}
+                        <a href="{% url 'freelancer_publico:evento_publico' evento.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Limpar
+                        </a>
+                    {% endif %}
+                </div>
+            </form>
+            
+            <!-- Aviso sobre Cadastro na Empresa -->
+            {% if user.is_authenticated and user.tipo_usuario == 'freelancer' and not freelancer_cadastrado_empresa and evento.empresa_contratante %}
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>Primeira Candidatura</h6>
+                <p class="mb-0">
+                    Esta é sua primeira candidatura para a empresa <strong>{{ evento.empresa_contratante.nome_fantasia }}</strong>. 
+                    Sua candidatura será analisada e, se aprovada, você poderá se candidatar a outras vagas desta empresa.
+                </p>
+            </div>
+            {% endif %}
+            
+            {% if vagas %}
+                <div class="row">
+                    {% for vaga in vagas %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100 border">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">
+                                        <i class="fas fa-briefcase me-2 text-primary"></i>{{ vaga.titulo }}
+                                    </h5>
+                                    {% if candidaturas|get_item:vaga.id %}
+                                        {% with candidatura=candidaturas|get_item:vaga.id %}
+                                            {% if candidatura.status == 'aprovado' %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check-circle me-1"></i>{{ candidatura.status_display }}
+                                                </span>
+                                            {% elif candidatura.status == 'rejeitado' %}
+                                                <span class="badge bg-danger">
+                                                    <i class="fas fa-times-circle me-1"></i>{{ candidatura.status_display }}
+                                                </span>
+                                            {% elif candidatura.status == 'contratado' %}
+                                                <span class="badge bg-primary">
+                                                    <i class="fas fa-handshake me-1"></i>{{ candidatura.status_display }}
+                                                </span>
+                                            {% elif candidatura.status == 'em_analise' %}
+                                                <span class="badge bg-warning text-dark">
+                                                    <i class="fas fa-clock me-1"></i>{{ candidatura.status_display }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">
+                                                    <i class="fas fa-hourglass-half me-1"></i>{{ candidatura.status_display }}
+                                                </span>
+                                            {% endif %}
+                                        {% endwith %}
+                                    {% endif %}
+                                </div>
+                                
+                                {% if vaga.funcao %}
+                                <p class="mb-2">
+                                    <i class="fas fa-user-tie me-2 text-muted"></i>
+                                    <strong>Função:</strong> {{ vaga.funcao.nome }}
+                                </p>
+                                {% endif %}
+                                
+                                <p class="mb-2">
+                                    <i class="fas fa-dollar-sign me-2 text-muted"></i>
+                                    <strong>Remuneração:</strong> 
+                                    R$ {{ vaga.remuneracao|floatformat:2 }}/{{ vaga.get_tipo_remuneracao_display }}
+                                </p>
+                                
+                                <p class="mb-2">
+                                    <i class="fas fa-users me-2 text-muted"></i>
+                                    <strong>Quantidade:</strong> {{ vaga.quantidade }} vaga(s)
+                                </p>
+                                
+                                {% if vaga.setor %}
+                                <p class="mb-2">
+                                    <i class="fas fa-sitemap me-2 text-muted"></i>
+                                    <strong>Setor:</strong> {{ vaga.setor.nome }}
+                                </p>
+                                {% endif %}
+                                
+                                {% if vaga.descricao %}
+                                <p class="text-muted small mb-3">
+                                    {{ vaga.descricao|truncatewords:20 }}
+                                </p>
+                                {% endif %}
+                                
+                                {% if candidaturas|get_item:vaga.id %}
+                                    {% with candidatura=candidaturas|get_item:vaga.id %}
+                                        <div class="alert alert-info py-2 mb-0">
+                                            <small>
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                Candidatura enviada em {{ candidatura.data_candidatura|date:"d/m/Y" }}
+                                            </small>
+                                        </div>
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                            <div class="card-footer bg-light">
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'freelancer_publico:vaga_publica' vaga.id %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                    </a>
+                                    {% if user.is_authenticated and user.tipo_usuario == 'freelancer' %}
+                                        {% if user.freelance %}
+                                            {% if candidaturas|get_item:vaga.id %}
+                                                {% with candidatura=candidaturas|get_item:vaga.id %}
+                                                    {% if candidatura.status == 'pendente' or candidatura.status == 'em_analise' %}
+                                                        <button class="btn btn-secondary btn-sm" disabled>
+                                                            <i class="fas fa-hourglass-half me-1"></i>Em Análise
+                                                        </button>
+                                                    {% elif candidatura.status == 'aprovado' or candidatura.status == 'contratado' %}
+                                                        <a href="{% url 'freelancer_publico:minhas_candidaturas' %}" class="btn btn-success btn-sm">
+                                                            <i class="fas fa-check-circle me-1"></i>Ver Candidatura
+                                                        </a>
+                                                    {% elif candidatura.status == 'rejeitado' %}
+                                                        <button class="btn btn-outline-danger btn-sm" disabled>
+                                                            <i class="fas fa-times-circle me-1"></i>Candidatura Rejeitada
+                                                        </button>
+                                                    {% else %}
+                                                        <a href="{% url 'freelancer_publico:candidatar_vaga' vaga.id %}" class="btn btn-success btn-sm">
+                                                            <i class="fas fa-paper-plane me-1"></i>Candidatar-se Novamente
+                                                        </a>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% else %}
+                                                <a href="{% url 'freelancer_publico:candidatar_vaga' vaga.id %}" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-paper-plane me-1"></i>Candidatar-se
+                                                </a>
+                                            {% endif %}
+                                        {% else %}
+                                            <button class="btn btn-secondary btn-sm" disabled title="Complete seu cadastro de freelancer">
+                                                <i class="fas fa-lock me-1"></i>Cadastre-se como Freelancer
+                                            </button>
+                                        {% endif %}
+                                    {% else %}
+                                        <a href="{% url 'freelancer_publico:login' %}?next={% url 'freelancer_publico:evento_publico' evento.id %}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-sign-in-alt me-1"></i>Login para Candidatar
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-briefcase fa-4x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nenhuma vaga disponível</h5>
+                    <p class="text-muted">Este evento ainda não possui vagas cadastradas.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Aviso sobre Cadastro -->
+    {% if not user.is_authenticated or user.tipo_usuario != 'freelancer' %}
+    <div class="alert alert-info mt-4">
+        <h5><i class="fas fa-info-circle me-2"></i>Como se Candidatar</h5>
+        <p class="mb-2">
+            Para se candidatar às vagas deste evento, você precisa:
+        </p>
+        <ol class="mb-0">
+            <li>Ter uma conta de <strong>Freelancer</strong> no Eventix</li>
+            <li>Estar cadastrado junto à empresa contratante que está realizando o evento</li>
+            <li>Possuir a função necessária para a vaga</li>
+        </ol>
+        <div class="mt-3">
+            <a href="{% url 'freelancer_publico:login' %}" class="btn btn-primary me-2">
+                <i class="fas fa-sign-in-alt me-1"></i>Fazer Login
+            </a>
+            <a href="{% url 'evento_list' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Voltar para Eventos
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

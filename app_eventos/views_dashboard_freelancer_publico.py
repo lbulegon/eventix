@@ -119,7 +119,50 @@ def candidatar_vaga(request, vaga_id):
     """Candidatar-se a uma vaga"""
     try:
         freelancer = request.user.freelance
-        vaga = get_object_or_404(Vaga, id=vaga_id)
+        vaga = get_object_or_404(Vaga, id=vaga_id, ativa=True)
+        
+        # Verificar se a vaga tem evento
+        if not vaga.evento:
+            messages.error(request, 'Esta vaga não está associada a um evento válido')
+            return redirect('freelancer_publico:vagas_disponiveis')
+        
+        # Verificar se freelancer está cadastrado na empresa contratante do evento
+        evento = vaga.evento
+        empresa_contratante = evento.empresa_contratante
+        
+        if not empresa_contratante:
+            messages.error(request, 'Este evento não possui empresa contratante cadastrada')
+            return redirect('freelancer_publico:vagas_disponiveis')
+        
+        # Verificar se freelancer está cadastrado na empresa contratante
+        # Um freelancer é considerado "cadastrado" se já teve candidaturas aprovadas ou contratos ativos
+        freelancer_cadastrado = False
+        
+        if empresa_contratante:
+            from app_eventos.models import Candidatura, ContratoFreelance
+            
+            # Verificar se tem candidaturas aprovadas/contratadas com esta empresa
+            candidaturas_aprovadas = Candidatura.objects.filter(
+                freelance=freelancer,
+                vaga__evento__empresa_contratante=empresa_contratante,
+                status__in=['aprovado', 'contratado']
+            ).exists()
+            
+            # Verificar se tem contratos ativos com esta empresa
+            contratos_ativos = ContratoFreelance.objects.filter(
+                freelance=freelancer,
+                vaga__evento__empresa_contratante=empresa_contratante,
+                status='ativo'
+            ).exists()
+            
+            freelancer_cadastrado = candidaturas_aprovadas or contratos_ativos
+            
+            # Se não estiver cadastrado, permitir candidatura mas avisar que precisa aprovação
+            if not freelancer_cadastrado:
+                messages.info(request, 
+                    f'Esta é sua primeira candidatura para a empresa "{empresa_contratante.nome_fantasia}". '
+                    'Sua candidatura será analisada e, se aprovada, você poderá se candidatar a outras vagas desta empresa.'
+                )
         
         # Verificar se já se candidatou
         candidatura_existente = Candidatura.objects.filter(
@@ -129,12 +172,12 @@ def candidatar_vaga(request, vaga_id):
         
         if candidatura_existente:
             messages.warning(request, 'Você já se candidatou a esta vaga')
-            return redirect('freelancer_publico:vagas_disponiveis')
+            return redirect('freelancer_publico:evento_publico', evento_id=evento.id)
         
         # Verificar se freelancer tem a função necessária
         if vaga.funcao and not freelancer.funcoes.filter(funcao=vaga.funcao).exists():
-            messages.error(request, f'Você não possui a função "{vaga.funcao.nome}" necessária para esta vaga')
-            return redirect('freelancer_publico:vagas_disponiveis')
+            messages.error(request, f'Você não possui a função "{vaga.funcao.nome}" necessária para esta vaga. Complete seu perfil adicionando esta função.')
+            return redirect('freelancer_publico:evento_publico', evento_id=evento.id)
         
         # Criar candidatura
         candidatura = Candidatura.objects.create(
@@ -143,10 +186,10 @@ def candidatar_vaga(request, vaga_id):
             status='pendente'
         )
         
-        logger.info(f"📝 Candidatura criada: {freelancer.nome_completo} -> Vaga {vaga.id}")
-        messages.success(request, f'Candidatura enviada para "{vaga.titulo}"')
+        logger.info(f"📝 Candidatura criada: {freelancer.nome_completo} -> Vaga {vaga.id} (Evento: {evento.nome})")
+        messages.success(request, f'Candidatura enviada para "{vaga.titulo}" no evento "{evento.nome}". A empresa contratante analisará sua candidatura.')
         
-        return redirect('freelancer_publico:minhas_candidaturas')
+        return redirect('freelancer_publico:evento_publico', evento_id=evento.id)
         
     except Exception as e:
         logger.error(f"❌ Erro ao candidatar vaga {vaga_id}: {str(e)}")
@@ -236,24 +279,87 @@ def vaga_publica(request, vaga_id):
         })
 
 def evento_publico(request, evento_id):
-    """Página pública do evento (sem login)"""
+    """Página pública do evento (sem login) com busca e status de candidaturas"""
     try:
         evento = get_object_or_404(Evento, id=evento_id)
         
-        # Buscar vagas ativas do evento
-        vagas = Vaga.objects.filter(evento=evento, ativa=True)
+        # Busca de vagas
+        busca_vaga = request.GET.get('busca_vaga', '')
         
-        logger.info(f"🌐 Evento público acessado: {evento.nome}")
+        # Buscar vagas ativas do evento (pode ser direto ou através de setor)
+        vagas = Vaga.objects.filter(
+            Q(evento=evento) | Q(setor__evento=evento),
+            ativa=True
+        ).distinct().select_related('funcao', 'setor', 'evento')
+        
+        # Aplicar busca nas vagas
+        if busca_vaga:
+            vagas = vagas.filter(
+                Q(titulo__icontains=busca_vaga) |
+                Q(descricao__icontains=busca_vaga) |
+                Q(funcao__nome__icontains=busca_vaga) |
+                Q(setor__nome__icontains=busca_vaga)
+            )
+        
+        # Se o usuário está autenticado como freelancer, buscar candidaturas
+        candidaturas_dict = {}
+        freelancer_cadastrado_empresa = False
+        
+        if request.user.is_authenticated and request.user.tipo_usuario == 'freelancer':
+            try:
+                freelancer = request.user.freelance
+                
+                # Verificar se freelancer tem candidaturas aprovadas ou contratos com a empresa
+                from app_eventos.models import Candidatura, ContratoFreelance
+                
+                empresa_contratante = evento.empresa_contratante
+                if empresa_contratante:
+                    # Verificar se tem candidaturas aprovadas/contratadas com esta empresa
+                    candidaturas_empresa = Candidatura.objects.filter(
+                        freelance=freelancer,
+                        vaga__evento__empresa_contratante=empresa_contratante,
+                        status__in=['aprovado', 'contratado']
+                    ).exists()
+                    
+                    contratos_empresa = ContratoFreelance.objects.filter(
+                        freelance=freelancer,
+                        vaga__evento__empresa_contratante=empresa_contratante,
+                        status='ativo'
+                    ).exists()
+                    
+                    freelancer_cadastrado_empresa = candidaturas_empresa or contratos_empresa
+                
+                # Buscar candidaturas do freelancer para as vagas deste evento
+                candidaturas = Candidatura.objects.filter(
+                    freelance=freelancer,
+                    vaga__in=vagas
+                ).select_related('vaga')
+                
+                # Criar dicionário com status de candidatura por vaga
+                for candidatura in candidaturas:
+                    candidaturas_dict[candidatura.vaga.id] = {
+                        'status': candidatura.status,
+                        'status_display': candidatura.get_status_display(),
+                        'data_candidatura': candidatura.data_candidatura
+                    }
+                    
+            except AttributeError:
+                pass  # Usuário não tem perfil de freelancer
+        
+        logger.info(f"🌐 Evento público acessado: {evento.nome} ({vagas.count()} vagas)")
         
         context = {
             'evento': evento,
-            'vagas': vagas
+            'vagas': vagas,
+            'user': request.user,
+            'candidaturas': candidaturas_dict,
+            'freelancer_cadastrado_empresa': freelancer_cadastrado_empresa,
+            'busca_vaga': busca_vaga
         }
         
         return render(request, 'freelancer_publico/evento_publico.html', context)
         
     except Exception as e:
         logger.error(f"❌ Erro ao acessar evento público {evento_id}: {str(e)}")
-        return render(request, 'freelancer_publico/erro.html', {
-            'mensagem': 'Evento não encontrado'
-        })
+        messages.error(request, 'Erro ao carregar evento')
+        return redirect('evento_list')

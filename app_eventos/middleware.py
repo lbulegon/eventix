@@ -24,6 +24,9 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/empresa/logout/',  # Logout do dashboard empresa
             '/freelancer-publico/login/',  # Login do freelancer
             '/freelancer-publico/logout/',  # Logout do freelancer
+            '/freelancer-publico/evento/',  # Eventos públicos (sem login)
+            '/freelancer-publico/vaga/',  # Vagas públicas (sem login)
+            '/eventos/',  # Lista pública de eventos
             '/service-worker.js',  # Service Worker (PWA)
             '/manifest.json',  # Manifest (PWA)
             '/api/token/',
