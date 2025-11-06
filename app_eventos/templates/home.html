@@ -20,6 +20,9 @@
               <i class="fas fa-calendar-alt fa-2x text-primary mb-3"></i>
               <h5 class="card-title">Eventos</h5>
               <p class="card-text text-muted">Gerencie todos os seus eventos em um só lugar</p>
+              <a href="{% url 'evento_list' %}" class="btn btn-primary btn-sm mt-2">
+                <i class="fas fa-calendar me-1"></i>Ver Eventos
+              </a>
             </div>
           </div>
         </div>
@@ -47,12 +50,6 @@
             </div>
           </div>
         </div>
-      </div>
-      
-      <div class="mt-5">
-        <a href="{% url 'evento_list' %}" class="btn btn-primary btn-lg px-4">
-          <i class="fas fa-calendar me-2"></i>Ver Eventos
-        </a>
       </div>
     </div>
   </div>
