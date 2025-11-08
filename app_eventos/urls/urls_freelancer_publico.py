@@ -7,6 +7,7 @@ urlpatterns = [
     # Autenticação
     path('login/', views_dashboard_freelancer_publico.login_freelancer, name='login'),
     path('logout/', views_dashboard_freelancer_publico.logout_freelancer, name='logout'),
+    path('app/', views_dashboard_freelancer_publico.freelancer_pwa, name='pwa'),
     
     # Dashboard
     path('dashboard/', views_dashboard_freelancer_publico.dashboard_freelancer, name='dashboard'),

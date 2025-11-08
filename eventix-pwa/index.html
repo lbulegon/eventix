@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eventix PWA (Freelancer)</title>
+  <meta name="theme-color" content="#6B63FF">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/assets/icon-192.png">
+  <link rel="apple-touch-icon" href="/assets/icon-192.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header id="app-header" class="app-bar">
+    <button class="icon-btn" id="backBtn" aria-label="voltar" onclick="router.back()" hidden>
+      <!-- Left Arrow -->
+      <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+    </button>
+    <h1 id="app-title">Eventix</h1>
+    <div class="app-actions">
+      <button class="icon-btn" id="notifBtn" aria-label="notificações" onclick="router.go('/notificacoes')">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </button>
+      <button class="icon-btn" id="refreshBtn" aria-label="atualizar" onclick="location.reload()">
+        <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 12.65-5.65z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app" class="app"></main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item" data-path="/" aria-label="Início">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </div>
+      <span>Início</span>
+    </button>
+    <button class="nav-item" data-path="/vagas" aria-label="Vagas">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M14 6V4H6v2H2v14h20V6h-8zM6 8h12v10H6V8z"/></svg>
+      </div>
+      <span>Vagas</span>
+    </button>
+    <button class="nav-item" data-path="/candidaturas" aria-label="Candidaturas">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+      </div>
+      <span>Candidaturas</span>
+    </button>
+    <button class="nav-item" data-path="/perfil" aria-label="Perfil">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z"/></svg>
+      </div>
+      <span>Perfil</span>
+    </button>
+  </nav>
+
+  <div id="installBanner" class="install-banner" hidden>
+    <span>Instalar o app?</span>
+    <button class="btn" id="installBtn">Instalar</button>
+    <button class="btn btn-text" id="dismissInstall">Agora não</button>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

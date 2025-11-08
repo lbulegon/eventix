@@ -39,6 +39,14 @@ def logout_freelancer(request):
     logout(request)
     return redirect('home')
 
+
+def freelancer_pwa(request):
+    """PWA do freelancer (interface baseada no app Flutter)"""
+    freelancer = None
+    if request.user.is_authenticated and hasattr(request.user, 'freelance'):
+        freelancer = request.user.freelance
+    return render(request, 'freelancer_publico/pwa.html', {'freelancer': freelancer})
+
 @login_required(login_url='/freelancer/login/')
 def dashboard_freelancer(request):
     """Dashboard principal do freelancer"""

@@ -1,0 +1,80 @@
+{
+  "name": "Eventix Freelancer",
+  "short_name": "Eventix Pro",
+  "description": "Experiência PWA do freelancer Eventix com vagas, candidaturas e perfil.",
+  "start_url": "/freelancer/app/",
+  "scope": "/freelancer/app/",
+  "display": "standalone",
+  "background_color": "#0E0F12",
+  "theme_color": "#6B63FF",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Vagas disponíveis",
+      "short_name": "Vagas",
+      "description": "Ir direto às vagas abertas.",
+      "url": "/freelancer/app/#/vagas",
+      "icons": [
+        {
+          "src": "/static/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Minhas candidaturas",
+      "short_name": "Candidaturas",
+      "description": "Acompanhar status das candidaturas.",
+      "url": "/freelancer/app/#/candidaturas",
+      "icons": [
+        {
+          "src": "/static/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Perfil",
+      "short_name": "Perfil",
+      "description": "Ajustar dados pessoais e funções.",
+      "url": "/freelancer/app/#/perfil",
+      "icons": [
+        {
+          "src": "/static/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
+
