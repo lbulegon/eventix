@@ -12,6 +12,22 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _ensure_freelancer_profile(user):
+    """Garante que o usuário possua um perfil de freelancer válido."""
+    if hasattr(user, 'freelance'):
+        return user.freelance
+
+    full_name = user.get_full_name() or user.username
+    freelancer = Freelance.objects.create(
+        usuario=user,
+        nome_completo=full_name,
+        telefone='',
+    )
+    logger.info("✅ Perfil de freelancer criado automaticamente para o usuário %s", user.username)
+    return freelancer
+
+
 def login_freelancer(request):
     """Login do freelancer"""
     if request.method == 'POST':
@@ -43,15 +59,15 @@ def logout_freelancer(request):
 def freelancer_pwa(request):
     """PWA do freelancer (interface baseada no app Flutter)"""
     freelancer = None
-    if request.user.is_authenticated and hasattr(request.user, 'freelance'):
-        freelancer = request.user.freelance
+    if request.user.is_authenticated:
+        freelancer = _ensure_freelancer_profile(request.user)
     return render(request, 'freelancer_publico/pwa.html', {'freelancer': freelancer})
 
 @login_required(login_url='/freelancer/login/')
 def dashboard_freelancer(request):
     """Dashboard principal do freelancer"""
     try:
-        freelancer = request.user.freelance
+        freelancer = _ensure_freelancer_profile(request.user)
         
         # Buscar candidaturas do freelancer
         candidaturas = Candidatura.objects.filter(freelance=freelancer).order_by('-data_candidatura')
@@ -88,7 +104,7 @@ def dashboard_freelancer(request):
 def vagas_disponiveis(request):
     """Lista de vagas disponíveis para candidatura"""
     try:
-        freelancer = request.user.freelance
+        freelancer = _ensure_freelancer_profile(request.user)
         
         # Buscar vagas ativas
         vagas = Vaga.objects.filter(ativa=True).order_by('-data_criacao')
@@ -126,7 +142,7 @@ def vagas_disponiveis(request):
 def candidatar_vaga(request, vaga_id):
     """Candidatar-se a uma vaga"""
     try:
-        freelancer = request.user.freelance
+        freelancer = _ensure_freelancer_profile(request.user)
         vaga = get_object_or_404(Vaga, id=vaga_id, ativa=True)
         
         # Verificar se a vaga tem evento
@@ -208,7 +224,7 @@ def candidatar_vaga(request, vaga_id):
 def minhas_candidaturas(request):
     """Lista de candidaturas do freelancer"""
     try:
-        freelancer = request.user.freelance
+        freelancer = _ensure_freelancer_profile(request.user)
         
         # Buscar candidaturas
         candidaturas = Candidatura.objects.filter(freelance=freelancer).order_by('-data_candidatura')
@@ -236,7 +252,7 @@ def minhas_candidaturas(request):
 def perfil_freelancer(request):
     """Perfil do freelancer"""
     try:
-        freelancer = request.user.freelance
+        freelancer = _ensure_freelancer_profile(request.user)
         
         # Buscar funções do freelancer
         funcoes = freelancer.funcoes.all()
