@@ -37,7 +37,7 @@ def logout_freelancer(request):
     """Logout do freelancer"""
     logger.info(f"🔓 Logout freelancer: {request.user.email if request.user.is_authenticated else 'Anônimo'}")
     logout(request)
-    return redirect('freelancer_publico:login')
+    return redirect('home')
 
 @login_required(login_url='/freelancer/login/')
 def dashboard_freelancer(request):

@@ -58,7 +58,7 @@ def logout_empresa(request):
     """
     logout(request)
     messages.success(request, 'Você saiu com sucesso.')
-    return redirect('dashboard_empresa:login_empresa')
+    return redirect('home')
 
 
 @login_required(login_url='/empresa/login/')
