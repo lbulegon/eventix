@@ -64,13 +64,35 @@
             font-weight: bold;
             color: #667eea !important;
         }
+        @media (max-width: 767.98px) {
+            .sidebar {
+                min-height: auto;
+                padding: 1.5rem 1.5rem 2rem;
+            }
+            .sidebar .position-sticky {
+                position: static;
+            }
+            main.col-md-9 {
+                padding-top: 1.5rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
+            <!-- Mobile header -->
+            <header class="col-12 d-md-none bg-white border-bottom shadow-sm py-3 px-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="d-block fw-semibold text-secondary text-uppercase small">Eventix</span>
+                    <span class="d-block fw-bold text-dark">{{ empresa.nome_fantasia }}</span>
+                </div>
+                <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Alternar menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </header>
             <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block sidebar collapse">
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block sidebar collapse">
                 <div class="position-sticky pt-3">
                     <div class="text-center mb-4">
                         <h4 class="text-white">
