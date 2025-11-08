@@ -462,3 +462,11 @@ body{
 .inline-link{font-size:14px;}
 #loginModal.hidden{display:none!important;}
 
+.perfil-form{display:flex;flex-direction:column;gap:16px;margin-top:12px;}
+.form-field{display:flex;flex-direction:column;gap:6px;}
+.form-field label{font-size:13px;font-weight:600;color:#CBD5F5;}
+.form-row{display:flex;gap:12px;flex-wrap:wrap;}
+.form-row .form-field{flex:1;min-width:140px;}
+.perfil-actions{display:flex;justify-content:flex-end;}
+textarea.input{min-height:96px;resize:vertical;}
+

@@ -8,6 +8,9 @@ const ENDPOINTS = {
   profile: '/users/profile/',
   freelancer: '/freelancers/',
   vagas: '/vagas/',
+  vagasRecomendadas: '/vagas-avancadas/recomendadas/',
+  vagasTrending: '/vagas-avancadas/trending/',
+  vagasUrgentes: '/vagas-avancadas/urgentes/',
   candidaturas: '/candidaturas/',
   funcoes: '/freelancers/funcoes/',
 };
@@ -23,6 +26,9 @@ const state = {
   freelancer: null,
   candidaturas: null,
   vagas: null,
+  vagasRecomendadas: null,
+  vagasEmAlta: null,
+  vagasUrgentes: null,
   vagasFilters: {
     search: '',
   },
@@ -334,6 +340,26 @@ async function ensureVagas({ search = state.vagasFilters.search, force = false }
   return state.vagas;
 }
 
+async function ensureVagasCategoria(kind, force = false) {
+  if (!isAuthenticated()) return null;
+  const map = {
+    recomendadas: ['vagasRecomendadas', ENDPOINTS.vagasRecomendadas],
+    'em-alta': ['vagasEmAlta', ENDPOINTS.vagasTrending],
+    urgentes: ['vagasUrgentes', ENDPOINTS.vagasUrgentes],
+  };
+  const entry = map[kind];
+  if (!entry) return null;
+  const [stateKey, endpoint] = entry;
+  if (state[stateKey] && !force) return state[stateKey];
+  const data = await apiFetch(endpoint);
+  const items = Array.isArray(data) ? data : data?.results || [];
+  state[stateKey] = {
+    items,
+    count: data?.count ?? items.length,
+  };
+  return state[stateKey];
+}
+
 async function ensureFuncoes(force = false) {
   if (!isAuthenticated()) return null;
   if (state.funcoes && !force) return state.funcoes;
@@ -456,26 +482,49 @@ function buildGuestAuthHTML(path) {
   `;
 }
 
-function buildVagasHTML() {
-  const vagas = state.vagas?.items || [];
+function buildVagasHTML(dataset = state.vagas, { showSearch = true, emptyMessage } = {}) {
+  const vagas = dataset?.items || [];
+  const searchValue = state.vagasFilters.search || '';
+  const noResultsMessage = emptyMessage || (showSearch ? 'Nenhuma vaga encontrada com o filtro atual.' : 'Ainda não há vagas disponíveis aqui.');
+
   if (!vagas.length) {
-    return `
-      <div class="search-block">
-        <div class="search">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
-          <input id="vagasSearch" class="input" placeholder="Buscar vagas..." value="${state.vagasFilters.search || ''}">
-          <button class="icon-btn" id="vagasClearSearch" aria-label="Limpar busca" ${state.vagasFilters.search ? '' : 'hidden'}>
-            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29L16.89 4.3z"/></svg>
-          </button>
+    const searchBlock = showSearch
+      ? `
+        <div class="search-block">
+          <div class="search">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            <input id="vagasSearch" class="input" placeholder="Buscar vagas..." value="${searchValue}">
+            <button class="icon-btn" id="vagasClearSearch" aria-label="Limpar busca" ${searchValue ? '' : 'hidden'}>
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29L16.89 4.3z"/></svg>
+            </button>
+          </div>
         </div>
-      </div>
+      `
+      : '';
+
+    return `
+      ${searchBlock}
       <div class="empty-state">
         <svg viewBox="0 0 24 24" width="48" height="48" aria-hidden="true"><path fill="currentColor" d="M14 6V4H6v2H2v14h20V6z"/></svg>
-        <p>Nenhuma vaga encontrada com o filtro atual.</p>
-        <button class="btn" data-action="reset-vagas">Limpar filtros</button>
+        <p>${noResultsMessage}</p>
+        ${showSearch ? '<button class="btn" data-action="reset-vagas">Limpar filtros</button>' : ''}
       </div>
     `;
   }
+
+  const searchBlock = showSearch
+    ? `
+        <div class="search-block">
+          <div class="search">
+            <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
+            <input id="vagasSearch" class="input" placeholder="Buscar por título, função ou evento" value="${searchValue}">
+            <button class="icon-btn" id="vagasClearSearch" aria-label="Limpar busca" ${searchValue ? '' : 'hidden'}>
+              <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29L16.89 4.3z"/></svg>
+            </button>
+          </div>
+        </div>
+      `
+    : '';
 
   const cards = vagas
     .map((vaga) => {
@@ -504,18 +553,7 @@ function buildVagasHTML() {
     })
     .join('');
 
-  return `
-    <div class="search-block">
-      <div class="search">
-        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z"/></svg>
-        <input id="vagasSearch" class="input" placeholder="Buscar por título, função ou evento" value="${state.vagasFilters.search || ''}">
-        <button class="icon-btn" id="vagasClearSearch" aria-label="Limpar busca" ${state.vagasFilters.search ? '' : 'hidden'}>
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29L16.89 4.3z"/></svg>
-        </button>
-      </div>
-    </div>
-    <section class="list">${cards}</section>
-  `;
+  return `${searchBlock}<section class="list">${cards}</section>`;
 }
 
 function buildPerfilHTML() {
@@ -523,6 +561,16 @@ function buildPerfilHTML() {
   const freelancer = state.freelancer || {};
   const funcoes = state.funcoes || [];
   const inicial = (freelancer.nome_completo || user.first_name || 'F').charAt(0).toUpperCase();
+  const hasFreelancer = Boolean(freelancer && Object.keys(freelancer).length);
+
+  if (!hasFreelancer) {
+    return `
+      <div class="empty-state">
+        <p>Não foi possível carregar seu perfil agora.</p>
+        <button class="btn" onclick="router.go('/')">Voltar</button>
+      </div>
+    `;
+  }
 
   const infoRows = [
     { label: 'CPF', value: freelancer.cpf },
@@ -567,6 +615,37 @@ function buildPerfilHTML() {
       ${funcoesHtml}
       <a class="inline-link" href="/freelancer/funcoes/" target="_blank" rel="noopener">Gerenciar funções</a>
     </section>
+
+    <section class="card">
+      <div class="section-title">Atualizar contato</div>
+      <form id="perfilForm" class="perfil-form">
+        <div class="form-field">
+          <label for="perfilTelefone">Telefone</label>
+          <input id="perfilTelefone" name="telefone" class="input" placeholder="(00) 00000-0000" value="${freelancer.telefone || ''}">
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="perfilCidade">Cidade</label>
+            <input id="perfilCidade" name="cidade" class="input" value="${freelancer.cidade || ''}">
+          </div>
+          <div class="form-field">
+            <label for="perfilUf">UF</label>
+            <input id="perfilUf" name="uf" class="input" maxlength="2" value="${freelancer.uf || ''}">
+          </div>
+        </div>
+        <div class="form-field">
+          <label for="perfilHabilidades">Habilidades</label>
+          <textarea id="perfilHabilidades" name="habilidades" class="input" rows="3" placeholder="Descreva suas principais habilidades">${freelancer.habilidades || ''}</textarea>
+        </div>
+        <div class="form-field">
+          <label for="perfilPix">Chave PIX</label>
+          <input id="perfilPix" name="chave_pix" class="input" value="${freelancer.chave_pix || ''}">
+        </div>
+        <div class="perfil-actions">
+          <button type="submit" class="btn">Salvar alterações</button>
+        </div>
+      </form>
+    </section>
   `;
 }
 
@@ -594,6 +673,75 @@ async function handleCandidatarClick(vagaId, button) {
     if (button) {
       button.disabled = false;
       button.textContent = 'Candidatar-se';
+    }
+  }
+}
+
+async function handleCancelarCandidatura(candidaturaId, button) {
+  if (!candidaturaId) return;
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Cancelando...';
+  }
+  try {
+    await apiFetch(`${ENDPOINTS.candidaturas}${candidaturaId}/cancelar/`, { method: 'POST' });
+    showToast('Candidatura cancelada.', 'success');
+    await ensureCandidaturas(true);
+    renderRoute(currentPath, { force: true });
+  } catch (error) {
+    console.error('[Eventix PWA] Erro ao cancelar candidatura', error);
+    showToast(error.payload?.error || 'Não foi possível cancelar agora.', 'error');
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Cancelar candidatura';
+    }
+  }
+}
+
+async function handlePerfilSubmit(event) {
+  event.preventDefault();
+  const form = event.target;
+  const submitButton = form.querySelector('button[type="submit"]');
+  const freelancer = state.freelancer;
+  if (!freelancer?.id) {
+    showToast('Perfil não disponível para edição.', 'error');
+    return;
+  }
+  const formData = new FormData(form);
+  const payload = {};
+  ['telefone', 'cidade', 'uf', 'habilidades', 'chave_pix'].forEach((field) => {
+    const value = formData.get(field)?.toString().trim();
+    if (value !== undefined && value !== (state.freelancer?.[field] || '')) {
+      payload[field] = value;
+    }
+  });
+  if (!Object.keys(payload).length) {
+    showToast('Nenhuma alteração para salvar.', 'info');
+    return;
+  }
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Salvando...';
+  }
+  try {
+    await apiFetch(`${ENDPOINTS.freelancer}${freelancer.id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    showToast('Perfil atualizado com sucesso!', 'success');
+    await Promise.all([
+      ensureFreelancerProfile(true),
+      ensureUserProfile(true),
+    ]);
+    renderRoute('/perfil', { force: true });
+  } catch (error) {
+    console.error('[Eventix PWA] Erro ao atualizar perfil', error);
+    showToast(error.payload?.error || 'Não foi possível salvar agora.', 'error');
+  } finally {
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Salvar alterações';
     }
   }
 }
@@ -643,8 +791,17 @@ function bindVagasEvents(container) {
   });
 }
 
+function bindCandidaturasEvents(container) {
+  container.querySelectorAll('[data-action="cancelar"]').forEach((button) => {
+    button.addEventListener('click', () => handleCancelarCandidatura(button.dataset.candidatura, button));
+  });
+}
+
 function bindPerfilEvents() {
-  // Espaço reservado para ações futuras (editar perfil, etc.)
+  const form = document.getElementById('perfilForm');
+  if (form) {
+    form.addEventListener('submit', handlePerfilSubmit);
+  }
 }
 
 async function renderHome(force = false) {
@@ -680,6 +837,38 @@ async function renderVagas(force = false) {
   bindVagasEvents(app);
 }
 
+async function renderVagasCategoria(kind, force = false) {
+  setTitle('Vagas para você');
+  setBack(true);
+  const app = document.getElementById('app');
+  if (!isAuthenticated()) {
+    app.innerHTML = buildGuestAuthHTML('/vagas');
+    return;
+  }
+  app.innerHTML = LOADER_HTML;
+  await ensureVagasCategoria(kind, force);
+  const tabLabels = {
+    recomendadas: 'Recomendadas',
+    'em-alta': 'Em alta',
+    urgentes: 'Urgentes',
+  };
+  const tabsHtml = ['recomendadas', 'em-alta', 'urgentes']
+    .map((key) => `<div class="tab ${key === kind ? 'active' : ''}" onclick="router.go('/vagas/${key}')">${tabLabels[key]}</div>`)
+    .join('');
+  const dataset =
+    kind === 'recomendadas'
+      ? state.vagasRecomendadas
+      : kind === 'em-alta'
+      ? state.vagasEmAlta
+      : state.vagasUrgentes;
+  const listHtml = buildVagasHTML(dataset, {
+    showSearch: false,
+    emptyMessage: 'Nenhuma vaga encontrada neste momento.',
+  });
+  app.innerHTML = `<div class="tabs">${tabsHtml}</div>${listHtml}`;
+  bindVagasEvents(app);
+}
+
 async function renderPerfil(force = false) {
   setTitle('Perfil');
   setBack(false);
@@ -695,7 +884,7 @@ async function renderPerfil(force = false) {
     ensureFuncoes(force),
   ]);
   app.innerHTML = buildPerfilHTML();
-  bindPerfilEvents(app);
+  bindPerfilEvents();
 }
 
 async function renderCandidaturas(force = false) {
@@ -719,12 +908,14 @@ async function renderCandidaturas(force = false) {
     `;
     return;
   }
+  const cancellableStatuses = ['pendente', 'em_analise', 'em análise'];
   const items = candidaturas
     .map((candidatura) => {
       const vaga = candidatura.vaga || {};
       const status = candidatura.status?.toLowerCase?.() || 'pendente';
+      const canCancel = cancellableStatuses.includes(status);
       return `
-        <article class="list-item">
+        <article class="list-item" data-id="${candidatura.id}">
           <header>
             <div>
               <h3>${vaga.titulo || 'Vaga'}</h3>
@@ -735,12 +926,14 @@ async function renderCandidaturas(force = false) {
           <p>${vaga.descricao ? vaga.descricao.slice(0, 160) : 'Sem descrição adicional.'}</p>
           <div class="list-actions">
             <a class="inline-link" href="/freelancer/vaga/${vaga.id}/" target="_blank" rel="noopener">Ver detalhes</a>
+            ${canCancel ? `<button class="btn btn-text" data-action="cancelar" data-candidatura="${candidatura.id}">Cancelar candidatura</button>` : ''}
           </div>
         </article>
       `;
     })
     .join('');
   app.innerHTML = `<section class="list">${items}</section>`;
+  bindCandidaturasEvents(app);
 }
 
 async function renderNotificacoes() {
@@ -797,8 +990,17 @@ async function renderRoute(path, { force = false } = {}) {
     case currentPath === '/':
       await renderHome(force);
       break;
-    case currentPath.startsWith('/vagas') && currentPath !== '/vagas/recomendadas':
+    case currentPath === '/vagas':
       await renderVagas(force);
+      break;
+    case currentPath.startsWith('/vagas/recomendadas'):
+      await renderVagasCategoria('recomendadas', force);
+      break;
+    case currentPath.startsWith('/vagas/em-alta'):
+      await renderVagasCategoria('em-alta', force);
+      break;
+    case currentPath.startsWith('/vagas/urgentes'):
+      await renderVagasCategoria('urgentes', force);
       break;
     case currentPath.startsWith('/vagas'):
       await renderVagas(force);
