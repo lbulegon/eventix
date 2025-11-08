@@ -2,7 +2,7 @@
 from rest_framework import viewsets, mixins, permissions, status, generics
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -118,6 +118,7 @@ class ContratoFreelanceViewSet(viewsets.ReadOnlyModelViewSet):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def login_unico(request):
     """
     Login único para todos os tipos de usuário
@@ -174,6 +175,7 @@ def login_unico(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def registro_freelancer(request):
     """
     Registro de freelancer
@@ -239,6 +241,7 @@ def registro_freelancer(request):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def registro_empresa(request):
     """
     Registro de empresa contratante
@@ -907,6 +910,7 @@ def fornecedor_despesas(request, fornecedor_id):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@authentication_classes([])
 def registro_unico(request):
     """
     Registro único para qualquer tipo de usuário
