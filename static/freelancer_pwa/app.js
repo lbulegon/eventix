@@ -405,70 +405,122 @@ function buildHomeHTML() {
   const freelancer = state.freelancer || {};
   const nome = freelancer.nome_completo || profile.first_name || profile.username || 'Freelancer';
   const primeiroNome = nome.split(' ')[0];
+  const inicial = nome.charAt(0).toUpperCase();
   const candidaturas = state.candidaturas?.items || [];
   const totalCandidaturas = candidaturas.length;
-  const pendentes = candidaturas.filter((c) => c.status === 'pendente' || c.status === 'Pendente').length;
+  const pendentes = candidaturas.filter((c) => ['pendente', 'em_analise', 'em análise'].includes((c.status || '').toLowerCase())).length;
   const aprovadas = candidaturas.filter((c) => ['aprovado', 'aprovada', 'contratado'].includes((c.status || '').toLowerCase())).length;
   const vagasAtivas = state.vagas?.count || 0;
-
+  const quickActions = [
+    { title: 'Oportunidades', subtitle: 'Recomendadas para você', path: '/vagas/recomendadas', icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M17 2a3 3 0 0 1 3 3v16l-8-3-8 3V5a3 3 0 0 1 3-3Zm-2 11h-2v2a1 1 0 0 1-2 0v-2H9a1 1 0 0 1 0-2h2V9a1 1 0 0 1 2 0v2h2a1 1 0 0 1 0 2Z"/></svg>' },
+    { title: 'Todas as vagas', subtitle: 'Descubra novas experiências', path: '/vagas', icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M14 3v2H5v14h14V12h2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2L3.01 5A2 2 0 0 1 5 3Zm7-1v6h-2V5.41l-9.29 9.3-1.42-1.42L17.59 4H14V2Z"/></svg>' },
+    { title: 'Minhas candidaturas', subtitle: 'Acompanhe seus status', path: '/candidaturas', icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v16l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm-2 9H7v-2h10Zm0-4H7V6h10Z"/></svg>' },
+    { title: 'Funções', subtitle: 'Configure suas especialidades', path: '/funcoes', icon: '<svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M14.94 13.13A5 5 0 0 0 11 8a5 5 0 0 0-3.94 8.13L12 22l4.94-5Z"/></svg>' },
+  ];
+  const recentVagas = (state.vagas?.items || []).slice(0, 3);
+  const recentCandidaturas = candidaturas.slice(0, 3);
+  const quickGrid = quickActions
+    .map(
+      (action) => `
+        <article class="quick-card" data-path="${action.path}">
+          <div class="quick-icon">${action.icon}</div>
+          <div>
+            <h3>${action.title}</h3>
+            <p>${action.subtitle}</p>
+          </div>
+          <span class="quick-arrow">➜</span>
+        </article>
+      `,
+    )
+    .join('');
+  const vagasHtml = recentVagas.length
+    ? recentVagas
+        .map(
+          (vaga) => `
+            <div class="recent-item">
+              <div>
+                <strong>${vaga.titulo || 'Vaga'}</strong>
+                <p>${safeGet(vaga, 'setor.evento.nome', vaga.evento_nome || 'Evento não informado')}</p>
+              </div>
+              <div class="recent-actions">
+                <button class="btn btn-text recent-apply" data-vaga="${vaga.id}">Candidatar</button>
+                <a class="inline-link" href="/freelancer/vaga/${vaga.id}/" target="_blank" rel="noopener">Detalhes</a>
+              </div>
+            </div>
+          `,
+        )
+        .join('')
+    : '<p class="subtitle">Nenhuma vaga recente encontrada. Explore todas as vagas.</p>';
+  const candidaturasHtml = recentCandidaturas.length
+    ? recentCandidaturas
+        .map((candidatura) => {
+          const vaga = candidatura.vaga || {};
+          const status = candidatura.status?.toLowerCase?.() || 'pendente';
+          return `
+            <div class="recent-item">
+              <div>
+                <strong>${vaga.titulo || 'Vaga'}</strong>
+                <p>${safeGet(vaga, 'setor.evento.nome', vaga.evento_nome || 'Evento não informado')}</p>
+              </div>
+              <span class="status-pill ${status}">${STATUS_LABELS[status] || candidatura.status}</span>
+            </div>
+          `;
+        })
+        .join('')
+    : '<p class="subtitle">Você ainda não possui candidaturas. Candidate-se em uma vaga para acompanhar aqui.</p>';
   return `
-    <section class="hero-card">
-      <div>
-        <p class="hero-eyebrow">Bem-vindo de volta</p>
-        <h2 class="hero-title">Olá, ${primeiroNome} 👋</h2>
-        <p class="hero-subtitle">Gerencie suas oportunidades e candidaturas em tempo real.</p>
+    <section class="hero-card home-hero">
+      <div class="hero-top">
+        <div class="hero-avatar">${inicial}</div>
+        <div>
+          <p class="hero-eyebrow">Bem-vindo de volta</p>
+          <h2 class="hero-title">Olá, ${primeiroNome} 👋</h2>
+          <p class="hero-subtitle">Gerencie suas oportunidades e candidaturas em tempo real.</p>
+        </div>
       </div>
-      <button class="btn btn-light" data-action="ver-vagas">Ver vagas</button>
-    </section>
-
-    <section class="stats-grid">
-      <article class="stat-card">
-        <span class="stat-label">Total de candidaturas</span>
-        <span class="stat-number">${totalCandidaturas}</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-label">Pendentes</span>
-        <span class="stat-number">${pendentes}</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-label">Aprovadas</span>
-        <span class="stat-number">${aprovadas}</span>
-      </article>
-      <article class="stat-card">
-        <span class="stat-label">Vagas ativas</span>
-        <span class="stat-number">${vagasAtivas}</span>
-      </article>
-    </section>
-
-    <section class="action-grid">
-      <article class="action-card" data-path="/vagas/recomendadas">
+      <div class="hero-stats">
         <div>
-          <h3>Oportunidades</h3>
-          <p>Vagas recomendadas para você</p>
+          <span>Vagas ativas</span>
+          <strong>${vagasAtivas}</strong>
         </div>
-        <span class="action-icon">➜</span>
-      </article>
-      <article class="action-card" data-path="/vagas">
         <div>
-          <h3>Todas as vagas</h3>
-          <p>Descubra novas experiências</p>
+          <span>Candidaturas</span>
+          <strong>${totalCandidaturas}</strong>
         </div>
-        <span class="action-icon">➜</span>
-      </article>
-      <article class="action-card" data-path="/candidaturas">
+        <div>
+          <span>Pendentes</span>
+          <strong>${pendentes}</strong>
+        </div>
+        <div>
+          <span>Aprovadas</span>
+          <strong>${aprovadas}</strong>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button class="btn btn-light" data-path="/vagas">Buscar vagas</button>
+        <button class="btn btn-text" data-path="/candidaturas">Minhas candidaturas</button>
+      </div>
+    </section>
+    <section class="quick-grid">${quickGrid}</section>
+    <section class="home-section">
+      <header>
+        <div>
+          <h3>Vagas recentes</h3>
+          <p>Baseadas no seu perfil e funções favoritas</p>
+        </div>
+        <button class="btn btn-text" data-action="ver-todas-vagas">Ver todas</button>
+      </header>
+      <div class="recent-list">${vagasHtml}</div>
+    </section>
+    <section class="home-section">
+      <header>
         <div>
           <h3>Minhas candidaturas</h3>
-          <p>Consulte o status em minutos</p>
+          <p>Acompanhe as últimas atualizações</p>
         </div>
-        <span class="action-icon">➜</span>
-      </article>
-      <article class="action-card" data-path="/perfil">
-        <div>
-          <h3>Meu perfil</h3>
-          <p>Atualize suas informações</p>
-        </div>
-        <span class="action-icon">➜</span>
-      </article>
+        <button class="btn btn-text" data-action="ver-todas-candidaturas">Ver todas</button>
+      </header>
+      <div class="recent-list">${candidaturasHtml}</div>
     </section>
   `;
 }
