@@ -17,6 +17,7 @@ const ENDPOINTS = {
 
 const STORAGE_KEYS = {
   auth: 'eventix:frel:pwa:auth',
+  installDismissed: 'eventix:frel:pwa:install-dismissed',
 };
 
 const state = {
@@ -1117,22 +1118,41 @@ function registerNavItems() {
 }
 
 let deferredPrompt;
+const isMobileDevice = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault();
+  if (!isMobileDevice() || isStandalone() || localStorage.getItem(STORAGE_KEYS.installDismissed) === 'true') {
+    return;
+  }
   deferredPrompt = event;
-  if (banner) banner.hidden = false;
+  if (banner) {
+    banner.hidden = false;
+    requestAnimationFrame(() => banner.classList.add('visible'));
+  }
 });
 
 btnInstall?.addEventListener('click', async () => {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  if (banner) banner.hidden = true;
+  const choice = await deferredPrompt.userChoice;
+  if (choice.outcome === 'accepted') {
+    localStorage.setItem(STORAGE_KEYS.installDismissed, 'true');
+  }
+  if (banner) {
+    banner.classList.remove('visible');
+    banner.hidden = true;
+  }
   deferredPrompt = null;
 });
 
 btnDismiss?.addEventListener('click', () => {
-  if (banner) banner.hidden = true;
+  localStorage.setItem(STORAGE_KEYS.installDismissed, 'true');
+  if (banner) {
+    banner.classList.remove('visible');
+    banner.hidden = true;
+  }
 });
 
 if ('serviceWorker' in navigator && CONFIG.swUrl) {
