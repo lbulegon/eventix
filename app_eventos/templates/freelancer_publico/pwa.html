@@ -59,10 +59,15 @@
     </button>
   </nav>
 
-  <div id="installBanner" class="install-banner" hidden>
-    <span>Instalar o app?</span>
-    <button class="btn" id="installBtn">Instalar</button>
-    <button class="btn btn-text" id="dismissInstall">Agora não</button>
+  <div id="installBanner" class="install-banner" hidden role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <div class="install-modal" tabindex="-1">
+      <h3 id="installTitle">Instalar o app?</h3>
+      <p>Adicione o Eventix à tela inicial para acessar vagas com mais rapidez.</p>
+      <div class="install-actions">
+        <button class="btn" id="installBtn">Instalar</button>
+        <button class="btn btn-text" id="dismissInstall">Agora não</button>
+      </div>
+    </div>
   </div>
 
   <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">

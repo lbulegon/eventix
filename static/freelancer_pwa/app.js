@@ -1129,20 +1129,25 @@ window.addEventListener('beforeinstallprompt', (event) => {
   deferredPrompt = event;
   if (banner) {
     banner.hidden = false;
-    requestAnimationFrame(() => banner.classList.add('visible'));
+    requestAnimationFrame(() => {
+      banner.classList.add('visible');
+      banner.querySelector('.install-modal')?.focus();
+    });
   }
 });
 
 btnInstall?.addEventListener('click', async () => {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
-  const choice = await deferredPrompt.userChoice;
-  if (choice.outcome === 'accepted') {
+  const choiceResult = await deferredPrompt.userChoice;
+  if (choiceResult?.outcome === 'accepted') {
     localStorage.setItem(STORAGE_KEYS.installDismissed, 'true');
   }
   if (banner) {
     banner.classList.remove('visible');
-    banner.hidden = true;
+    setTimeout(() => {
+      banner.hidden = true;
+    }, 200);
   }
   deferredPrompt = null;
 });
@@ -1151,7 +1156,9 @@ btnDismiss?.addEventListener('click', () => {
   localStorage.setItem(STORAGE_KEYS.installDismissed, 'true');
   if (banner) {
     banner.classList.remove('visible');
-    banner.hidden = true;
+    setTimeout(() => {
+      banner.hidden = true;
+    }, 200);
   }
 });
 
