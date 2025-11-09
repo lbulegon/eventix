@@ -5,11 +5,11 @@
 <div class="container mt-4">
     <div class="row">
         <div class="col-12">
-            <h2><i class="fas fa-calendar-alt me-2"></i>Eventos</h2>
-            <p class="text-muted">Lista de todos os eventos cadastrados no sistema.</p>
-            
-            <!-- Filtros e Busca -->
-            <div class="card mb-4">
+            <section class="eventos-hero">
+                <h2><i class="fas fa-calendar-alt me-2"></i>Eventos</h2>
+                <p>Lista de todos os eventos cadastrados no sistema.</p>
+            </section>
+            <div class="eventos-filtros card mb-4">
                 <div class="card-body">
                     <form method="get" action="{% url 'evento_list' %}" class="row g-3">
                         <div class="col-md-4">
@@ -53,64 +53,56 @@
                         </div>
                     </form>
                     {% if filtros.busca or filtros.empresa_id or filtros.data_inicio or filtros.data_fim %}
-                        <div class="mt-2">
+                        <div class="mt-3">
                             <a href="{% url 'evento_list' %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="fas fa-times me-1"></i>Limpar Filtros
+                                <i class="fas fa-times me-1"></i>Limpar filtros
                             </a>
                         </div>
                     {% endif %}
                 </div>
             </div>
-            
             {% if eventos %}
                 <div class="row">
                     {% for evento in eventos %}
                     <div class="col-md-6 col-lg-4 mb-4">
-                        <div class="card h-100">
+                        <div class="card event-card h-100">
                             <div class="card-body">
-                                <h5 class="card-title">{{ evento.nome }}</h5>
-                                <p class="card-text text-muted">
-                                    <small>
-                                        <i class="fas fa-calendar me-1"></i>{{ evento.data_inicio|date:"d/m/Y" }}
-                                        {% if evento.data_fim %}
-                                            - {{ evento.data_fim|date:"d/m/Y" }}
-                                        {% endif %}
-                                    </small>
-                                </p>
+                                <header>
+                                    <span class="event-date">
+                                        <i class="fas fa-calendar-day"></i>
+                                        {{ evento.data_inicio|date:"d/m/Y" }}
+                                        {% if evento.data_fim %} - {{ evento.data_fim|date:"d/m/Y" }}{% endif %}
+                                    </span>
+                                    <h5 class="card-title">{{ evento.nome }}</h5>
+                                </header>
                                 {% if evento.empresa_contratante %}
-                                <p class="card-text">
-                                    <small class="text-muted">
-                                        <i class="fas fa-building me-1"></i>{{ evento.empresa_contratante.nome_fantasia }}
-                                    </small>
+                                <p class="event-info mb-2">
+                                    <i class="fas fa-building me-1"></i>{{ evento.empresa_contratante.nome_fantasia }}
                                 </p>
                                 {% endif %}
                                 {% if evento.descricao %}
-                                    <p class="card-text">{{ evento.descricao|truncatewords:20 }}</p>
+                                    <p class="card-text">{{ evento.descricao|truncatewords:22 }}</p>
                                 {% endif %}
-                                <p class="card-text">
-                                    <span class="badge {% if evento.ativo %}bg-success{% else %}bg-secondary{% endif %}">
-                                        {% if evento.ativo %}Ativo{% else %}Inativo{% endif %}
-                                    </span>
-                                </p>
+                                <span class="badge {% if evento.ativo %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if evento.ativo %}Ativo{% else %}Inativo{% endif %}
+                                </span>
                             </div>
-                            <div class="card-footer">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">
-                                        <i class="fas fa-map-marker-alt me-1"></i>{{ evento.local|default:"Local não informado" }}
-                                    </small>
-                                    <a href="{% url 'freelancer_publico:evento_publico' evento.id %}" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-eye me-1"></i>Ver Vagas
-                                    </a>
-                                </div>
+                            <div class="card-footer event-footer">
+                                <small class="text-muted d-flex align-items-center gap-2">
+                                    <i class="fas fa-map-marker-alt"></i>{{ evento.local|default:"Local não informado" }}
+                                </small>
+                                <a href="{% url 'freelancer_publico:evento_publico' evento.id %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i>Ver vagas
+                                </a>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             {% else %}
-                <div class="text-center py-5">
+                <div class="eventos-empty">
                     <div class="mb-3">
-                        <i class="fas fa-calendar-times fa-4x text-muted"></i>
+                        <i class="fas fa-calendar-times fa-4x"></i>
                     </div>
                     <h4 class="text-muted">Nenhum evento encontrado</h4>
                     <p class="text-muted">Não há eventos cadastrados no sistema ainda.</p>
