@@ -269,6 +269,7 @@ async function handleLogout() {
   } finally {
     clearAuth();
     renderRoute('/', { force: true });
+    openLoginModal();
     showToast('Você saiu da sua conta.', 'success');
   }
 }
@@ -810,6 +811,9 @@ async function renderHome(force = false) {
   const app = document.getElementById('app');
   if (!isAuthenticated()) {
     app.innerHTML = renderGuestHome();
+    if (loginModal?.classList.contains('hidden')) {
+      openLoginModal();
+    }
     return;
   }
   app.innerHTML = LOADER_HTML;
