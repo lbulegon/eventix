@@ -72,6 +72,16 @@ INSTALLED_APPS = [
     "api_v01",
     "api_mobile",
     "api_desktop",
+    "app_briefing",
+    "app_menu",
+    "app_financeiro",
+    "app_contratos",
+    "app_producao",
+    "app_mise",
+    "app_operacao",
+    "app_finalizacao",
+    "app_fechamento",
+    "app_planejamento",
 ]
 
 # IMPORTANTÍSSIMO: não remova os finders padrão

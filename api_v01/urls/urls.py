@@ -2,13 +2,31 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from ..views.views import (
-    login_unico, registro_freelancer, registro_empresa,
-    perfil_usuario, logout, verificar_tipo_usuario, registro_unico, listar_empresas,
+    login_unico,
+    registro_freelancer,
+    registro_empresa,
+    perfil_usuario,
+    logout,
+    verificar_tipo_usuario,
+    registro_unico,
+    listar_empresas,
     # Views financeiras
-    categorias_financeiras, despesas_evento, criar_despesa, atualizar_despesa,
-    receitas_evento, criar_receita, atualizar_receita, fluxo_caixa_evento, fluxo_caixa_empresa,
+    categorias_financeiras,
+    despesas_evento,
+    criar_despesa,
+    atualizar_despesa,
+    receitas_evento,
+    criar_receita,
+    atualizar_receita,
+    fluxo_caixa_evento,
+    fluxo_caixa_empresa,
     # Views fornecedores
-    listar_fornecedores, detalhes_fornecedor, criar_fornecedor, atualizar_fornecedor, fornecedor_despesas
+    listar_fornecedores,
+    detalhes_fornecedor,
+    criar_fornecedor,
+    atualizar_fornecedor,
+    fornecedor_despesas,
+    clonar_evento,
 )
 
 app_name = 'api_v01'
@@ -34,6 +52,7 @@ urlpatterns = [
     # Sistema Financeiro
     path('categorias-financeiras/', categorias_financeiras, name='categorias_financeiras'),
     path('eventos/<int:evento_id>/despesas/', despesas_evento, name='despesas_evento'),
+    path('eventos/<int:evento_id>/clone/', clonar_evento, name='clonar_evento'),
     path('despesas/', criar_despesa, name='criar_despesa'),
     path('despesas/<int:despesa_id>/', atualizar_despesa, name='atualizar_despesa'),
     path('eventos/<int:evento_id>/receitas/', receitas_evento, name='receitas_evento'),

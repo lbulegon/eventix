@@ -9,13 +9,41 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.utils import timezone
-from app_eventos.models import Vaga, Candidatura, ContratoFreelance, Freelance, User, EmpresaContratante, Evento, CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor
+from app_eventos.models import (
+    Vaga,
+    Candidatura,
+    ContratoFreelance,
+    Freelance,
+    User,
+    EmpresaContratante,
+    Evento,
+    CategoriaFinanceira,
+    DespesaEvento,
+    ReceitaEvento,
+    Fornecedor,
+    LocalEvento,
+    Empresa,
+)
+from app_eventos.services.event_clone_service import EventCloneService, EventCloneOptions, NOT_PROVIDED
 from ..serializers.serializers import (
-    VagaSerializer, CandidaturaCreateSerializer, CandidaturaListSerializer,
-    ContratoFreelanceSerializer, LoginSerializer,
-    UserRegistrationSerializer, UserProfileSerializer, EmpresaRegistrationSerializer,
-    RegistroUnicoSerializer, CategoriaFinanceiraSerializer, DespesaEventoSerializer, ReceitaEventoSerializer, FluxoCaixaEventoSerializer,
-    FornecedorSerializer, FornecedorCreateSerializer, FornecedorUpdateSerializer
+    VagaSerializer,
+    CandidaturaCreateSerializer,
+    CandidaturaListSerializer,
+    ContratoFreelanceSerializer,
+    LoginSerializer,
+    UserRegistrationSerializer,
+    UserProfileSerializer,
+    EmpresaRegistrationSerializer,
+    RegistroUnicoSerializer,
+    CategoriaFinanceiraSerializer,
+    DespesaEventoSerializer,
+    ReceitaEventoSerializer,
+    FluxoCaixaEventoSerializer,
+    FornecedorSerializer,
+    FornecedorCreateSerializer,
+    FornecedorUpdateSerializer,
+    EventoCloneSerializer,
+    EventoResumoSerializer,
 )
 from ..permissions import IsFreelancer, IsEmpresaUser, IsAdminSistema
 from ..filters import EmpresaScopeFilterBackend
@@ -114,6 +142,82 @@ class ContratoFreelanceViewSet(viewsets.ReadOnlyModelViewSet):
         if getattr(user, "is_empresa_user", False):
             return qs.filter(vaga__setor__evento__empresa_contratante=user.empresa_contratante)
         return qs.none()
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def clonar_evento(request, evento_id):
+    """Clona um evento existente com opções configuráveis."""
+
+    usuario = request.user
+    if not (getattr(usuario, "is_empresa_user", False) or getattr(usuario, "is_admin_sistema", False)):
+        return Response(
+            {'success': False, 'message': 'Usuário não tem permissão para clonar eventos.'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    eventos_qs = Evento.objects.all()
+    if getattr(usuario, "is_empresa_user", False):
+        eventos_qs = eventos_qs.filter(empresa_contratante=usuario.empresa_contratante)
+
+    try:
+        evento_origem = eventos_qs.get(id=evento_id)
+    except Evento.DoesNotExist:
+        return Response(
+            {'success': False, 'message': 'Evento não encontrado.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    serializer = EventoCloneSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    dados = serializer.validated_data
+
+    local = NOT_PROVIDED
+    if 'local_id' in request.data:
+        try:
+            local = LocalEvento.objects.get(id=dados['local_id'])
+        except LocalEvento.DoesNotExist:
+            return Response(
+                {'success': False, 'message': 'Local informado não existe.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+    empresa_produtora = NOT_PROVIDED
+    if 'empresa_produtora_id' in request.data:
+        empresa_id = dados.get('empresa_produtora_id')
+        if empresa_id is None:
+            empresa_produtora = None
+        else:
+            try:
+                empresa_produtora = Empresa.objects.get(id=empresa_id)
+            except Empresa.DoesNotExist:
+                return Response(
+                    {'success': False, 'message': 'Empresa produtora informada não existe.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+    options = EventCloneOptions.from_dict({
+        'copy_setores': dados.get('copy_setores', True),
+        'copy_vagas': dados.get('copy_vagas', True),
+        'copy_checklists': dados.get('copy_checklists', True),
+        'copy_tarefas': dados.get('copy_tarefas', True),
+        'copy_insumos': dados.get('copy_insumos', True),
+        'copy_financeiro': dados.get('copy_financeiro', True),
+    })
+
+    service = EventCloneService(usuario=usuario, evento_origem=evento_origem)
+    resultado = service.clone_event(
+        nome=dados['nome'],
+        data_inicio=dados['data_inicio'],
+        data_fim=dados['data_fim'],
+        descricao=dados.get('descricao'),
+        local=local,
+        empresa_produtora=empresa_produtora,
+        options=options,
+    )
+
+    resposta = EventoResumoSerializer(resultado.event).data
+    return Response({'success': True, 'evento': resposta})
 
 
 @api_view(['POST'])

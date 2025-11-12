@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eventix-pwa-v1';
+const CACHE_NAME = 'app-eventix-pwa-v1';
 const STATIC_ASSETS = [
   '/', '/index.html', '/styles.css', '/app.js', '/manifest.webmanifest',
   '/assets/icon-192.png', '/assets/icon-512.png'

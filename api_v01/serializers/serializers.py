@@ -2,8 +2,18 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from app_eventos.models import (
-    EmpresaContratante, Freelance, Vaga, Candidatura, ContratoFreelance,
-    CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor
+    EmpresaContratante,
+    Empresa,
+    Freelance,
+    Vaga,
+    Candidatura,
+    ContratoFreelance,
+    CategoriaFinanceira,
+    DespesaEvento,
+    ReceitaEvento,
+    Fornecedor,
+    Evento,
+    LocalEvento,
 )
 
 User = get_user_model()
@@ -406,4 +416,42 @@ class FornecedorUpdateSerializer(serializers.ModelSerializer):
             'telefone', 'email', 'website',
             'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
             'banco', 'agencia', 'conta', 'pix', 'observacoes', 'ativo'
+        ]
+
+
+class EventoCloneSerializer(serializers.Serializer):
+    nome = serializers.CharField(max_length=200)
+    data_inicio = serializers.DateField()
+    data_fim = serializers.DateField()
+    descricao = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    local_id = serializers.IntegerField(required=False)
+    empresa_produtora_id = serializers.IntegerField(required=False, allow_null=True)
+    copy_setores = serializers.BooleanField(required=False, default=True)
+    copy_vagas = serializers.BooleanField(required=False, default=True)
+    copy_checklists = serializers.BooleanField(required=False, default=True)
+    copy_tarefas = serializers.BooleanField(required=False, default=True)
+    copy_insumos = serializers.BooleanField(required=False, default=True)
+    copy_financeiro = serializers.BooleanField(required=False, default=True)
+
+    def validate(self, attrs):
+        if attrs['data_fim'] < attrs['data_inicio']:
+            raise serializers.ValidationError("Data fim não pode ser anterior à data início.")
+        return attrs
+
+
+class EventoResumoSerializer(serializers.ModelSerializer):
+    local_nome = serializers.CharField(source='local.nome', read_only=True)
+    empresa_produtora_nome = serializers.CharField(source='empresa_produtora.nome', read_only=True)
+
+    class Meta:
+        model = Evento
+        fields = [
+            'id',
+            'nome',
+            'descricao',
+            'data_inicio',
+            'data_fim',
+            'ativo',
+            'local_nome',
+            'empresa_produtora_nome',
         ]

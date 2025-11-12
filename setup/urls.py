@@ -27,6 +27,9 @@ urlpatterns = [
     # Sistema de autenticação única
     path("api/auth/", include("api_v01.urls.urls")),
     
+    # API Eventos v1 (novo fluxo operacional)
+    path("api/v1/", include("api_v01.urls.eventos")),
+
     # API Mobile
     path("api/v1/", include("api_mobile.urls")),
     
