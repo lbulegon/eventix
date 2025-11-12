@@ -277,26 +277,198 @@ document.querySelectorAll('.nav-item').forEach(el => {
 });
 
 // PWA install prompt handling
-let deferredPrompt;
-const banner = document.getElementById('installBanner');
-const btnInstall = document.getElementById('installBtn');
-const btnDismiss = document.getElementById('dismissInstall');
+let deferredPrompt = null;
 
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  banner.hidden = false;
-});
+// Verifica se o app já está instalado
+function isAppInstalled() {
+  // Verifica se está rodando em modo standalone (instalado)
+  // Este é o modo mais confiável para detectar PWA instalado
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    // Salva no localStorage para referência futura
+    localStorage.setItem('pwa-installed', 'true');
+    return true;
+  }
+  
+  // Verifica no iOS Safari (modo standalone)
+  if (window.navigator.standalone === true) {
+    localStorage.setItem('pwa-installed', 'true');
+    return true;
+  }
+  
+  // Verifica se está em modo fullscreen (outra forma de PWA instalado)
+  if (window.matchMedia('(display-mode: fullscreen)').matches) {
+    localStorage.setItem('pwa-installed', 'true');
+    return true;
+  }
+  
+  // Verifica se foi instalado anteriormente (salvo no localStorage)
+  // Esta é a verificação mais importante para evitar mostrar o banner novamente
+  if (localStorage.getItem('pwa-installed') === 'true') {
+    return true;
+  }
+  
+  return false;
+}
 
-btnInstall?.addEventListener('click', async () => {
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt();
-  await deferredPrompt.userChoice;
-  banner.hidden = true;
-  deferredPrompt = null;
-});
+// Verifica se o usuário já rejeitou a instalação
+function hasUserDismissed() {
+  return localStorage.getItem('pwa-install-dismissed') === 'true';
+}
 
-btnDismiss?.addEventListener('click', ()=> banner.hidden = true);
+// Esconde o banner se já estiver instalado ou se o usuário rejeitou
+function checkInstallStatus() {
+  return isAppInstalled() || hasUserDismissed();
+}
+
+// Atualiza o estado do banner
+function updateBannerState() {
+  const banner = document.getElementById('installBanner');
+  if (!banner) return;
+  
+  if (checkInstallStatus()) {
+    banner.hidden = true;
+  }
+}
+
+// Variável global para o intervalo de verificação
+let installCheckInterval = null;
+
+// Para o intervalo de verificação
+function stopInstallCheck() {
+  if (installCheckInterval) {
+    clearInterval(installCheckInterval);
+    installCheckInterval = null;
+  }
+}
+
+// Inicializa o sistema de instalação PWA
+function initPWAInstall() {
+  const banner = document.getElementById('installBanner');
+  const btnInstall = document.getElementById('installBtn');
+  const btnDismiss = document.getElementById('dismissInstall');
+  
+  if (!banner) return;
+  
+  // Verifica imediatamente se já está instalado ou rejeitado
+  updateBannerState();
+  
+  // Se já estiver instalado, não precisa continuar
+  if (checkInstallStatus()) {
+    return;
+  }
+  
+  // Verifica periodicamente se o app foi instalado (útil se usuário instalou pelo menu do navegador)
+  installCheckInterval = setInterval(() => {
+    if (isAppInstalled()) {
+      updateBannerState();
+      stopInstallCheck();
+    }
+  }, 1000); // Verifica a cada 1 segundo
+  
+  // Para de verificar após 10 segundos para não consumir recursos desnecessariamente
+  setTimeout(() => {
+    stopInstallCheck();
+  }, 10000);
+  
+  // Detecta quando o app é instalado (evento padrão do PWA)
+  window.addEventListener('appinstalled', (evt) => {
+    console.log('PWA instalado com sucesso', evt);
+    localStorage.setItem('pwa-installed', 'true');
+    updateBannerState();
+    deferredPrompt = null;
+    stopInstallCheck();
+  });
+  
+  // Listener para o prompt de instalação
+  window.addEventListener('beforeinstallprompt', (e) => {
+    // Se já estiver instalado ou usuário rejeitou, não mostra
+    if (checkInstallStatus()) {
+      return;
+    }
+    
+    e.preventDefault();
+    deferredPrompt = e;
+    
+    // Mostra o banner apenas se ainda não foi rejeitado e não está instalado
+    if (!hasUserDismissed() && !isAppInstalled() && banner) {
+      // Aguarda um pouco antes de mostrar o banner (deixa usuário ver a página primeiro)
+      setTimeout(() => {
+        if (!checkInstallStatus() && banner) {
+          banner.hidden = false;
+        }
+      }, 3000); // Mostra após 3 segundos
+    }
+  });
+  
+  // Botão de instalação
+  if (btnInstall) {
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        // Se não tiver o prompt, mostra instruções
+        if (window.navigator.userAgent.includes('Android')) {
+          alert('Para instalar o app no Android:\n\n1. Toque no menu (três pontos)\n2. Selecione "Adicionar à tela inicial" ou "Instalar app"');
+        } else {
+          alert('Para instalar o app, use o menu do navegador e selecione "Adicionar à tela inicial"');
+        }
+        return;
+      }
+      
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          console.log('Usuário aceitou a instalação');
+          localStorage.setItem('pwa-installed', 'true');
+        } else {
+          console.log('Usuário rejeitou a instalação');
+        }
+      } catch (error) {
+        console.error('Erro ao instalar PWA:', error);
+      }
+      
+      updateBannerState();
+      deferredPrompt = null;
+    });
+  }
+  
+  // Botão de rejeitar
+  if (btnDismiss) {
+    btnDismiss.addEventListener('click', () => {
+      localStorage.setItem('pwa-install-dismissed', 'true');
+      updateBannerState();
+      deferredPrompt = null;
+    });
+  }
+  
+  // Monitora mudanças na visualização para detectar instalação
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      if (isAppInstalled()) {
+        updateBannerState();
+        stopInstallCheck();
+      }
+    }, 500);
+  });
+  
+  // Verifica quando a página ganha foco (pode indicar que foi instalado)
+  window.addEventListener('focus', () => {
+    if (isAppInstalled()) {
+      updateBannerState();
+      stopInstallCheck();
+    }
+  });
+}
+
+// Inicializa quando o DOM estiver pronto
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPWAInstall);
+} else {
+  // DOM já está carregado
+  initPWAInstall();
+}
 
 // Service worker registration
 if('serviceWorker' in navigator){
