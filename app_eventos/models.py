@@ -443,6 +443,89 @@ class UsuarioGrupo(models.Model):
         return f"{self.usuario.username} - {self.grupo.nome}"
 
 
+class ModuloSistema(models.Model):
+    """
+    Módulos disponíveis no sistema Eventix que podem ser contratados separadamente
+    """
+    CODIGO_MODULO_CHOICES = [
+        ('basico', 'Básico - Mínimo Operável'),
+        ('catering', 'Catering'),
+        ('financeiro', 'Financeiro Avançado'),
+        ('equipamentos', 'Gestão de Equipamentos'),
+        ('estoque', 'Gestão de Estoque'),
+        ('planejamento', 'Planejamento e Produção'),
+        ('operacao', 'Operação em Tempo Real'),
+        ('relatorios', 'Relatórios Avançados'),
+        ('api', 'API e Integrações'),
+    ]
+    
+    codigo = models.CharField(
+        max_length=50, 
+        unique=True, 
+        verbose_name="Código do Módulo",
+        help_text="Código único do módulo (ex: 'catering', 'basico')"
+    )
+    nome = models.CharField(max_length=100, verbose_name="Nome do Módulo")
+    descricao = models.TextField(verbose_name="Descrição do Módulo")
+    
+    # Se é módulo básico (incluído em todos os contratos)
+    modulo_basico = models.BooleanField(
+        default=False,
+        verbose_name="Módulo Básico",
+        help_text="Se True, este módulo está incluído em todos os contratos (mínimo operável)"
+    )
+    
+    # Valor do módulo
+    valor_mensal = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Valor Mensal",
+        help_text="Valor mensal do módulo (0 para módulos básicos)"
+    )
+    valor_anual = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        blank=True, 
+        null=True,
+        verbose_name="Valor Anual",
+        help_text="Valor anual do módulo (opcional)"
+    )
+    
+    # Funcionalidades do módulo
+    funcionalidades = models.JSONField(
+        default=list,
+        verbose_name="Funcionalidades",
+        help_text="Lista de funcionalidades inclusas no módulo"
+    )
+    
+    # Status
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_atualizacao = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "Módulo do Sistema"
+        verbose_name_plural = "Módulos do Sistema"
+        ordering = ['modulo_basico', 'nome']
+    
+    def __str__(self):
+        tipo = "Básico" if self.modulo_basico else "Premium"
+        return f"{self.nome} ({tipo})"
+    
+    def tem_acesso(self, empresa_contratante):
+        """
+        Verifica se uma empresa contratante tem acesso a este módulo
+        """
+        if self.modulo_basico:
+            return True
+        
+        if not empresa_contratante or not empresa_contratante.ativo:
+            return False
+        
+        return empresa_contratante.modulos_contratados.filter(id=self.id).exists()
+
+
 class PlanoContratacao(models.Model):
     """
     Planos de contratação disponíveis para o sistema Eventix
@@ -567,6 +650,15 @@ class EmpresaContratante(models.Model):
     )
     valor_mensal = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor Mensal")
     
+    # Módulos Contratados
+    modulos_contratados = models.ManyToManyField(
+        ModuloSistema,
+        related_name="empresas_contratantes",
+        verbose_name="Módulos Contratados",
+        blank=True,
+        help_text="Módulos adicionais contratados pela empresa"
+    )
+    
     # Status
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
     data_atualizacao = models.DateTimeField(auto_now=True)
@@ -587,6 +679,33 @@ class EmpresaContratante(models.Model):
     def eventos_ativos(self):
         """Retorna eventos ativos da empresa"""
         return self.eventos.filter(ativo=True)
+    
+    def tem_modulo(self, codigo_modulo):
+        """
+        Verifica se a empresa tem acesso a um módulo específico
+        """
+        if not self.ativo:
+            return False
+        
+        try:
+            modulo = ModuloSistema.objects.get(codigo=codigo_modulo, ativo=True)
+            return modulo.tem_acesso(self)
+        except ModuloSistema.DoesNotExist:
+            return False
+    
+    def tem_modulo_catering(self):
+        """
+        Verifica se a empresa tem acesso ao módulo de catering
+        """
+        return self.tem_modulo('catering')
+    
+    def get_modulos_disponiveis(self):
+        """
+        Retorna todos os módulos disponíveis para a empresa (básicos + contratados)
+        """
+        modulos_basicos = ModuloSistema.objects.filter(modulo_basico=True, ativo=True)
+        modulos_contratados = self.modulos_contratados.filter(ativo=True)
+        return modulos_basicos.union(modulos_contratados)
 
 
 class TipoEmpresa(models.Model):

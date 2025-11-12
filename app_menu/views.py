@@ -1,17 +1,23 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from app_eventos.models import Evento
+from app_eventos.permissions.permissions_modulos import RequerModuloMixin
 
 from .models import FichaTecnica, Menu, Prato
 from .serializers import FichaTecnicaSerializer, MenuSerializer, PratoSerializer
 
 
-class BaseEventoView(APIView):
+class BaseEventoView(RequerModuloMixin, APIView):
+    """
+    View base que requer acesso ao módulo de catering
+    """
     permission_classes = [IsAuthenticated]
+    codigo_modulo = 'catering'  # Requer módulo de catering
 
     def get_evento(self, request, evento_id: int) -> Evento:
         queryset = Evento.objects.all()

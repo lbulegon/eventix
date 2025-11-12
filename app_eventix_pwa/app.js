@@ -19,7 +19,9 @@ const titleEl = document.getElementById('app-title');
 const backBtn = document.getElementById('backBtn');
 
 function setTitle(t){ titleEl.textContent = t; }
-function setBack(show){ backBtn.hidden = !show; }
+function setBack(show){ 
+  if(backBtn) backBtn.hidden = !show; 
+}
 function setActiveTab(path){
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.dataset.path === path);
@@ -29,47 +31,76 @@ function setActiveTab(path){
 // Views
 function Home(){
   setTitle('Eventix');
-  setBack(true); // to mimic the screenshots with back chevron visible sometimes
+  setBack(false);
+  const userName = getUserName() || 'Usuário';
   return `
-  <div class="grid">
-    <div class="card">
-      <div class="title-lg">Olá, <span class="muted">!</span></div>
-      <div class="subtitle">Bem-vindo ao Eventix</div>
+    <div class="welcome-card">
+      <h2>Olá, ${userName}!</h2>
+      <p>Bem-vindo ao Eventix</p>
     </div>
-    <div class="card row" style="justify-content:space-between;">
-      <div>
-        <div class="title-lg">Oportunidades e recomendações</div>
-        <div class="subtitle">Vagas escolhidas especialmente para você</div>
+    
+    <div class="action-card" onclick="router.go('/vagas/recomendadas')" style="margin-bottom:12px;">
+      <svg class="action-card-icon" viewBox="0 0 24 24" width="32" height="32">
+        <path fill="currentColor" d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+      </svg>
+      <div class="action-card-title">Oportunidades e recomendações</div>
+      <div class="action-card-subtitle">Vagas escolhidas especialmente para você</div>
+    </div>
+    
+    <div class="cards-row" style="margin-bottom:12px;">
+      <div class="action-card" onclick="router.go('/vagas')">
+        <svg class="action-card-icon" viewBox="0 0 24 24" width="32" height="32">
+          <path fill="currentColor" d="M14 6V4H6v2H2v14h20V6h-8zM6 8h12v10H6V8z"/>
+        </svg>
+        <div class="action-card-title">Todas as Vagas</div>
+        <div class="action-card-subtitle">Buscar oportunidades</div>
       </div>
-      <button class="btn" onclick="router.go('/vagas/recomendadas')">Ver</button>
-    </div>
-    <div class="card row" style="justify-content:space-between;">
-      <div>
-        <div class="title-lg">Todas as Vagas</div>
-        <div class="subtitle">Buscar oportunidades</div>
+      <div class="action-card" onclick="router.go('/candidaturas')">
+        <svg class="action-card-icon" viewBox="0 0 24 24" width="32" height="32">
+          <path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v14l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/>
+        </svg>
+        <div class="action-card-title">Minhas Candidaturas</div>
+        <div class="action-card-subtitle">Acompanhe status</div>
       </div>
-      <button class="btn" onclick="router.go('/vagas')">Buscar</button>
     </div>
-    <div class="card row" style="justify-content:space-between;">
-      <div>
-        <div class="title-lg">Minhas Candidaturas</div>
-        <div class="subtitle">Acompanhe status</div>
-      </div>
-      <button class="btn" onclick="router.go('/candidaturas')">Abrir</button>
+    
+    <div class="action-card" onclick="router.go('/funcoes')">
+      <svg class="action-card-icon" viewBox="0 0 24 24" width="32" height="32">
+        <path fill="currentColor" d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+      </svg>
+      <div class="action-card-title">Funções</div>
+      <div class="action-card-subtitle">Configure suas especialidades</div>
     </div>
-    <div class="card row" style="justify-content:space-between;">
-      <div>
-        <div class="title-lg">Funções</div>
-        <div class="subtitle">Configure suas especialidades</div>
-      </div>
-      <button class="btn" onclick="router.go('/funcoes')">Configurar</button>
-    </div>
-  </div>`;
+  `;
+}
+
+function getUserName(){
+  // Tenta obter o nome do usuário do localStorage ou de uma API
+  try {
+    const user = localStorage.getItem('user');
+    if(user){
+      const userData = JSON.parse(user);
+      return userData.nome || userData.name || null;
+    }
+  } catch(e){
+    console.error('Erro ao obter nome do usuário:', e);
+  }
+  return null;
+}
+
+function handleLogout(){
+  if(confirm('Tem certeza que deseja sair?')){
+    // Limpar dados do usuário
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    // Redirecionar para login
+    window.location.href = '/';
+  }
 }
 
 function VagasList(){
   setTitle('Vagas Disponíveis');
-  setBack(true);
+  setBack(false);
   return `
     <div class="search">
       <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM9.5 14C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
@@ -92,7 +123,7 @@ function VagasList(){
 
 function Candidaturas(){
   setTitle('Minhas Candidaturas');
-  setBack(true);
+  setBack(false);
   return `
     <div class="empty">
       <div class="icon">
@@ -106,7 +137,7 @@ function Candidaturas(){
 
 function Funcoes(){
   setTitle('Minhas Funções');
-  setBack(true);
+  setBack(false);
   const tabs = [
     {key:'buscar', label:'Buscar Funções', content:`
       <div class="empty">
@@ -136,7 +167,7 @@ function Funcoes(){
 
 function Notificacoes(){
   setTitle('Notificações');
-  setBack(true);
+  setBack(false);
   return `
     <div class="empty">
       <div class="icon">
@@ -150,7 +181,7 @@ function Notificacoes(){
 
 function VagasParaVoce(){
   setTitle('Vagas para Você');
-  setBack(true);
+  setBack(false);
   const tabs = [
     {key:'recomendadas', label:'Recomendadas'},
     {key:'em-alta', label:'Em Alta'},
@@ -172,7 +203,7 @@ function VagasParaVoce(){
 
 function Perfil(){
   setTitle('Perfil');
-  setBack(true);
+  setBack(false);
   return `
     <div class="card">
       <div class="title-lg">Seu Perfil</div>
@@ -191,16 +222,53 @@ function Perfil(){
 // Render
 function render(path){
   const app = document.getElementById('app');
-  setActiveTab(path === '/' ? '/' : path.split('/')[1].startsWith('vagas')? '/vagas':'/'+path.split('/')[1]);
+  const pathParts = path.split('/').filter(p => p);
+  let activePath = '/';
+  
+  if(path === '/') {
+    activePath = '/';
+  } else if(pathParts[0] === 'vagas') {
+    activePath = '/vagas';
+  } else if(pathParts[0] === 'candidaturas') {
+    activePath = '/candidaturas';
+  } else if(pathParts[0] === 'perfil') {
+    activePath = '/perfil';
+  }
+  
+  setActiveTab(activePath);
+  
   switch(true){
-    case path === '/': app.innerHTML = Home(); break;
-    case path.startsWith('/vagas/recomendadas') || path.startsWith('/vagas/em-alta') || path.startsWith('/vagas/urgentes'): app.innerHTML = VagasParaVoce(); break;
-    case path.startsWith('/vagas'): app.innerHTML = VagasList(); break;
-    case path.startsWith('/candidaturas'): app.innerHTML = Candidaturas(); break;
-    case path.startsWith('/funcoes'): app.innerHTML = Funcoes(); break;
-    case path.startsWith('/notificacoes'): app.innerHTML = Notificacoes(); break;
-    case path.startsWith('/perfil'): app.innerHTML = Perfil(); break;
-    default: app.innerHTML = Home();
+    case path === '/': 
+      setBack(false);
+      app.innerHTML = Home(); 
+      break;
+    case path.startsWith('/vagas/recomendadas') || path.startsWith('/vagas/em-alta') || path.startsWith('/vagas/urgentes'): 
+      setBack(true);
+      app.innerHTML = VagasParaVoce(); 
+      break;
+    case path.startsWith('/vagas'): 
+      setBack(false);
+      app.innerHTML = VagasList(); 
+      break;
+    case path.startsWith('/candidaturas'): 
+      setBack(false);
+      app.innerHTML = Candidaturas(); 
+      break;
+    case path.startsWith('/funcoes'): 
+      setBack(false);
+      app.innerHTML = Funcoes(); 
+      break;
+    case path.startsWith('/notificacoes'): 
+      setBack(true);
+      app.innerHTML = Notificacoes(); 
+      break;
+    case path.startsWith('/perfil'): 
+      setBack(false);
+      app.innerHTML = Perfil(); 
+      break;
+    default: 
+      setBack(false);
+      app.innerHTML = Home();
   }
 }
 

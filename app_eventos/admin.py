@@ -2,7 +2,7 @@
 from django import forms
 from .admin_restricoes import AdminRestricoesMixin
 from .models import (
-    User, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
+    User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
@@ -49,6 +49,44 @@ class ScopedAdmin(admin.ModelAdmin):
             return qs.filter(empresa_contratante=u.empresa_contratante)
         return qs.none() if not u.is_superuser else qs
 
+@admin.register(ModuloSistema)
+class ModuloSistemaAdmin(admin.ModelAdmin, AdminRestricoesMixin):
+    """
+    Admin para gerenciar módulos do sistema
+    """
+    list_display = ('nome', 'codigo', 'modulo_basico', 'valor_mensal', 'ativo', 'data_criacao')
+    list_filter = ('modulo_basico', 'ativo', 'data_criacao')
+    search_fields = ('nome', 'codigo', 'descricao')
+    readonly_fields = ('data_criacao', 'data_atualizacao')
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('codigo', 'nome', 'descricao', 'modulo_basico', 'ativo')
+        }),
+        ('Preços', {
+            'fields': ('valor_mensal', 'valor_anual'),
+            'description': 'Valor 0 para módulos básicos (incluídos em todos os contratos)'
+        }),
+        ('Funcionalidades', {
+            'fields': ('funcionalidades',),
+            'description': 'Lista de funcionalidades inclusas no módulo (formato JSON)'
+        }),
+        ('Metadados', {
+            'fields': ('data_criacao', 'data_atualizacao'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        """
+        Código não pode ser alterado após criação
+        """
+        readonly = list(self.readonly_fields)
+        if obj:  # Se está editando um objeto existente
+            readonly.append('codigo')
+        return readonly
+
+
 @admin.register(PlanoContratacao)
 class PlanoContratacaoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
     list_display = ('nome', 'tipo_plano', 'valor_mensal', 'max_eventos_mes', 'max_usuarios', 'ativo')
@@ -77,11 +115,12 @@ class PlanoContratacaoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
 
 @admin.register(EmpresaContratante)
 class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
-    list_display = ('nome_fantasia', 'cnpj', 'plano_contratado', 'valor_mensal', 'ativo', 'data_vencimento')
-    list_filter = ('ativo', 'plano_contratado__tipo_plano', 'data_contratacao')
+    list_display = ('nome_fantasia', 'cnpj', 'plano_contratado', 'valor_mensal', 'modulos_count', 'ativo', 'data_vencimento')
+    list_filter = ('ativo', 'plano_contratado__tipo_plano', 'data_contratacao', 'modulos_contratados')
     search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email')
     readonly_fields = ('data_contratacao', 'data_atualizacao')
     autocomplete_fields = ('plano_contratado',)
+    filter_horizontal = ('modulos_contratados',)
     
     fieldsets = (
         ("Informações Básicas", {
@@ -96,10 +135,23 @@ class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
         ("Contrato", {
             "fields": ("data_contratacao", "data_vencimento", "plano_contratado", "valor_mensal")
         }),
+        ("Módulos Contratados", {
+            "fields": ("modulos_contratados",),
+            "description": "Selecione os módulos adicionais contratados pela empresa. Módulos básicos estão incluídos automaticamente."
+        }),
         ("Status", {
             "fields": ("ativo", "data_atualizacao")
         }),
     )
+    
+    def modulos_count(self, obj):
+        """
+        Retorna o número de módulos contratados
+        """
+        total = obj.modulos_contratados.count()
+        modulos_basicos = ModuloSistema.objects.filter(modulo_basico=True, ativo=True).count()
+        return f"{total + modulos_basicos} ({modulos_basicos} básicos + {total} adicionais)"
+    modulos_count.short_description = "Módulos"
 
 
 @admin.register(User)
