@@ -30,6 +30,11 @@ def _ensure_freelancer_profile(user):
 
 def login_freelancer(request):
     """Login do freelancer"""
+    # Se já estiver autenticado e for freelancer, redirecionar para o dashboard
+    if request.user.is_authenticated:
+        if hasattr(request.user, 'freelance') or request.user.tipo_usuario == 'freelancer':
+            return redirect('freelancer_publico:dashboard')
+    
     if request.method == 'POST':
         email = request.POST.get('email')
         senha = request.POST.get('senha')
