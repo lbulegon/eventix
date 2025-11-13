@@ -52,12 +52,55 @@
     </button>
   </nav>
 
-  <div id="installBanner" class="install-banner" hidden>
+  <div id="installBanner" class="install-banner" hidden style="display: none;">
     <span>Adicione o Eventix à tela inicial para acessar vagas com mais rapidez</span>
     <button class="btn" id="installBtn">Instalar</button>
     <button class="btn btn-text" id="dismissInstall">Agora não</button>
   </div>
 
+  <script>
+    // Script inline para esconder banner IMEDIATAMENTE se já estiver instalado
+    // Executa ANTES do app.js carregar
+    (function() {
+      try {
+        // Verifica localStorage primeiro (mais rápido)
+        if (localStorage.getItem('pwa-installed') === 'true' || 
+            localStorage.getItem('pwa-install-dismissed') === 'true') {
+          const banner = document.getElementById('installBanner');
+          if (banner) {
+            banner.hidden = true;
+            banner.style.display = 'none';
+          }
+          return;
+        }
+        
+        // Verifica se está em modo standalone
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+          localStorage.setItem('pwa-installed', 'true');
+          const banner = document.getElementById('installBanner');
+          if (banner) {
+            banner.hidden = true;
+            banner.style.display = 'none';
+          }
+          return;
+        }
+        
+        // Verifica no iOS
+        if (window.navigator.standalone === true) {
+          localStorage.setItem('pwa-installed', 'true');
+          const banner = document.getElementById('installBanner');
+          if (banner) {
+            banner.hidden = true;
+            banner.style.display = 'none';
+          }
+          return;
+        }
+      } catch (e) {
+        // Ignora erros
+      }
+    })();
+  </script>
+  
   <script src="/app.js"></script>
 </body>
 </html>
