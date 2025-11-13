@@ -44,9 +44,9 @@
               <i class="fas fa-chart-line fa-2x text-info mb-3"></i>
               <h5 class="card-title">Gestão</h5>
               <p class="card-text text-muted">Controle financeiro e operacional completo</p>
-              <a href="{% url 'dashboard_empresa:login_empresa' %}" class="btn btn-info btn-sm mt-2">
+              <button onclick="redirectToEmpresa()" class="btn btn-info btn-sm mt-2">
                 <i class="fas fa-sign-in-alt me-1"></i>Área da Empresa
-              </a>
+              </button>
             </div>
           </div>
         </div>
@@ -56,26 +56,70 @@
 </div>
 
 <script>
+/**
+ * Detecção de dispositivo e navegador para redirecionamento PWA
+ */
+
 function isAndroid() {
   // Detecção de Android através do user agent
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-  return /android/i.test(userAgent);
+  const isAndroidDevice = /android/i.test(userAgent);
+  
+  // Log para debug (remover em produção se necessário)
+  if (isAndroidDevice) {
+    console.log('[Eventix] Dispositivo Android detectado:', userAgent);
+  }
+  
+  return isAndroidDevice;
 }
 
 function isMobile() {
   // Detecção de dispositivo móvel (Android, iOS, etc)
   const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-  return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+  const isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent.toLowerCase());
+  
+  // Log para debug
+  if (isMobileDevice) {
+    console.log('[Eventix] Dispositivo móvel detectado:', userAgent);
+  }
+  
+  return isMobileDevice;
+}
+
+function isStandalone() {
+  // Verifica se o PWA já está instalado (modo standalone)
+  return window.matchMedia('(display-mode: standalone)').matches || 
+         window.navigator.standalone === true;
 }
 
 function redirectToFreelancer() {
   // Se for Android ou dispositivo móvel, redireciona para o PWA
   if (isAndroid() || isMobile()) {
+    console.log('[Eventix] Redirecionando freelancer para PWA');
     window.location.href = "{% url 'freelancer_publico:pwa' %}";
   } else {
     // Se for desktop, redireciona para o login (ou dashboard se já estiver logado)
     // A view de login já trata o redirecionamento se o usuário estiver autenticado
+    console.log('[Eventix] Redirecionando freelancer para login web');
     window.location.href = "{% url 'freelancer_publico:login' %}";
+  }
+}
+
+function redirectToEmpresa() {
+  // Detecção melhorada: Android OU dispositivo móvel OU PWA já instalado
+  const shouldUsePWA = isAndroid() || isMobile() || isStandalone();
+  
+  if (shouldUsePWA) {
+    console.log('[Eventix] Redirecionando empresa para PWA');
+    console.log('[Eventix] - Android:', isAndroid());
+    console.log('[Eventix] - Mobile:', isMobile());
+    console.log('[Eventix] - Standalone:', isStandalone());
+    window.location.href = "{% url 'dashboard_empresa:pwa' %}";
+  } else {
+    // Se for desktop, redireciona para o login (ou dashboard se já estiver logado)
+    // A view de login já trata o redirecionamento se o usuário estiver autenticado
+    console.log('[Eventix] Redirecionando empresa para login web');
+    window.location.href = "{% url 'dashboard_empresa:login_empresa' %}";
   }
 }
 </script>

@@ -61,6 +61,20 @@ def logout_empresa(request):
     return redirect('home')
 
 
+def empresa_pwa(request):
+    """
+    PWA da empresa (interface baseada no app Flutter)
+    Renderiza o template do PWA da empresa
+    """
+    empresa = None
+    if request.user.is_authenticated:
+        if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+            if hasattr(request.user, 'empresa_contratante') and request.user.empresa_contratante:
+                empresa = request.user.empresa_contratante
+    
+    return render(request, 'empresa/pwa.html', {'empresa': empresa})
+
+
 @login_required(login_url='/empresa/login/')
 def test_dashboard(request):
     """

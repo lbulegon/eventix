@@ -1,0 +1,152 @@
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eventix Empresa</title>
+  <meta name="theme-color" content="#0EA5E9">
+  <link rel="manifest" href="{% static 'empresa_pwa/manifest.webmanifest' %}">
+  <link rel="icon" href="{% static 'icons/icon-192x192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-192x192.png' %}">
+  <link rel="stylesheet" href="{% static 'empresa_pwa/styles.css' %}">
+  <script>
+    (function() {
+      try {
+        if (localStorage.getItem('pwa-installed') === 'true' || 
+            localStorage.getItem('pwa-install-dismissed') === 'true') {
+          const banner = document.getElementById('installBanner');
+          if (banner) {
+            banner.hidden = true;
+            banner.style.display = 'none';
+          }
+          return;
+        }
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+          localStorage.setItem('pwa-installed', 'true');
+          const banner = document.getElementById('installBanner');
+          if (banner) {
+            banner.hidden = true;
+            banner.style.display = 'none';
+          }
+          return;
+        }
+        if (window.navigator.standalone === true) {
+          localStorage.setItem('pwa-installed', 'true');
+          const banner = document.getElementById('installBanner');
+          if (banner) {
+            banner.hidden = true;
+            banner.style.display = 'none';
+          }
+          return;
+        }
+      } catch (e) {
+        // Ignora erros
+      }
+    })();
+  </script>
+</head>
+<body>
+  <header id="app-header" class="app-bar">
+    <button class="icon-btn" id="backBtn" aria-label="voltar" onclick="router.back()" hidden>
+      <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M15.41 7.41 14 6 8 12l6 6 1.41-1.41L10.83 12Z"/></svg>
+    </button>
+    <h1 id="app-title">Eventix Empresa</h1>
+    <div class="app-actions">
+      <button class="icon-btn" id="notifBtn" aria-label="notificações" onclick="router.go('/notificacoes')">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2zm6-6V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2z"/></svg>
+      </button>
+      <button class="icon-btn" id="refreshBtn" aria-label="atualizar">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M17.65 6.35A7.95 7.95 0 0 0 12 4V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 12.65-5.65z"/></svg>
+      </button>
+      <button class="icon-btn" id="authBtn" aria-label="entrar ou sair">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app" class="app"></main>
+
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-path="/" aria-label="Início">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </div>
+      <span>Início</span>
+    </button>
+    <button class="nav-item" data-path="/eventos" aria-label="Eventos">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20a2 2 0 0 0 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+      </div>
+      <span>Eventos</span>
+    </button>
+    <button class="nav-item" data-path="/vagas" aria-label="Vagas">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M14 6V4H6v2H2v14h20V6h-8zM6 8h12v10H6V8z"/></svg>
+      </div>
+      <span>Vagas</span>
+    </button>
+    <button class="nav-item" data-path="/candidaturas" aria-label="Candidaturas">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M19 3H5a2 2 0 0 0-2 2v16l4-4h12a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+      </div>
+      <span>Candidaturas</span>
+    </button>
+    <button class="nav-item" data-path="/financeiro" aria-label="Financeiro">
+      <div class="nav-icon">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+      </div>
+      <span>Financeiro</span>
+    </button>
+  </nav>
+
+  <div id="installBanner" class="install-banner" hidden role="dialog" aria-modal="true" aria-labelledby="installTitle">
+    <div class="install-modal" tabindex="-1">
+      <h3 id="installTitle">Instalar o app?</h3>
+      <p>Adicione o Eventix Empresa à tela inicial para acessar sua gestão com mais rapidez.</p>
+      <div class="install-actions">
+        <button class="btn" id="installBtn">Instalar</button>
+        <button class="btn btn-text" id="dismissInstall">Agora não</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loginModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="loginModalTitle">
+    <div class="modal-content">
+      <header class="modal-header">
+        <h2 id="loginModalTitle">Entrar no Eventix</h2>
+        <button class="icon-btn" id="closeLoginModal" aria-label="Fechar">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.7 2.88 18.3 9.17 12 2.88 5.71 4.29 4.3l6.3 6.29L16.89 4.3z"/></svg>
+        </button>
+      </header>
+      <form id="loginForm" class="modal-body">
+        <label class="input-label" for="loginEmail">Email ou usuário</label>
+        <input id="loginEmail" class="input" type="email" autocomplete="username" required>
+
+        <label class="input-label" for="loginPassword">Senha</label>
+        <input id="loginPassword" class="input" type="password" autocomplete="current-password" required minlength="4">
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-text" id="loginCancel">Cancelar</button>
+          <button type="submit" class="btn">Entrar</button>
+        </div>
+        <p class="modal-hint">Use o mesmo login da Área da Empresa.</p>
+      </form>
+    </div>
+  </div>
+
+  <div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    window.EVENTIX_PWA_CONFIG = {
+      staticBase: "{% static 'empresa_pwa/' %}",
+      swUrl: "{% static 'empresa_pwa/sw.js' %}",
+      swScope: "{% url 'dashboard_empresa:pwa' %}",
+      empresaName: "{{ empresa.nome_fantasia|default_if_none:''|escapejs }}"
+    };
+  </script>
+  <script src="{% static 'empresa_pwa/app.js' %}"></script>
+</body>
+</html>
+
+

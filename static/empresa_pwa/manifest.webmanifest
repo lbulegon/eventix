@@ -1,0 +1,81 @@
+{
+  "name": "Eventix Empresa",
+  "short_name": "Eventix Emp",
+  "description": "Experiência PWA da empresa Eventix com gestão de eventos, vagas e candidaturas.",
+  "start_url": "/empresa/app/",
+  "scope": "/empresa/app/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0EA5E9",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Criar evento",
+      "short_name": "Novo evento",
+      "description": "Criar um novo evento.",
+      "url": "/empresa/app/#/eventos/criar",
+      "icons": [
+        {
+          "src": "/static/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Candidaturas",
+      "short_name": "Candidaturas",
+      "description": "Visualizar candidaturas recebidas.",
+      "url": "/empresa/app/#/candidaturas",
+      "icons": [
+        {
+          "src": "/static/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Financeiro",
+      "short_name": "Financeiro",
+      "description": "Acessar dashboard financeiro.",
+      "url": "/empresa/app/#/financeiro",
+      "icons": [
+        {
+          "src": "/static/icons/icon-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
+
+
