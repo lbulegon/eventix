@@ -470,38 +470,6 @@ function buildHomeHTML() {
         .join('')
     : '<p class="subtitle">Você ainda não possui candidaturas. Candidate-se em uma vaga para acompanhar aqui.</p>';
   return `
-    <section class="hero-card home-hero">
-      <div class="hero-top">
-        <div class="hero-avatar">${inicial}</div>
-        <div>
-          <p class="hero-eyebrow">Bem-vindo de volta</p>
-          <h2 class="hero-title">Olá, ${primeiroNome} 👋</h2>
-          <p class="hero-subtitle">Gerencie suas oportunidades e candidaturas em tempo real.</p>
-        </div>
-      </div>
-      <div class="hero-stats">
-        <div>
-          <span>Vagas ativas</span>
-          <strong>${vagasAtivas}</strong>
-        </div>
-        <div>
-          <span>Candidaturas</span>
-          <strong>${totalCandidaturas}</strong>
-        </div>
-        <div>
-          <span>Pendentes</span>
-          <strong>${pendentes}</strong>
-        </div>
-        <div>
-          <span>Aprovadas</span>
-          <strong>${aprovadas}</strong>
-        </div>
-      </div>
-      <div class="hero-actions">
-        <button class="btn btn-light" data-path="/vagas">Buscar vagas</button>
-        <button class="btn btn-text" data-path="/candidaturas">Minhas candidaturas</button>
-      </div>
-    </section>
     <section class="quick-grid">${quickGrid}</section>
     <section class="home-section">
       <header>
