@@ -20,8 +20,9 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/admin/logout/',
             '/accounts/login/',
             '/accounts/logout/',
-            '/empresa/login/',  # Login do dashboard empresa
-            '/empresa/logout/',  # Logout do dashboard empresa
+            '/empresa/',  # Dashboard empresa - views tratam auth com @login_required
+            '/empresa/login/',
+            '/empresa/logout/',
             '/freelancer-publico/login/',  # Login do freelancer
             '/freelancer-publico/logout/',  # Logout do freelancer
             '/freelancer-publico/evento/',  # Eventos públicos (sem login)
@@ -170,10 +171,6 @@ class EmpresaContextMiddleware(MiddlewareMixin):
                     request.user.data_ultimo_acesso = timezone.now()
                     request.user.save(update_fields=['data_ultimo_acesso'])
                     
-                    print(f"🏢 Dados da empresa carregados: {empresa.nome_fantasia} (ID: {empresa.id})")
-                    print(f"👤 Usuário: {request.user.username} - {request.user.tipo_usuario}")
-                    
-        except Exception as e:
-            print(f"❌ Erro ao carregar dados da empresa: {e}")
+        except Exception:
             # Em caso de erro, não bloqueia o acesso
             request.empresa_contratante = None
