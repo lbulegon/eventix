@@ -23,8 +23,9 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/empresa/',  # Dashboard empresa - views tratam auth com @login_required
             '/empresa/login/',
             '/empresa/logout/',
-            '/freelancer-publico/login/',  # Login do freelancer
-            '/freelancer-publico/logout/',  # Logout do freelancer
+            '/freelancer/',  # Dashboard, login e rotas do freelancer (views tratam auth)
+            '/freelancer-publico/login/',  # Login do freelancer (legado)
+            '/freelancer-publico/logout/',  # Logout do freelancer (legado)
             '/freelancer-publico/evento/',  # Eventos públicos (sem login)
             '/freelancer-publico/vaga/',  # Vagas públicas (sem login)
             '/eventos/',  # Lista pública de eventos
