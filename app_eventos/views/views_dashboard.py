@@ -23,7 +23,7 @@ def dashboard_redirect(request):
     elif user.is_empresa_user:
         return redirect('dashboard_empresa')
     elif user.is_freelancer:
-        return redirect('dashboard_freelancer')
+        return redirect('freelancer_publico:dashboard')
     else:
         messages.error(request, 'Tipo de usuário não reconhecido.')
         return redirect('home')

@@ -9,7 +9,7 @@ from app_eventos import views
 from app_eventos.views.views_equipamentos_web import equipamentos_setor
 from app_eventos.views.views_dashboard import (
     dashboard_redirect, dashboard_empresa, 
-    dashboard_freelancer, dashboard_admin_sistema, fluxo_caixa_evento, fornecedores_list
+    dashboard_admin_sistema, fluxo_caixa_evento, fornecedores_list
 )
 from app_eventos.views_pwa import service_worker, manifest_json
 
@@ -42,7 +42,7 @@ urlpatterns = [
     # Dashboards
     path("dashboard/", dashboard_redirect, name="dashboard_redirect"),
     path("empresa/dashboard/", dashboard_empresa, name="dashboard_empresa"),
-    path("freelancer/dashboard/", dashboard_freelancer, name="dashboard_freelancer"),
+    # /freelancer/dashboard/ via include urls_freelancer_publico (login_url='/freelancer/login/')
     path("admin-sistema/dashboard/", dashboard_admin_sistema, name="dashboard_admin_sistema"),
     
     # Fluxo de Caixa
