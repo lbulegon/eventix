@@ -18,13 +18,14 @@ from django.shortcuts import get_object_or_404
 
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa, 
-    EmpresaContratante, SetorEvento, Funcao
+    EmpresaContratante, SetorEvento, Funcao, PontoOperacao
 )
 from .serializers import (
     VagaSerializer, CandidaturaSerializer, EventoSerializer,
     FreelanceSerializer, EmpresaSerializer, EmpresaContratanteSerializer,
     UserProfileSerializer, PreCadastroFreelancerSerializer,
-    PasswordResetSerializer, PasswordResetConfirmSerializer
+    PasswordResetSerializer, PasswordResetConfirmSerializer,
+    PontoOperacaoSerializer
 )
 
 User = get_user_model()
@@ -39,7 +40,7 @@ class VagaViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         queryset = Vaga.objects.filter(ativa=True).select_related(
-            'setor__evento', 'funcao'
+            'setor__evento', 'funcao', 'ponto_operacao'
         )
         
         # Filtros
@@ -49,13 +50,19 @@ class VagaViewSet(viewsets.ReadOnlyModelViewSet):
         search = self.request.query_params.get('search')
         
         if evento_id:
-            queryset = queryset.filter(setor__evento_id=evento_id)
+            queryset = queryset.filter(
+                Q(setor__evento_id=evento_id) | Q(evento_id=evento_id)
+            )
         
         if funcao_id:
             queryset = queryset.filter(funcao_id=funcao_id)
         
         if cidade:
-            queryset = queryset.filter(setor__evento__local__cidade__icontains=cidade)
+            queryset = queryset.filter(
+                Q(setor__evento__local__cidade__icontains=cidade) |
+                Q(evento__local__cidade__icontains=cidade) |
+                Q(ponto_operacao__cidade__icontains=cidade)
+            )
         
         if search:
             queryset = queryset.filter(
@@ -64,7 +71,7 @@ class VagaViewSet(viewsets.ReadOnlyModelViewSet):
                 Q(funcao__nome__icontains=search)
             )
         
-        return queryset.order_by('-setor__evento__data_inicio')
+        return queryset.order_by('-data_criacao')
 
 
 class CandidaturaViewSet(viewsets.ModelViewSet):
@@ -213,6 +220,30 @@ class EventoViewSet(viewsets.ModelViewSet):
         
         serializer = self.get_serializer(eventos, many=True)
         return Response(serializer.data)
+
+
+class PontoOperacaoViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet para gerenciar pontos de operação (restaurantes, operação diária)
+    """
+    serializer_class = PontoOperacaoSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_empresa_user:
+            return PontoOperacao.objects.filter(
+                empresa_contratante=user.empresa_contratante
+            )
+        elif user.is_admin_sistema:
+            return PontoOperacao.objects.all()
+        return PontoOperacao.objects.none()
+    
+    def perform_create(self, serializer):
+        user = self.request.user
+        if not user.is_empresa_user:
+            raise serializers.ValidationError("Apenas empresas podem criar pontos de operação")
+        serializer.save(empresa_contratante=user.empresa_contratante)
 
 
 class FreelanceViewSet(viewsets.ModelViewSet):

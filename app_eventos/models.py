@@ -1193,6 +1193,50 @@ class SetorEvento(models.Model):
         return f"{self.nome} - {self.evento.nome}"
 
 
+class PontoOperacao(models.Model):
+    """
+    Ponto de operação permanente - estabelecimento com necessidades contínuas.
+    Ex: restaurante, operação diária, lugar fixo que não precisa abrir evento toda vez.
+    Vagas podem ser criadas diretamente no ponto, sem evento nem setor.
+    """
+    empresa_contratante = models.ForeignKey(
+        EmpresaContratante,
+        on_delete=models.CASCADE,
+        related_name="pontos_operacao",
+        verbose_name="Empresa Contratante"
+    )
+    nome = models.CharField(
+        max_length=200,
+        verbose_name="Nome",
+        help_text="Ex: Restaurante Centro - Operação Diária"
+    )
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    endereco = models.CharField(max_length=255, verbose_name="Endereço")
+    cidade = models.CharField(max_length=100, verbose_name="Cidade")
+    uf = models.CharField(max_length=2, verbose_name="UF")
+    cep = models.CharField(max_length=9, blank=True, null=True, verbose_name="CEP")
+    local = models.ForeignKey(
+        LocalEvento,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pontos_operacao",
+        verbose_name="Local (opcional)",
+        help_text="Vincule a um LocalEvento existente, ou use endereço acima"
+    )
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+    data_atualizacao = models.DateTimeField(auto_now=True, verbose_name="Data de Atualização")
+
+    class Meta:
+        verbose_name = "Ponto de Operação"
+        verbose_name_plural = "Pontos de Operação"
+        ordering = ['nome']
+
+    def __str__(self):
+        return f"{self.nome} - {self.empresa_contratante.nome_fantasia}"
+
+
 class CategoriaEquipamento(models.Model):
     """
     Categorias de equipamentos (ex: Áudio, Iluminação, Segurança, etc.)
@@ -1472,15 +1516,15 @@ class Vaga(models.Model):
         ('especialista', 'Especialista'),
     ]
     
-    # Relacionamentos - Evento é obrigatório, Setor é opcional
+    # Relacionamentos - Vaga pertence a EVENTO (com setor opcional) OU a PONTO_OPERACAO
     evento = models.ForeignKey(
         'Evento',
         on_delete=models.CASCADE,
         related_name="vagas_diretas",
         verbose_name="Evento",
-        null=True,  # Temporário para migration
+        null=True,
         blank=True,
-        help_text="Evento ao qual a vaga pertence"
+        help_text="Evento ao qual a vaga pertence (deixe vazio se for vaga de Ponto de Operação)"
     )
     setor = models.ForeignKey(
         SetorEvento, 
@@ -1489,7 +1533,16 @@ class Vaga(models.Model):
         null=True,
         blank=True,
         verbose_name="Setor (Opcional)",
-        help_text="Setor específico (deixe vazio para vaga genérica do evento)"
+        help_text="Setor específico do evento (deixe vazio para vaga genérica ou Ponto de Operação)"
+    )
+    ponto_operacao = models.ForeignKey(
+        'PontoOperacao',
+        on_delete=models.CASCADE,
+        related_name="vagas",
+        null=True,
+        blank=True,
+        verbose_name="Ponto de Operação",
+        help_text="Para operação permanente (restaurante, etc.) - sem evento nem setor"
     )
     empresa_contratante = models.ForeignKey(
         EmpresaContratante,
@@ -1540,10 +1593,24 @@ class Vaga(models.Model):
                 check=models.Q(quantidade_preenchida__lte=models.F('quantidade')),
                 name='quantidade_preenchida_lte_quantidade'
             ),
+            # Vaga pertence a evento OU ponto_operacao (nunca ambos, nunca nenhum)
+            models.CheckConstraint(
+                check=(
+                    models.Q(evento__isnull=False, ponto_operacao__isnull=True) |
+                    models.Q(evento__isnull=True, ponto_operacao__isnull=False)
+                ),
+                name='vaga_evento_ou_ponto_operacao'
+            ),
         ]
     
     def __str__(self):
-        return f"{self.titulo} - {self.setor.evento.nome}"
+        if self.ponto_operacao:
+            return f"{self.titulo} - {self.ponto_operacao.nome}"
+        if self.setor:
+            return f"{self.titulo} - {self.setor.evento.nome}"
+        if self.evento:
+            return f"{self.titulo} - {self.evento.nome}"
+        return self.titulo
     
     @property
     def vagas_disponiveis(self):
@@ -1578,6 +1645,40 @@ class Vaga(models.Model):
         if self.quantidade_preenchida > 0:
             self.quantidade_preenchida -= 1
             self.save(update_fields=['quantidade_preenchida'])
+    
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.ponto_operacao:
+            if self.evento or self.setor:
+                raise ValidationError(
+                    "Vaga de Ponto de Operação não pode ter evento nem setor."
+                )
+            if self.empresa_contratante_id and self.empresa_contratante != self.ponto_operacao.empresa_contratante:
+                raise ValidationError(
+                    "Empresa contratante da vaga deve ser a mesma do ponto de operação."
+                )
+            if not self.funcao_id:
+                raise ValidationError(
+                    "Vaga de Ponto de Operação deve ter função definida."
+                )
+        elif self.evento:
+            if self.setor and self.setor.evento_id != self.evento_id:
+                raise ValidationError(
+                    "Setor deve pertencer ao evento da vaga."
+                )
+    
+    @property
+    def origem_display(self):
+        """Retorna descrição da origem da vaga (evento ou ponto de operação)"""
+        if self.ponto_operacao:
+            return f"Ponto de Operação: {self.ponto_operacao.nome}"
+        if self.setor:
+            return f"Evento: {self.setor.evento.nome} - {self.setor.nome}"
+        if self.evento:
+            return f"Evento: {self.evento.nome}"
+        return "—"
+
+
 class Freelance(models.Model):
     VINCULO_CHOICES = [
         ('intermitente', 'Intermitente'),

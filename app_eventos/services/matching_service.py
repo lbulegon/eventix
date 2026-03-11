@@ -29,7 +29,7 @@ class MatchingService:
                 ativa=True,
                 publicada=True,
                 data_limite_candidatura__gte=timezone.now()
-            ).select_related('setor__evento', 'funcao')
+            ).select_related('setor__evento', 'funcao', 'ponto_operacao')
             
             # Filtrar vagas que o freelancer já se candidatou
             candidaturas_existentes = Candidatura.objects.filter(
@@ -179,22 +179,29 @@ class MatchingService:
     @staticmethod
     def _score_localizacao(freelancer: Freelance, vaga: Vaga) -> float:
         """Calcula score baseado na localização"""
-        # Implementar lógica de proximidade geográfica
-        # - Cidade do freelancer vs cidade do evento
+        # - Cidade do freelancer vs cidade do evento/ponto de operação
         # - Distância máxima aceitável
         
         try:
             cidade_freelancer = freelancer.cidade.lower() if freelancer.cidade else ""
-            cidade_evento = vaga.setor.evento.local.cidade.lower() if vaga.setor.evento.local else ""
+            # Vaga pode ser de evento (setor.evento.local) ou ponto de operação
+            if vaga.ponto_operacao:
+                cidade_vaga = vaga.ponto_operacao.cidade.lower() if vaga.ponto_operacao.cidade else ""
+            elif vaga.setor and vaga.setor.evento and vaga.setor.evento.local:
+                cidade_vaga = vaga.setor.evento.local.cidade.lower()
+            elif vaga.evento and vaga.evento.local:
+                cidade_vaga = vaga.evento.local.cidade.lower() if vaga.evento.local.cidade else ""
+            else:
+                cidade_vaga = ""
             
-            if cidade_freelancer == cidade_evento:
+            if cidade_freelancer == cidade_vaga:
                 return 100.0
-            elif cidade_freelancer and cidade_evento:
+            elif cidade_freelancer and cidade_vaga:
                 # TODO: Implementar cálculo de distância real
                 return 70.0
             else:
                 return 30.0
-        except:
+        except Exception:
             return 50.0
     
     @staticmethod
@@ -273,12 +280,16 @@ class VagaRecommendationService:
     
     @staticmethod
     def obter_vagas_por_localizacao(cidade: str, limite: int = 10) -> List[Vaga]:
-        """Retorna vagas por localização"""
+        """Retorna vagas por localização (evento ou ponto de operação)"""
+        from django.db.models import Q
         return Vaga.objects.filter(
             ativa=True,
             publicada=True,
-            data_limite_candidatura__gte=timezone.now(),
-            setor__evento__local__cidade__icontains=cidade
+            data_limite_candidatura__gte=timezone.now()
+        ).filter(
+            Q(setor__evento__local__cidade__icontains=cidade) |
+            Q(evento__local__cidade__icontains=cidade) |
+            Q(ponto_operacao__cidade__icontains=cidade)
         ).order_by('-data_criacao')[:limite]
     
     @staticmethod

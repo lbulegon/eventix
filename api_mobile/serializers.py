@@ -2,7 +2,8 @@
 from rest_framework import serializers
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa, 
-    EmpresaContratante, PlanoContratacao, SetorEvento, Funcao, LocalEvento, FreelancerFuncao
+    EmpresaContratante, PlanoContratacao, SetorEvento, Funcao, LocalEvento, FreelancerFuncao,
+    PontoOperacao
 )
 from django.contrib.auth import get_user_model
 
@@ -111,14 +112,26 @@ class EventoSerializer(serializers.ModelSerializer):
         read_only_fields = ['data_criacao']
 
 
+class PontoOperacaoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PontoOperacao
+        fields = [
+            'id', 'nome', 'descricao', 'endereco', 'cidade', 'uf', 'cep',
+            'local', 'ativo', 'data_criacao', 'data_atualizacao'
+        ]
+        read_only_fields = ['data_criacao', 'data_atualizacao']
+
+
 class VagaSerializer(serializers.ModelSerializer):
     funcao = FuncaoSerializer(read_only=True)
-    funcao_id = serializers.IntegerField(write_only=True)
+    funcao_id = serializers.IntegerField(write_only=True, required=False)
     setor = SetorEventoSerializer(read_only=True)
-    setor_id = serializers.IntegerField(write_only=True)
+    setor_id = serializers.IntegerField(write_only=True, required=False)
+    ponto_operacao = PontoOperacaoSerializer(read_only=True)
+    ponto_operacao_id = serializers.IntegerField(write_only=True, required=False)
     empresa_contratante = EmpresaContratanteSerializer(read_only=True)
     empresa_contratante_id = serializers.IntegerField(write_only=True)
-    evento_nome = serializers.CharField(source='setor.evento.nome', read_only=True)
+    evento_nome = serializers.SerializerMethodField()
     candidaturas_count = serializers.SerializerMethodField()
     remuneracao = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False)
     
@@ -126,13 +139,42 @@ class VagaSerializer(serializers.ModelSerializer):
         model = Vaga
         fields = [
             'id', 'titulo', 'funcao', 'funcao_id', 'setor', 'setor_id',
+            'ponto_operacao', 'ponto_operacao_id',
             'empresa_contratante', 'empresa_contratante_id',
             'quantidade', 'remuneracao', 'descricao', 'ativa',
             'evento_nome', 'candidaturas_count'
         ]
     
+    def get_evento_nome(self, obj):
+        if obj.ponto_operacao:
+            return obj.ponto_operacao.nome
+        if obj.setor and obj.setor.evento:
+            return obj.setor.evento.nome
+        if obj.evento:
+            return obj.evento.nome
+        return None
+    
     def get_candidaturas_count(self, obj):
         return obj.candidaturas.count()
+    
+    def validate(self, attrs):
+        """Vaga deve ter setor (evento) OU ponto_operacao"""
+        tem_setor = attrs.get('setor') or attrs.get('setor_id')
+        tem_ponto = attrs.get('ponto_operacao') or attrs.get('ponto_operacao_id')
+        if not tem_setor and not tem_ponto:
+            # Em update, verificar instance
+            if self.instance:
+                tem_setor = self.instance.setor_id
+                tem_ponto = self.instance.ponto_operacao_id
+            if not tem_setor and not tem_ponto:
+                raise serializers.ValidationError(
+                    "Informe setor (vaga de evento) ou ponto_operacao (operação permanente)."
+                )
+        if tem_setor and tem_ponto:
+            raise serializers.ValidationError(
+                "Vaga deve pertencer a evento OU ponto de operação, não ambos."
+            )
+        return attrs
 
 
 class CandidaturaSerializer(serializers.ModelSerializer):

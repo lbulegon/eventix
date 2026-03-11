@@ -2,7 +2,7 @@
 from django import forms
 from .admin_restricoes import AdminRestricoesMixin
 from .models import (
-    User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, Vaga, Funcao, TipoFuncao,
+    User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao, Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
@@ -341,20 +341,38 @@ class SetorEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
     autocomplete_fields = ('evento',)
 
 
+@admin.register(PontoOperacao)
+class PontoOperacaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome', 'empresa_contratante', 'cidade', 'uf', 'ativo')
+    list_filter = ('ativo', 'empresa_contratante')
+    search_fields = ('nome', 'cidade', 'endereco')
+    autocomplete_fields = ('empresa_contratante', 'local')
+    
+    fieldsets = (
+        ("Informações", {
+            "fields": ("empresa_contratante", "nome", "descricao", "ativo")
+        }),
+        ("Localização", {
+            "fields": ("endereco", "cidade", "uf", "cep", "local"),
+            "description": "Use endereço direto ou vincule a um LocalEvento existente"
+        }),
+    )
+
+
 @admin.register(Vaga)
 class VagaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ('titulo', 'empresa_contratante', 'setor', 'quantidade', 'remuneracao', 'ativa')
+    list_display = ('titulo', 'empresa_contratante', 'origem_display', 'quantidade', 'remuneracao', 'ativa')
     list_filter = ('ativa', 'empresa_contratante', 'setor__evento')
     search_fields = ('titulo',)
-    autocomplete_fields = ('setor', 'empresa_contratante', 'funcao')
+    autocomplete_fields = ('setor', 'ponto_operacao', 'empresa_contratante', 'funcao')
     
     fieldsets = (
         ("Informações da Vaga", {
             "fields": ("titulo", "descricao", "requisitos", "quantidade", "remuneracao")
         }),
-        ("Relacionamentos", {
-            "fields": ("setor", "empresa_contratante", "funcao"),
-            "description": "Empresa Contratante = Operadora (quem cria e contrata freelancers)"
+        ("Origem - Evento OU Ponto de Operação", {
+            "fields": ("evento", "setor", "ponto_operacao", "empresa_contratante", "funcao"),
+            "description": "Vaga de EVENTO (com setor opcional) ou de PONTO DE OPERAÇÃO (restaurante, operação diária)"
         }),
         ("Status", {
             "fields": ("ativa", "publicada", "data_limite_candidatura")

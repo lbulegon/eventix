@@ -20,12 +20,30 @@ User = get_user_model()
 
 
 class VagaSerializer(serializers.ModelSerializer):
-    evento = serializers.CharField(source="setor.evento.nome", read_only=True)
-    empresa = serializers.CharField(source="setor.evento.empresa_contratante.nome_fantasia", read_only=True)
+    evento = serializers.SerializerMethodField()
+    empresa = serializers.SerializerMethodField()
 
     class Meta:
         model = Vaga
         fields = ["id", "titulo", "descricao", "quantidade", "remuneracao", "ativa", "evento", "empresa"]
+
+    def get_evento(self, obj):
+        if obj.ponto_operacao:
+            return obj.ponto_operacao.nome
+        if obj.setor and obj.setor.evento:
+            return obj.setor.evento.nome
+        if obj.evento:
+            return obj.evento.nome
+        return None
+
+    def get_empresa(self, obj):
+        if obj.ponto_operacao:
+            return obj.ponto_operacao.empresa_contratante.nome_fantasia
+        if obj.setor and obj.setor.evento:
+            return obj.setor.evento.empresa_contratante.nome_fantasia
+        if obj.evento:
+            return obj.evento.empresa_contratante.nome_fantasia
+        return obj.empresa_contratante.nome_fantasia if obj.empresa_contratante else None
 
 
 class CandidaturaCreateSerializer(serializers.ModelSerializer):

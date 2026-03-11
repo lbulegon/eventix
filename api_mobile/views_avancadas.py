@@ -34,12 +34,12 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                 ativa=True,
                 publicada=True,
                 data_limite_candidatura__gte=timezone.now()
-            ).select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
+            ).select_related('setor__evento', 'funcao', 'ponto_operacao', 'criado_por', 'empresa_contratante')
         elif user.is_empresa_user:
             # Empresa vê suas próprias vagas
             return Vaga.objects.filter(
                 empresa_contratante=user.empresa_contratante
-            ).select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
+            ).select_related('setor__evento', 'funcao', 'ponto_operacao', 'criado_por', 'empresa_contratante')
         else:
             # Admin vê todas
             return Vaga.objects.all().select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
@@ -49,9 +49,15 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
         if not user.is_empresa_user:
             raise serializers.ValidationError("Apenas empresas podem criar vagas")
         
-        # Define a empresa contratante baseada no setor do evento
-        setor = serializer.validated_data['setor']
-        empresa_contratante = setor.evento.empresa_contratante
+        # Define empresa contratante: do setor/evento ou do ponto de operação
+        setor = serializer.validated_data.get('setor')
+        ponto_operacao = serializer.validated_data.get('ponto_operacao')
+        if ponto_operacao:
+            empresa_contratante = ponto_operacao.empresa_contratante
+        elif setor:
+            empresa_contratante = setor.evento.empresa_contratante
+        else:
+            raise serializers.ValidationError("Informe setor (evento) ou ponto_operacao")
         
         serializer.save(
             criado_por=user,

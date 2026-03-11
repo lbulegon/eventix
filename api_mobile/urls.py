@@ -3,7 +3,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     VagaViewSet, CandidaturaViewSet, EventoViewSet, FreelanceViewSet,
-    EmpresaViewSet, EmpresaContratanteViewSet, UserProfileView, EmpresaDataView,
+    EmpresaViewSet, EmpresaContratanteViewSet, PontoOperacaoViewSet,
+    UserProfileView, EmpresaDataView,
     TokenVerifyView, PasswordResetView, PasswordResetConfirmView,
     CustomTokenObtainPairView, CustomTokenRefreshView,
     RegistrarDeviceTokenView, DesativarNotificacoesView
@@ -20,6 +21,7 @@ router.register(r'eventos', EventoViewSet, basename='evento')
 router.register(r'freelancers', FreelanceViewSet, basename='freelancer')
 router.register(r'empresas', EmpresaViewSet, basename='empresa')
 router.register(r'empresas-contratantes', EmpresaContratanteViewSet, basename='empresa-contratante')
+router.register(r'pontos-operacao', PontoOperacaoViewSet, basename='ponto-operacao')
 router.register(r'funcoes', FuncaoViewSet, basename='funcao')
 router.register(r'freelancers/funcoes', FreelancerFuncaoViewSet, basename='freelancer-funcao')
 
