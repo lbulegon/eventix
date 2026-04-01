@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 
@@ -6,6 +7,7 @@ from django.db.models import Sum
 from rest_framework import serializers
 
 from app_eventos.models import Candidatura, ContratoFreelance, Vaga
+from app_eventos.models_freelancer_empresa import FreelancerPrestacaoServico
 from app_eventos.models_pagamento_freelancers import (
     DIA_SEMANA_FECHAMENTO_CHOICES,
     FichamentoSemanaFreelancer,
@@ -37,6 +39,7 @@ def _periodo_serializer_ok(fichamento, data):
 
 
 class LancamentoPagoDiarioFreelancerSerializer(serializers.ModelSerializer):
+    """Pagamentos diários (coluna Pago da planilha); folga com valor zero."""
     vaga_id = serializers.IntegerField(source='contrato_freelance.vaga_id', read_only=True, allow_null=True)
     vaga_titulo = serializers.CharField(source='contrato_freelance.vaga.titulo', read_only=True, allow_null=True)
 
@@ -75,13 +78,15 @@ class LancamentoPagoDiarioFreelancerSerializer(serializers.ModelSerializer):
 
 
 class LancamentoDescontoFreelancerSerializer(serializers.ModelSerializer):
+    """Descontos: tipo vale (adiantamento), consumo, ou outro — alinhado à planilha."""
+    tipo_label = serializers.CharField(source='get_tipo_display', read_only=True)
     vaga_id = serializers.IntegerField(source='contrato_freelance.vaga_id', read_only=True, allow_null=True)
     vaga_titulo = serializers.CharField(source='contrato_freelance.vaga.titulo', read_only=True, allow_null=True)
 
     class Meta:
         model = LancamentoDescontoFreelancer
         fields = [
-            'id', 'fichamento', 'freelance', 'tipo', 'valor', 'descricao', 'data',
+            'id', 'fichamento', 'freelance', 'tipo', 'tipo_label', 'valor', 'descricao', 'data',
             'contrato_freelance', 'vaga_id', 'vaga_titulo',
         ]
 
@@ -148,6 +153,7 @@ class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):
     data_inicio_periodo = serializers.SerializerMethodField(read_only=True)
     dia_semana_fechamento_efetivo = serializers.SerializerMethodField(read_only=True)
     totais_por_freelance = serializers.SerializerMethodField(read_only=True)
+    resumo_planilha = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = FichamentoSemanaFreelancer
@@ -164,6 +170,7 @@ class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):
             'criado_em',
             'atualizado_em',
             'totais_por_freelance',
+            'resumo_planilha',
         ]
         read_only_fields = ['empresa_contratante', 'criado_em', 'atualizado_em']
 
@@ -177,7 +184,7 @@ class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):
         return {'codigo': d, 'label': dict(DIA_SEMANA_FECHAMENTO_CHOICES).get(d, str(d))}
 
     def get_totais_por_freelance(self, obj):
-        """Resumo bruto, descontos e líquido por freelancer neste fichamento."""
+        """Pago (bruto), vales, consumos, outros descontos e líquido por freelancer."""
         from app_eventos.models import Freelance
 
         brutos = (
@@ -186,17 +193,25 @@ class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):
         )
         map_bruto = {row['freelance_id']: row['total'] or Decimal('0') for row in brutos}
 
-        descs = (
-            obj.lancamentos_desconto.values('freelance_id')
-            .annotate(total=Sum('valor'))
+        desc_rows = obj.lancamentos_desconto.values('freelance_id', 'tipo').annotate(total=Sum('valor'))
+        desc_por_f = defaultdict(
+            lambda: {'vale': Decimal('0'), 'consumo': Decimal('0'), 'outro': Decimal('0')}
         )
-        map_desc = {row['freelance_id']: row['total'] or Decimal('0') for row in descs}
+        for row in desc_rows:
+            fid = row['freelance_id']
+            t = row['tipo']
+            v = row['total'] or Decimal('0')
+            if t in desc_por_f[fid]:
+                desc_por_f[fid][t] = v
 
-        ids = set(map_bruto) | set(map_desc)
+        ids = set(map_bruto) | set(desc_por_f.keys())
         out = []
         for fid in sorted(ids):
             b = map_bruto.get(fid, Decimal('0'))
-            d = map_desc.get(fid, Decimal('0'))
+            dv = desc_por_f[fid]['vale']
+            dc = desc_por_f[fid]['consumo']
+            dout = desc_por_f[fid]['outro']
+            d = dv + dc + dout
             try:
                 nome = Freelance.objects.only('nome_completo').get(pk=fid).nome_completo
             except Freelance.DoesNotExist:
@@ -205,10 +220,31 @@ class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):
                 'freelance_id': fid,
                 'freelance_nome': nome,
                 'total_bruto': str(b),
+                'total_vales': str(dv),
+                'total_consumos': str(dc),
+                'total_outros_descontos': str(dout),
                 'total_descontos': str(d),
                 'a_pagar': str(b - d),
             })
         return out
+
+    def get_resumo_planilha(self, obj):
+        """Totais do período: soma de pagamentos, vales, consumos e líquido global."""
+        total_bruto = obj.lancamentos_pago.aggregate(s=Sum('valor_bruto'))['s'] or Decimal('0')
+        ag = obj.lancamentos_desconto.values('tipo').annotate(s=Sum('valor'))
+        by_tipo = {r['tipo']: r['s'] or Decimal('0') for r in ag}
+        tv = by_tipo.get('vale', Decimal('0'))
+        tc = by_tipo.get('consumo', Decimal('0'))
+        to = by_tipo.get('outro', Decimal('0'))
+        td = tv + tc + to
+        return {
+            'total_pago_bruto': str(total_bruto),
+            'total_vales': str(tv),
+            'total_consumos': str(tc),
+            'total_outros_descontos': str(to),
+            'total_descontos': str(td),
+            'total_liquido_periodo': str(total_bruto - td),
+        }
 
     def validate_ponto_operacao(self, ponto):
         request = self.context.get('request')
@@ -246,4 +282,30 @@ class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Defina o dia da semana de fechamento no estabelecimento (ponto de operação) ou neste fichamento.'
             )
+        return attrs
+
+
+class FreelancerPrestacaoServicoSerializer(serializers.ModelSerializer):
+    """Freelancers que já prestaram serviço (ou estão na base operacional) da empresa."""
+    freelance_nome = serializers.CharField(source='freelance.nome_completo', read_only=True)
+
+    class Meta:
+        model = FreelancerPrestacaoServico
+        fields = [
+            'id', 'empresa_contratante', 'freelance', 'freelance_nome',
+            'ativo', 'observacoes', 'criado_em', 'atualizado_em',
+        ]
+        read_only_fields = ['criado_em', 'atualizado_em']
+
+    def validate_freelance(self, freelance):
+        return freelance
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        emp = attrs.get('empresa_contratante') or getattr(self.instance, 'empresa_contratante', None)
+        if request and getattr(request.user, 'is_empresa_user', False) and request.user.empresa_contratante:
+            if emp and emp.id != request.user.empresa_contratante_id:
+                raise serializers.ValidationError(
+                    {'empresa_contratante': 'Só pode gerir a sua empresa.'}
+                )
         return attrs

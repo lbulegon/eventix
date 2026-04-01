@@ -12,7 +12,8 @@ from datetime import datetime, timedelta
 from .models import (
     Evento, SetorEvento, Vaga, Candidatura, ContratoFreelance, Freelance,
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
-    User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao
+    User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao, PontoOperacao,
+    FichamentoSemanaFreelancer, FreelancerPrestacaoServico,
 )
 from .mixins import EmpresaContratanteRequiredMixin
 
@@ -1480,3 +1481,39 @@ def financeiro_empresa(request):
     }
     
     return render(request, 'dashboard_empresa/financeiro.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def pagamento_freelancer(request):
+    """
+    Pagamento de freelancers por estabelecimento (planilha: pago, vales, consumos).
+    Lista fichamentos e atalhos para gestão (admin) e referência à API.
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    if not request.user.empresa_contratante:
+        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
+        return redirect('dashboard_empresa:login_empresa')
+
+    empresa = request.user.empresa_contratante
+    fichamentos = (
+        FichamentoSemanaFreelancer.objects.filter(empresa_contratante=empresa)
+        .select_related('ponto_operacao')
+        .order_by('-data_fechamento')[:100]
+    )
+    pontos = PontoOperacao.objects.filter(empresa_contratante=empresa, ativo=True).order_by('nome')
+    freelancers_historico = (
+        FreelancerPrestacaoServico.objects.filter(empresa_contratante=empresa, ativo=True)
+        .select_related('freelance')
+        .order_by('freelance__nome_completo')
+    )
+
+    context = {
+        'empresa': empresa,
+        'fichamentos': fichamentos,
+        'pontos': pontos,
+        'freelancers_historico': freelancers_historico,
+        'user': request.user,
+    }
+    return render(request, 'dashboard_empresa/pagamento_freelancer.html', context)

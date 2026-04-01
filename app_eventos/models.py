@@ -5213,6 +5213,9 @@ from .models_pagamento_freelancers import (
     LancamentoDescontoFreelancer,
 )
 
+# Freelancers com histórico de serviço por empresa
+from .models_freelancer_empresa import FreelancerPrestacaoServico
+
 # Importar modelos de notificação
 from .models_notificacoes import Notificacao, ConfiguracaoNotificacao
 

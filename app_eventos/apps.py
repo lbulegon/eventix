@@ -8,4 +8,5 @@ class AppEventosConfig(AppConfig):
         import app_eventos.signals
         import app_eventos.signals_notificacoes
         import app_eventos.signals_documentos  # Signals do sistema de documentos
+        import app_eventos.signals_freelancer_empresa
 

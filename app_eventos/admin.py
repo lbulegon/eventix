@@ -4,6 +4,7 @@ from .admin_restricoes import AdminRestricoesMixin
 from .models import (
     User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao,
     FichamentoSemanaFreelancer, LancamentoPagoDiarioFreelancer, LancamentoDescontoFreelancer,
+    FreelancerPrestacaoServico,
     Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
@@ -411,6 +412,15 @@ class LancamentoDescontoFreelancerAdmin(admin.ModelAdmin, EmpresaContratanteMixi
     list_filter = ("fichamento__empresa_contratante", "fichamento", "tipo")
     search_fields = ("freelance__nome_completo", "descricao", "contrato_freelance__vaga__titulo")
     autocomplete_fields = ("fichamento", "freelance", "contrato_freelance")
+
+
+@admin.register(FreelancerPrestacaoServico)
+class FreelancerPrestacaoServicoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ("freelance", "empresa_contratante", "ativo", "criado_em")
+    list_filter = ("empresa_contratante", "ativo")
+    search_fields = ("freelance__nome_completo", "freelance__cpf")
+    autocomplete_fields = ("empresa_contratante", "freelance")
+    readonly_fields = ("criado_em", "atualizado_em")
 
 
 @admin.register(Vaga)

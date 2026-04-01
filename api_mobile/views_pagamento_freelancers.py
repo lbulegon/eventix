@@ -3,6 +3,7 @@ from rest_framework import generics, serializers, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from app_eventos.models import ContratoFreelance, Freelance, Vaga
+from app_eventos.models_freelancer_empresa import FreelancerPrestacaoServico
 from app_eventos.models_pagamento_freelancers import (
     FichamentoSemanaFreelancer,
     LancamentoPagoDiarioFreelancer,
@@ -11,6 +12,7 @@ from app_eventos.models_pagamento_freelancers import (
 from .serializers_pagamento_freelancers import (
     ContratoPagamentoSerializer,
     FichamentoSemanaFreelancerSerializer,
+    FreelancerPrestacaoServicoSerializer,
     LancamentoPagoDiarioFreelancerSerializer,
     LancamentoDescontoFreelancerSerializer,
     VagaDisponivelPagamentoSerializer,
@@ -202,3 +204,46 @@ class ContratosPagamentoListView(generics.ListAPIView):
             qs = qs.filter(freelance_id=freelance_id)
 
         return qs.order_by('-data_contratacao')
+
+
+class FreelancerPrestacaoServicoViewSet(viewsets.ModelViewSet):
+    """
+    Lista e gere freelancers que já prestaram serviço à empresa (histórico operacional).
+    Também preenchido automaticamente ao lançar pagamento/desconto ou contrato.
+    """
+    serializer_class = FreelancerPrestacaoServicoSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = FreelancerPrestacaoServico.objects.select_related('freelance', 'empresa_contratante')
+        if getattr(user, 'is_admin_sistema', False):
+            out = qs
+        elif getattr(user, 'is_empresa_user', False) and user.empresa_contratante:
+            out = qs.filter(empresa_contratante=user.empresa_contratante)
+        elif getattr(user, 'is_freelancer', False):
+            try:
+                fl = user.freelance
+            except Freelance.DoesNotExist:
+                return FreelancerPrestacaoServico.objects.none()
+            out = qs.filter(freelance=fl, ativo=True)
+        else:
+            return FreelancerPrestacaoServico.objects.none()
+        if self.request.query_params.get('incluir_inativos') != '1':
+            out = out.filter(ativo=True)
+        return out.order_by('freelance__nome_completo')
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        if getattr(user, 'is_empresa_user', False) and user.empresa_contratante:
+            serializer.save(empresa_contratante=user.empresa_contratante)
+        elif getattr(user, 'is_admin_sistema', False):
+            serializer.save()
+        else:
+            raise serializers.ValidationError('Sem permissão para criar.')
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        if not getattr(user, 'is_empresa_user', False) and not getattr(user, 'is_admin_sistema', False):
+            raise serializers.ValidationError('Sem permissão.')
+        serializer.save()

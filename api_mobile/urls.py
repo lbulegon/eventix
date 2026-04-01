@@ -15,6 +15,7 @@ from .views_pagamento_freelancers import (
     FichamentoSemanaFreelancerViewSet,
     LancamentoPagoDiarioFreelancerViewSet,
     LancamentoDescontoFreelancerViewSet,
+    FreelancerPrestacaoServicoViewSet,
     VagasDisponiveisPagamentoListView,
     ContratosPagamentoListView,
 )
@@ -45,6 +46,11 @@ router.register(
     r'pagamento-freelancer/lancamentos-desconto',
     LancamentoDescontoFreelancerViewSet,
     basename='pagamento-freelancer-lancamento-desconto',
+)
+router.register(
+    r'pagamento-freelancer/freelancers-historico-empresa',
+    FreelancerPrestacaoServicoViewSet,
+    basename='pagamento-freelancer-freelancers-historico',
 )
 
 urlpatterns = [

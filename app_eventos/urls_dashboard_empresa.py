@@ -43,6 +43,11 @@ urlpatterns = [
     path('eventos/<int:evento_id>/notificar-freelancers/', views_dashboard_empresa.notificar_freelancers_evento, name='notificar_freelancers_evento'),
     path('notificar-vaga/<int:vaga_id>/', views_dashboard_empresa.notificar_freelancers_vaga_especifica, name='notificar_freelancers_vaga'),
     path('financeiro/', views_dashboard_empresa.financeiro_empresa, name='financeiro_empresa'),
+    path(
+        'pagamento-freelancer/',
+        views_dashboard_empresa.pagamento_freelancer,
+        name='pagamento_freelancer',
+    ),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
     
     # Sistema de Documentos

@@ -272,6 +272,13 @@
                 </li>
                 
                 <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'pagamento_freelancer' %}active{% endif %}" href="{% url 'dashboard_empresa:pagamento_freelancer' %}">
+                        <i class="bi bi-cash-coin"></i>
+                        Pagamento freelancers
+                    </a>
+                </li>
+                
+                <li class="nav-item">
                     <a class="nav-link {% if 'fornecedores' in request.resolver_match.url_name %}active{% endif %}" href="#">
                         <i class="bi bi-building"></i>
                         Fornecedores

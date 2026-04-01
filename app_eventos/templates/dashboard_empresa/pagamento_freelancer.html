@@ -1,0 +1,143 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Pagamento de freelancers{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <p class="text-muted mb-2">
+        Semana de pagamento por <strong>estabelecimento</strong>: lançamentos de <strong>pago</strong> (por dia / folga),
+        <strong>vales</strong> e <strong>consumos</strong> (descontos), sem obrigar vaga para equipe diária.
+    </p>
+    {% if pontos %}
+    <p class="small mb-0"><strong>Estabelecimentos:</strong>
+        {% for p in pontos %}<span class="badge bg-secondary me-1">{{ p.nome }}</span>{% endfor %}
+    </p>
+    {% else %}
+    <div class="alert alert-warning">Cadastre um <strong>Ponto de operação</strong> no Admin para vincular fichamentos.</div>
+    {% endif %}
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-primary">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-calendar-week text-primary me-2"></i>Fichamentos</h5>
+                <p class="card-text small">Abrir lista e criar/editar períodos semanais.</p>
+                {% if user.is_staff %}
+                <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_changelist' %}" class="btn btn-sm btn-primary">Admin — Fichamentos</a>
+                {% else %}
+                <span class="text-muted small">Peça a um administrador com acesso ao Django Admin.</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-coins me-2"></i>Pago (diário)</h5>
+                <p class="card-text small">Valores por dia e folgas.</p>
+                {% if user.is_staff %}
+                <a href="{% url 'admin:app_eventos_lancamentopagodiariofreelancer_changelist' %}" class="btn btn-sm btn-outline-primary">Admin — Lançamentos pago</a>
+                {% else %}
+                <span class="text-muted small">Via Admin (usuário staff).</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-minus-circle me-2"></i>Vales e consumos</h5>
+                <p class="card-text small">Descontos (tipo vale ou consumo).</p>
+                {% if user.is_staff %}
+                <a href="{% url 'admin:app_eventos_lancamentodescontofreelancer_changelist' %}" class="btn btn-sm btn-outline-primary">Admin — Descontos</a>
+                {% else %}
+                <span class="text-muted small">Via Admin (usuário staff).</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-user-check me-2"></i>Freelancers com histórico na empresa (já prestaram serviço)</span>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:app_eventos_freelancerprestacaoservico_changelist' %}" class="btn btn-sm btn-outline-primary">Gerir no admin</a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if freelancers_historico %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Desde</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in freelancers_historico %}
+                    <tr>
+                        <td>{{ h.freelance.nome_completo }}</td>
+                        <td>{{ h.criado_em|date:"d/m/Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="p-3 text-muted mb-0">Nenhum freelancer na lista ainda. Inclua ao vincular a planilha (<code>--empresa-id</code>), ao lançar pagamentos/descontos ou ao contratar por vaga.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-2"></i>Últimos fichamentos (sua empresa)</span>
+        {% if user.is_staff %}
+        <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_add' %}" class="btn btn-sm btn-success">+ Novo</a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        {% if fichamentos %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Estabelecimento</th>
+                        <th>Fechamento</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in fichamentos %}
+                    <tr>
+                        <td>{{ f.ponto_operacao.nome }}</td>
+                        <td>{{ f.data_fechamento|date:"d/m/Y" }}</td>
+                        <td class="text-end">
+                            {% if user.is_staff %}
+                            <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_change' f.pk %}" class="btn btn-sm btn-outline-secondary">Abrir no admin</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="p-3 text-muted mb-0">Nenhum fichamento registado ainda.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="alert alert-light border small">
+    <strong>API (app / integrações):</strong>
+    <code>/api/v1/pagamento-freelancer/fichamentos/</code>,
+    <code>.../lancamentos-pago/</code>,
+    <code>.../lancamentos-desconto/</code>,
+    <code>.../freelancers-historico-empresa/</code>,
+    <code>.../vagas-disponiveis/?ponto_operacao=</code>,
+    <code>.../contratos/?ponto_operacao=</code>
+    — autenticação JWT.
+</div>
+{% endblock %}

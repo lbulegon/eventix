@@ -1,0 +1,71 @@
+{
+  "origem": "Planilha Google Sheets \"Consumo\" (pagamento freelancers, Março 2024). Nomes únicos; coluna Duda duplicada na planilha = uma pessoa.",
+  "comando_django": "python manage.py criar_freelancers_planilha_consumo",
+  "senha_padrao_comando": "senha123",
+  "aviso": "CPFs e e-mails são fictícios para testes. Troque senhas antes de uso real. Não commite este ficheiro em repositório público se considerar os dados sensíveis.",
+  "freelancers": [
+    {
+      "nome_completo": "Sol",
+      "username": "sol_planilha_consumo",
+      "email": "sol.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-10",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    },
+    {
+      "nome_completo": "Duda",
+      "username": "duda_planilha_consumo",
+      "email": "duda.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-11",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    },
+    {
+      "nome_completo": "Matheus",
+      "username": "matheus_planilha_consumo",
+      "email": "matheus.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-12",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    },
+    {
+      "nome_completo": "Adriano",
+      "username": "adriano_planilha_consumo",
+      "email": "adriano.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-13",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    },
+    {
+      "nome_completo": "Ricardo",
+      "username": "ricardo_planilha_consumo",
+      "email": "ricardo.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-14",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    },
+    {
+      "nome_completo": "Patrick",
+      "username": "patrick_planilha_consumo",
+      "email": "patrick.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-15",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    },
+    {
+      "nome_completo": "Lucas",
+      "username": "lucas_planilha_consumo",
+      "email": "lucas.planilha.consumo@eventix.local",
+      "cpf": "100.100.100-16",
+      "telefone": "",
+      "tipo_usuario_django": "freelancer",
+      "senha_inicial_padrao": "senha123"
+    }
+  ]
+}

@@ -86,6 +86,11 @@
                     <i class="fas fa-users me-1"></i>Freelancers
                   </a>
                 </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'dashboard_empresa:pagamento_freelancer' %}">
+                    <i class="fas fa-money-check-alt me-1"></i>Pagamento freelancers
+                  </a>
+                </li>
                 <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="fas fa-cog me-1"></i>Mais
@@ -93,6 +98,9 @@
                   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                     <li><a class="dropdown-item" href="{% url 'dashboard_empresa:equipamentos_empresa' %}">
                       <i class="fas fa-cogs me-2"></i>Equipamentos
+                    </a></li>
+                    <li><a class="dropdown-item" href="{% url 'dashboard_empresa:pagamento_freelancer' %}">
+                      <i class="fas fa-money-check-alt me-2"></i>Pagamento freelancers
                     </a></li>
                     <li><a class="dropdown-item" href="{% url 'dashboard_empresa:financeiro_empresa' %}">
                       <i class="fas fa-chart-line me-2"></i>Financeiro

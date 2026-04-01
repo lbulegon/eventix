@@ -1,6 +1,11 @@
 """
 Pagamento de freelancers por estabelecimento (PontoOperacao) dentro do tenant (EmpresaContratante).
 Período semanal de 7 dias; o último dia do período é o "fechamento", configurável por dia da semana.
+
+Espelho da planilha tipo "Consumo":
+- **Pago** (valores por dia / folga): modelo ``LancamentoPagoDiarioFreelancer`` (``valor_bruto``, ``eh_folga``).
+- **Descontos** — vales e consumos: modelo ``LancamentoDescontoFreelancer`` com ``tipo`` = ``vale`` | ``consumo``
+  (e ``outro`` para demais abatimentos). Vários lançamentos por pessoa por semana são permitidos.
 """
 from datetime import timedelta
 from decimal import Decimal
@@ -140,7 +145,10 @@ def validar_contrato_com_fichamento(fichamento, freelance, contrato):
 
 
 class LancamentoPagoDiarioFreelancer(models.Model):
-    """Valor pago por dia (ou folga) no período do fichamento."""
+    """
+    Coluna **Pago** da planilha: valor bruto por dia no período, ou folga (sem valor).
+    Independente de vaga; ``contrato_freelance`` é opcional.
+    """
     fichamento = models.ForeignKey(
         FichamentoSemanaFreelancer,
         on_delete=models.CASCADE,
@@ -195,7 +203,11 @@ class LancamentoPagoDiarioFreelancer(models.Model):
 
 
 class LancamentoDescontoFreelancer(models.Model):
-    """Vales, consumos e outros descontos na semana do fichamento."""
+    """
+    Coluna **Descontos** da planilha: abatimentos no período.
+    Use ``tipo=vale`` para adiantamentos (vales), ``tipo=consumo`` para consumo interno,
+    ``tipo=outro`` para demais descontos. Vários registos por freelancer por semana.
+    """
     TIPO_CHOICES = [
         ('vale', 'Vale'),
         ('consumo', 'Consumo'),
