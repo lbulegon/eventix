@@ -1503,9 +1503,9 @@ class Funcao(models.Model):
         return f"{self.nome} - Sem empresa"
     
     def save(self, *args, **kwargs):
-        # Garantir que o tipo_funcao pertence à mesma empresa
-        if self.tipo_funcao.empresa_contratante != self.empresa_contratante:
-            raise ValueError("O tipo de função deve pertencer à mesma empresa contratante.")
+        # TipoFuncao é global no sistema; apenas garantimos consistência mínima.
+        if not self.tipo_funcao_id:
+            raise ValueError("Tipo de função é obrigatório.")
         super().save(*args, **kwargs)
 
 class Vaga(models.Model):
