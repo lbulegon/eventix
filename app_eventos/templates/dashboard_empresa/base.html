@@ -117,12 +117,14 @@
                                 <i class="fas fa-home me-2"></i>Dashboard
                             </a>
                         </li>
+                        {% if empresa.dashboard_mostra_eventos %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'eventos_empresa' %}active{% endif %}" 
                                href="{% url 'dashboard_empresa:eventos_empresa' %}">
                                 <i class="fas fa-calendar-alt me-2"></i>Eventos
                             </a>
                         </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'candidaturas_empresa' %}active{% endif %}" 
                                href="{% url 'dashboard_empresa:candidaturas_empresa' %}">
@@ -135,12 +137,14 @@
                                 <i class="fas fa-users me-2"></i>Freelancers
                             </a>
                         </li>
+                        {% if empresa.dashboard_mostra_operacao %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'operacao_turnos' %}active{% endif %}" 
                                href="{% url 'dashboard_empresa:operacao_turnos' %}">
                                 <i class="fas fa-sync-alt me-2"></i>Operação e turnos
                             </a>
                         </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'equipamentos_empresa' %}active{% endif %}" 
                                href="{% url 'dashboard_empresa:equipamentos_empresa' %}">

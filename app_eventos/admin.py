@@ -121,8 +121,8 @@ class PlanoContratacaoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
 
 @admin.register(EmpresaContratante)
 class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
-    list_display = ('nome_fantasia', 'cnpj', 'plano_contratado', 'valor_mensal', 'modulos_count', 'ativo', 'data_vencimento')
-    list_filter = ('ativo', 'plano_contratado__tipo_plano', 'data_contratacao', 'modulos_contratados')
+    list_display = ('nome_fantasia', 'cnpj', 'modo_dashboard', 'plano_contratado', 'valor_mensal', 'modulos_count', 'ativo', 'data_vencimento')
+    list_filter = ('ativo', 'modo_dashboard', 'plano_contratado__tipo_plano', 'data_contratacao', 'modulos_contratados')
     search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email')
     readonly_fields = ('data_contratacao', 'data_atualizacao')
     autocomplete_fields = ('plano_contratado',)
@@ -144,6 +144,10 @@ class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
         ("Módulos Contratados", {
             "fields": ("modulos_contratados",),
             "description": "Selecione os módulos adicionais contratados pela empresa. Módulos básicos estão incluídos automaticamente."
+        }),
+        ("Dashboard (empresa)", {
+            "fields": ("modo_dashboard",),
+            "description": "Menu e resumo inicial: operação contínua, eventos ou ambos. Padrão para novas empresas: só operação.",
         }),
         ("Status", {
             "fields": ("ativo", "data_atualizacao")

@@ -14,8 +14,8 @@ from .models import (
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
     User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao, PontoOperacao,
     FichamentoSemanaFreelancer, FreelancerPrestacaoServico,
-    TurnoOperacional, UnidadeOperacional,
 )
+from .models_operacao_continua import TurnoOperacional, UnidadeOperacional
 from .mixins import EmpresaContratanteRequiredMixin
 
 
@@ -160,7 +160,17 @@ def dashboard_empresa(request):
     stats['receitas_mes'] = receitas_mes
     stats['despesas_mes'] = despesas_mes
     stats['saldo_mes'] = receitas_mes - despesas_mes
-    
+
+    hoje_d = timezone.now().date()
+    inicio_7d = hoje_d - timedelta(days=7)
+    stats['unidades_operacionais'] = UnidadeOperacional.objects.filter(
+        empresa_contratante=empresa,
+    ).count()
+    stats['turnos_7d'] = TurnoOperacional.objects.filter(
+        unidade__empresa_contratante=empresa,
+        data__gte=inicio_7d,
+    ).count()
+
     context = {
         'empresa': empresa,
         'stats': stats,

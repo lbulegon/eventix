@@ -663,12 +663,36 @@ class EmpresaContratante(models.Model):
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
     data_atualizacao = models.DateTimeField(auto_now=True)
 
+    MODO_DASHBOARD_CHOICES = [
+        ('operacao', 'Só operação e turnos'),
+        ('eventos', 'Só eventos'),
+        ('ambos', 'Operação e eventos'),
+    ]
+    modo_dashboard = models.CharField(
+        max_length=20,
+        choices=MODO_DASHBOARD_CHOICES,
+        default='operacao',
+        verbose_name="Modo do dashboard",
+        help_text=(
+            "Define o foco do menu e da página inicial: operação contínua, eventos ou ambos. "
+            "Candidaturas e freelancers permanecem disponíveis; financeiro e pagamento a freelancers são opcionais em qualquer modo."
+        ),
+    )
+
     class Meta:
         verbose_name = "Empresa Contratante"
         verbose_name_plural = "Empresas Contratantes"
 
     def __str__(self):
         return f"{self.nome_fantasia} ({self.cnpj})"
+
+    @property
+    def dashboard_mostra_eventos(self) -> bool:
+        return self.modo_dashboard in ('eventos', 'ambos')
+
+    @property
+    def dashboard_mostra_operacao(self) -> bool:
+        return self.modo_dashboard in ('operacao', 'ambos')
 
     @property
     def usuarios_ativos(self):

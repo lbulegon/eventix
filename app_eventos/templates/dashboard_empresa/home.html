@@ -4,8 +4,106 @@
 {% block page_title %}Dashboard Principal{% endblock %}
 
 {% block content %}
-<!-- Cards de Estatísticas -->
+<!-- Cards de Estatísticas (conforme modo_dashboard da empresa) -->
 <div class="row mb-4">
+    {% if empresa.modo_dashboard == 'ambos' %}
+    <div class="col-xl-2 col-md-4 col-6 mb-4">
+        <div class="card stat-card stat-card-1">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Eventos</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_eventos }}</div>
+                        <div class="text-xs text-white-50">{{ stats.eventos_ativos }} ativos</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-alt fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6 mb-4">
+        <div class="card stat-card stat-card-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Vagas</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_vagas }}</div>
+                        <div class="text-xs text-white-50">{{ stats.vagas_ativas }} ativas</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-briefcase fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6 mb-4">
+        <div class="card stat-card stat-card-1">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Unidades</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.unidades_operacionais }}</div>
+                        <div class="text-xs text-white-50">operação contínua</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6 mb-4">
+        <div class="card stat-card stat-card-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Turnos (7d)</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.turnos_7d }}</div>
+                        <div class="text-xs text-white-50">gerados</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6 mb-4">
+        <div class="card stat-card stat-card-3">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Candidaturas</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_candidaturas }}</div>
+                        <div class="text-xs text-white-50">{{ stats.candidaturas_pendentes }} pendentes</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-alt fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-6 mb-4">
+        <div class="card stat-card stat-card-4">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Freelancers</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.total_freelancers }}</div>
+                        <div class="text-xs text-white-50">cadastrados</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif empresa.dashboard_mostra_eventos %}
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card stat-card-1">
             <div class="card-body">
@@ -22,7 +120,6 @@
             </div>
         </div>
     </div>
-
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card stat-card-2">
             <div class="card-body">
@@ -39,7 +136,42 @@
             </div>
         </div>
     </div>
+    {% else %}
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card stat-card-1">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Unidades</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.unidades_operacionais }}</div>
+                        <div class="text-xs text-white-50">operacionais</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card stat-card stat-card-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Turnos (7 dias)</div>
+                        <div class="h5 mb-0 font-weight-bold">{{ stats.turnos_7d }}</div>
+                        <div class="text-xs text-white-50">na operação</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-clock fa-2x text-white-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
+    {% if empresa.modo_dashboard != 'ambos' %}
     <div class="col-xl-3 col-md-6 mb-4">
         <div class="card stat-card stat-card-3">
             <div class="card-body">
@@ -73,6 +205,7 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 
 <!-- Segunda linha de estatísticas -->
@@ -145,6 +278,7 @@
 
 <!-- Conteúdo Principal -->
 <div class="row">
+    {% if empresa.dashboard_mostra_eventos %}
     <!-- Eventos Recentes -->
     <div class="col-xl-8 col-lg-7">
         <div class="card shadow mb-4">
@@ -188,6 +322,24 @@
             </div>
         </div>
     </div>
+    {% elif empresa.dashboard_mostra_operacao %}
+    <div class="col-xl-8 col-lg-7">
+        <div class="card shadow mb-4 border-primary">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between bg-primary bg-opacity-10">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-sync-alt me-2"></i>Operação e turnos</h6>
+                <a href="{% url 'dashboard_empresa:operacao_turnos' %}" class="btn btn-sm btn-primary">Abrir</a>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">Resumo da operação contínua (restaurantes, bares, unidades com recorrência).</p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'dashboard_empresa:operacao_turnos' %}" class="btn btn-outline-primary btn-sm"><i class="fas fa-building me-1"></i>Unidades e turnos</a>
+                    <a href="{% url 'dashboard_empresa:pagamento_freelancer' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-money-check-alt me-1"></i>Pagamento freelancers</a>
+                    <a href="{% url 'dashboard_empresa:pagamento_tarifas_diaria_lista' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-tags me-1"></i>Tarifas por turno</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Candidaturas Recentes -->
     <div class="col-xl-4 col-lg-5">
@@ -230,11 +382,20 @@
             </div>
             <div class="card-body">
                 <div class="row">
+                    {% if empresa.dashboard_mostra_eventos %}
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'dashboard_empresa:eventos_empresa' %}" class="btn btn-outline-primary w-100">
                             <i class="fas fa-plus me-2"></i>Novo Evento
                         </a>
                     </div>
+                    {% endif %}
+                    {% if empresa.dashboard_mostra_operacao %}
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard_empresa:operacao_turnos' %}" class="btn btn-outline-primary w-100">
+                            <i class="fas fa-sync-alt me-2"></i>Operação e turnos
+                        </a>
+                    </div>
+                    {% endif %}
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'dashboard_empresa:candidaturas_empresa' %}" class="btn btn-outline-success w-100">
                             <i class="fas fa-check me-2"></i>Revisar Candidaturas
@@ -248,6 +409,11 @@
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'dashboard_empresa:financeiro_empresa' %}" class="btn btn-outline-warning w-100">
                             <i class="fas fa-chart-line me-2"></i>Relatórios Financeiros
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'dashboard_empresa:pagamento_freelancer' %}" class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-money-check-alt me-2"></i>Pagamento freelancers
                         </a>
                     </div>
                 </div>
