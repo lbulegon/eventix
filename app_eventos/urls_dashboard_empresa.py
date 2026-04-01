@@ -109,6 +109,31 @@ urlpatterns = [
         views_pagamento_empresa.pagamento_lancamento_desconto_excluir,
         name='pagamento_lancamento_desconto_excluir',
     ),
+    path(
+        'pagamento-freelancer/tarifas-diaria/',
+        views_pagamento_empresa.pagamento_tarifas_diaria_lista,
+        name='pagamento_tarifas_diaria_lista',
+    ),
+    path(
+        'pagamento-freelancer/tarifas-diaria/nova/',
+        views_pagamento_empresa.pagamento_tarifa_diaria_nova,
+        name='pagamento_tarifa_diaria_nova',
+    ),
+    path(
+        'pagamento-freelancer/tarifas-diaria/<int:pk>/editar/',
+        views_pagamento_empresa.pagamento_tarifa_diaria_editar,
+        name='pagamento_tarifa_diaria_editar',
+    ),
+    path(
+        'pagamento-freelancer/datas-tarifa/nova/',
+        views_pagamento_empresa.pagamento_data_tarifa_nova,
+        name='pagamento_data_tarifa_nova',
+    ),
+    path(
+        'pagamento-freelancer/sugerir-tarifa-diaria.json',
+        views_pagamento_empresa.pagamento_sugerir_tarifa_diaria_json,
+        name='pagamento_sugerir_tarifa_diaria_json',
+    ),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
     
     # Sistema de Documentos

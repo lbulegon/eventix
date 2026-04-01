@@ -1,13 +1,16 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import F
+from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_date
 from rest_framework import generics, serializers, status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from app_eventos.services.atribuicao_vaga_direta import atribuir_freelancer_a_vaga_direto
+from app_eventos.services.tarifa_diaria_turno import parse_hora, resolver_tarifa_diaria
 
-from app_eventos.models import ContratoFreelance, Freelance, Vaga
+from app_eventos.models import ContratoFreelance, Freelance, Funcao, PontoOperacao, Vaga
 from app_eventos.models_freelancer_empresa import FreelancerPrestacaoServico
 from app_eventos.models_pagamento_freelancers import (
     FichamentoSemanaFreelancer,
@@ -172,6 +175,69 @@ class VagasDisponiveisPagamentoListView(generics.ListAPIView):
         if not todas or not getattr(user, 'is_empresa_user', False):
             qs = qs.filter(publicada=True)
         return qs.select_related('funcao', 'ponto_operacao').order_by('-data_criacao')
+
+
+class SugerirTarifaDiariaView(APIView):
+    """
+    Sugere valor de diária (dia / noite / noite especial) para estabelecimento + função + data + hora de início.
+
+    Query: ``ponto_operacao``, ``funcao``, ``data`` (YYYY-MM-DD), ``hora_inicio`` (HH:MM, default 08:00).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        ponto_id = request.query_params.get('ponto_operacao')
+        funcao_id = request.query_params.get('funcao')
+        data_str = request.query_params.get('data')
+        hora_str = request.query_params.get('hora_inicio', '08:00')
+        if not ponto_id or not funcao_id or not data_str:
+            return Response(
+                {'detail': 'Informe ponto_operacao, funcao e data (YYYY-MM-DD).'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        d = parse_date(data_str)
+        if not d:
+            return Response({'detail': 'Data inválida. Use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            hora = parse_hora(hora_str)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+        if getattr(user, 'is_admin_sistema', False):
+            ponto = get_object_or_404(PontoOperacao.objects.select_related('empresa_contratante'), pk=ponto_id)
+        elif getattr(user, 'is_empresa_user', False) and user.empresa_contratante:
+            ponto = get_object_or_404(
+                PontoOperacao.objects.select_related('empresa_contratante'),
+                pk=ponto_id,
+                empresa_contratante=user.empresa_contratante,
+            )
+        else:
+            return Response({'detail': 'Sem permissão.'}, status=status.HTTP_403_FORBIDDEN)
+
+        if getattr(user, 'is_admin_sistema', False):
+            funcao = get_object_or_404(Funcao, pk=funcao_id)
+        else:
+            funcao = get_object_or_404(
+                Funcao,
+                pk=funcao_id,
+                empresa_contratante=user.empresa_contratante,
+            )
+
+        if funcao.empresa_contratante_id and funcao.empresa_contratante_id != ponto.empresa_contratante_id:
+            return Response(
+                {'detail': 'Função e estabelecimento devem ser da mesma empresa.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        out = resolver_tarifa_diaria(
+            empresa_contratante_id=ponto.empresa_contratante_id,
+            ponto_operacao_id=int(ponto_id),
+            funcao_id=int(funcao_id),
+            data=d,
+            hora_inicio=hora,
+        )
+        return Response(out)
 
 
 class ContratosPagamentoListView(generics.ListAPIView):

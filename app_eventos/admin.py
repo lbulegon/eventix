@@ -7,6 +7,7 @@ from .models import (
     FreelancerPrestacaoServico,
     UnidadeOperacional, RegraRecorrencia, RegraRecorrenciaFuncao,
     TurnoOperacional, VagaTurno, AlocacaoTurno,
+    TarifaDiariaPorFuncaoPonto, DataCalendarioTarifa,
     Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
@@ -380,6 +381,32 @@ class LancamentoDescontoFreelancerInline(admin.TabularInline):
     extra = 0
     autocomplete_fields = ("freelance", "contrato_freelance")
     fields = ("freelance", "contrato_freelance", "tipo", "valor", "descricao", "data")
+
+
+@admin.register(TarifaDiariaPorFuncaoPonto)
+class TarifaDiariaPorFuncaoPontoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = (
+        'ponto_operacao',
+        'funcao',
+        'valor_turno_dia',
+        'valor_turno_noite',
+        'valor_noite_especial',
+        'hora_corte_dia_noite',
+        'ativo',
+    )
+    list_filter = ('ativo', 'empresa_contratante', 'ponto_operacao')
+    search_fields = ('funcao__nome', 'ponto_operacao__nome')
+    autocomplete_fields = ('empresa_contratante', 'ponto_operacao', 'funcao')
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+
+@admin.register(DataCalendarioTarifa)
+class DataCalendarioTarifaAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('data', 'ponto_operacao', 'descricao', 'ativo')
+    list_filter = ('ativo', 'empresa_contratante', 'ponto_operacao')
+    search_fields = ('descricao', 'ponto_operacao__nome')
+    autocomplete_fields = ('empresa_contratante', 'ponto_operacao')
+    date_hierarchy = 'data'
 
 
 @admin.register(FichamentoSemanaFreelancer)

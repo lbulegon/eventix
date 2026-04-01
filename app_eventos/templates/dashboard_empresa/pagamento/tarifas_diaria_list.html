@@ -1,0 +1,164 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Tarifas de diária por função{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:pagamento_freelancer' %}">Pagamento freelancers</a></li>
+        <li class="breadcrumb-item active">Tarifas por turno</li>
+    </ol>
+</nav>
+
+<p class="text-muted small mb-3">
+    Defina valores de referência por <strong>estabelecimento</strong> e <strong>função</strong> (ex.: auxiliar de cozinha):
+    turno dia, turno noite e noite especial (sexta/sábado à noite e datas de véspera cadastradas abaixo).
+    Isto alinha com a <strong>remuneração das vagas</strong> quando criar ofertas para o mesmo ponto e função.
+</p>
+
+{% if pontos and funcoes %}
+<div class="card mb-4 border-info">
+    <div class="card-header bg-info bg-opacity-10"><i class="fas fa-calculator me-2"></i>Simular valor para uma vaga (mesmo ponto + função)</div>
+    <div class="card-body">
+        <p class="small text-muted mb-2">Escolha a data e a hora de <strong>início do turno</strong> para ver qual faixa se aplica (dia, noite ou noite especial).</p>
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Estabelecimento</label>
+                <select class="form-select form-select-sm" id="sim-ponto">
+                    <option value="">—</option>
+                    {% for p in pontos %}<option value="{{ p.pk }}">{{ p.nome }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-0">Função</label>
+                <select class="form-select form-select-sm" id="sim-funcao">
+                    <option value="">—</option>
+                    {% regroup funcoes by tipo_funcao as fg %}
+                    {% for g in fg %}
+                    <optgroup label="{{ g.grouper.nome }}">
+                        {% for f in g.list %}<option value="{{ f.pk }}">{{ f.nome }}</option>{% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-0">Data</label>
+                <input type="date" class="form-control form-control-sm" id="sim-data">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-0">Hora início</label>
+                <input type="time" class="form-control form-control-sm" id="sim-hora" value="08:00">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-sm btn-info w-100" id="sim-btn">Consultar</button>
+            </div>
+        </div>
+        <div id="sim-resultado" class="mt-3 small" aria-live="polite"></div>
+    </div>
+</div>
+<script>
+(function(){
+  const url = "{% url 'dashboard_empresa:pagamento_sugerir_tarifa_diaria_json' %}";
+  const hoje = new Date().toISOString().slice(0, 10);
+  document.getElementById('sim-data').value = hoje;
+  document.getElementById('sim-btn').addEventListener('click', function(){
+    const po = document.getElementById('sim-ponto').value;
+    const fn = document.getElementById('sim-funcao').value;
+    const dt = document.getElementById('sim-data').value;
+    const hr = document.getElementById('sim-hora').value || '08:00';
+    const out = document.getElementById('sim-resultado');
+    if (!po || !fn || !dt) { out.innerHTML = '<span class="text-warning">Preencha estabelecimento, função e data.</span>'; return; }
+    out.innerHTML = '<span class="text-muted">A consultar…</span>';
+    const q = new URLSearchParams({ ponto_operacao: po, funcao: fn, data: dt, hora_inicio: hr });
+    fetch(url + '?' + q.toString(), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, status: r.status, body: j }; }); })
+      .then(function(x){
+        if (!x.ok) {
+          out.innerHTML = '<span class="text-danger">' + (x.body.detail || x.body.motivo || JSON.stringify(x.body)) + '</span>';
+          return;
+        }
+        if (!x.body.encontrou) {
+          out.innerHTML = '<span class="text-warning">' + (x.body.motivo || 'Sem tarifa.') + '</span>';
+          return;
+        }
+        out.innerHTML = '<strong>R$ ' + x.body.valor + '</strong> — <span class="text-muted">' + (x.body.tipo || '') + '</span> — ' + (x.body.motivo || '');
+      })
+      .catch(function(){ out.innerHTML = '<span class="text-danger">Erro de rede.</span>'; });
+  });
+})();
+</script>
+{% endif %}
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a href="{% url 'dashboard_empresa:pagamento_tarifa_diaria_nova' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Nova tarifa</a>
+    <a href="{% url 'dashboard_empresa:pagamento_data_tarifa_nova' %}" class="btn btn-outline-primary"><i class="fas fa-calendar-day me-1"></i>Nova data especial</a>
+    {% if user.is_staff %}
+    <a href="{% url 'admin:app_eventos_tarifadiariaporfuncaoponto_changelist' %}" class="btn btn-outline-secondary btn-sm">Admin (tarifas)</a>
+    <a href="{% url 'admin:app_eventos_datacalendariotarifa_changelist' %}" class="btn btn-outline-secondary btn-sm">Admin (datas)</a>
+    {% endif %}
+</div>
+
+<h5 class="mb-2"><i class="fas fa-tags me-2"></i>Tarifas por estabelecimento e função</h5>
+{% if tarifas %}
+<div class="table-responsive card mb-4">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Estabelecimento</th>
+                <th>Função</th>
+                <th class="text-end">Dia</th>
+                <th class="text-end">Noite</th>
+                <th class="text-end">Noite esp.</th>
+                <th>Corte noite</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tarifas %}
+            <tr>
+                <td>{{ t.ponto_operacao.nome }}</td>
+                <td>{{ t.funcao.nome }}</td>
+                <td class="text-end">R$ {{ t.valor_turno_dia }}</td>
+                <td class="text-end">R$ {{ t.valor_turno_noite }}</td>
+                <td class="text-end">R$ {{ t.valor_noite_especial }}</td>
+                <td class="small">{{ t.hora_corte_dia_noite|time:"H:i" }}</td>
+                <td class="text-end">
+                    <a href="{% url 'dashboard_empresa:pagamento_tarifa_diaria_editar' t.pk %}" class="btn btn-sm btn-outline-primary">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info mb-4">Nenhuma tarifa ainda. <a href="{% url 'dashboard_empresa:pagamento_tarifa_diaria_nova' %}">Criar a primeira</a> (ex.: auxiliar de cozinha — dia 90, noite 100, noite especial 110).</div>
+{% endif %}
+
+<h5 class="mb-2"><i class="fas fa-calendar-alt me-2"></i>Datas especiais (noite = valor de noite especial)</h5>
+<p class="small text-muted">Cadastre vésperas de feriado por estabelecimento. Sexta e sábado à noite já usam o valor de noite especial automaticamente.</p>
+{% if datas %}
+<div class="table-responsive card">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Data</th>
+                <th>Estabelecimento</th>
+                <th>Descrição</th>
+                <th>Ativo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in datas %}
+            <tr>
+                <td>{{ d.data|date:"d/m/Y" }}</td>
+                <td>{{ d.ponto_operacao.nome }}</td>
+                <td>{{ d.descricao|default:"—" }}</td>
+                <td>{% if d.ativo %}Sim{% else %}Não{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-light border small mb-0">Nenhuma data especial. Use <a href="{% url 'dashboard_empresa:pagamento_data_tarifa_nova' %}">Nova data especial</a> para vésperas.</div>
+{% endif %}
+{% endblock %}

@@ -76,6 +76,14 @@
                 padding-top: 1.5rem;
             }
         }
+        .sidebar .nav-submenu .nav-link {
+            font-size: 0.9rem;
+            padding: 8px 12px 8px 8px;
+            margin-left: 0.25rem;
+        }
+        .sidebar .nav-submenu .nav-link.active {
+            background: rgba(255, 255, 255, 0.15);
+        }
     </style>
 </head>
 <body>
@@ -128,12 +136,6 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'pagamento_freelancer' %}active{% endif %}" 
-                               href="{% url 'dashboard_empresa:pagamento_freelancer' %}">
-                                <i class="fas fa-money-check-alt me-2"></i>Pagamento freelancers
-                            </a>
-                        </li>
-                        <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'operacao_turnos' %}active{% endif %}" 
                                href="{% url 'dashboard_empresa:operacao_turnos' %}">
                                 <i class="fas fa-sync-alt me-2"></i>Operação e turnos
@@ -146,10 +148,29 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {% if request.resolver_match.url_name == 'financeiro_empresa' %}active{% endif %}" 
-                               href="{% url 'dashboard_empresa:financeiro_empresa' %}">
-                                <i class="fas fa-chart-line me-2"></i>Financeiro
+                            <a class="nav-link d-flex justify-content-between align-items-center {% if request.resolver_match.url_name == 'financeiro_empresa' or 'pagamento-freelancer' in request.path %}active{% endif %}"
+                               data-bs-toggle="collapse" data-bs-target="#submenuFinanceiro" href="#submenuFinanceiro"
+                               role="button" aria-expanded="{% if request.resolver_match.url_name == 'financeiro_empresa' or 'pagamento-freelancer' in request.path %}true{% else %}false{% endif %}"
+                               aria-controls="submenuFinanceiro">
+                                <span><i class="fas fa-chart-line me-2"></i>Financeiro</span>
+                                <i class="fas fa-chevron-down small opacity-75"></i>
                             </a>
+                            <div class="collapse nav-submenu {% if request.resolver_match.url_name == 'financeiro_empresa' or 'pagamento-freelancer' in request.path %}show{% endif %}" id="submenuFinanceiro">
+                                <ul class="nav flex-column ms-2 ps-2 mb-1 border-start border-white border-opacity-25">
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if request.resolver_match.url_name == 'financeiro_empresa' %}active{% endif %}"
+                                           href="{% url 'dashboard_empresa:financeiro_empresa' %}">
+                                            <i class="fas fa-chart-pie me-2"></i>Relatório financeiro
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link {% if 'pagamento-freelancer' in request.path %}active{% endif %}"
+                                           href="{% url 'dashboard_empresa:pagamento_freelancer' %}">
+                                            <i class="fas fa-money-check-alt me-2"></i>Pagamento freelancers
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
                         </li>
                         {% if user.tipo_usuario == 'admin_empresa' %}
                         <li class="nav-item">

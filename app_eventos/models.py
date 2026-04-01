@@ -5226,6 +5226,9 @@ from .models_operacao_continua import (
     VagaTurno,
 )
 
+# Tarifas de diária por função / estabelecimento (alinhamento com vagas)
+from .models_tarifa_diaria_turno import DataCalendarioTarifa, TarifaDiariaPorFuncaoPonto
+
 # Importar modelos de notificação
 from .models_notificacoes import Notificacao, ConfiguracaoNotificacao
 

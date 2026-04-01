@@ -4,9 +4,16 @@ CRUD web (dashboard empresa) para fichamentos e lançamentos de pagamento freela
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
+from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.dateparse import parse_date
 from django.views.decorators.http import require_http_methods
 
+from app_eventos.forms_tarifa_diaria import DataCalendarioTarifaForm, TarifaDiariaPorFuncaoPontoForm
+from app_eventos.models import Funcao, PontoOperacao
+from app_eventos.services.tarifa_diaria_turno import parse_hora, resolver_tarifa_diaria
+from app_eventos.models_tarifa_diaria_turno import DataCalendarioTarifa, TarifaDiariaPorFuncaoPonto
 from app_eventos.forms_pagamento_freelancer import (
     FichamentoSemanaFreelancerForm,
     LancamentoDescontoFreelancerForm,
@@ -389,4 +396,201 @@ def pagamento_lancamento_desconto_excluir(request, pk):
         request,
         'dashboard_empresa/pagamento/lancamento_desconto_confirm_delete.html',
         {'empresa': empresa, 'lancamento': lanc, 'fichamento': lanc.fichamento, 'user': request.user},
+    )
+
+
+@login_required(login_url='/empresa/login/')
+def pagamento_tarifas_diaria_lista(request):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    tarifas = (
+        TarifaDiariaPorFuncaoPonto.objects.filter(empresa_contratante=empresa)
+        .select_related('ponto_operacao', 'funcao')
+        .order_by('ponto_operacao__nome', 'funcao__nome')
+    )
+    datas = (
+        DataCalendarioTarifa.objects.filter(empresa_contratante=empresa)
+        .select_related('ponto_operacao')
+        .order_by('-data')[:200]
+    )
+    pontos = PontoOperacao.objects.filter(empresa_contratante=empresa, ativo=True).order_by('nome')
+    funcoes = Funcao.objects.filter(
+        Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
+        ativo=True,
+        disponivel_para_vagas=True,
+    ).select_related('tipo_funcao').order_by('tipo_funcao__nome', 'nome')
+    return render(
+        request,
+        'dashboard_empresa/pagamento/tarifas_diaria_list.html',
+        {
+            'empresa': empresa,
+            'tarifas': tarifas,
+            'datas': datas,
+            'pontos': pontos,
+            'funcoes': funcoes,
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET'])
+def pagamento_sugerir_tarifa_diaria_json(request):
+    """
+    Mesma lógica que a API JWT ``sugerir-tarifa-diaria``, para o dashboard (sessão).
+    Query: ponto_operacao, funcao, data (YYYY-MM-DD), hora_inicio (HH:MM, default 08:00).
+    """
+    empresa = _empresa(request)
+    if not empresa:
+        return JsonResponse({'detail': 'Acesso negado.'}, status=403)
+
+    ponto_id = request.GET.get('ponto_operacao')
+    funcao_id = request.GET.get('funcao')
+    data_str = request.GET.get('data')
+    hora_str = request.GET.get('hora_inicio', '08:00')
+    if not ponto_id or not funcao_id or not data_str:
+        return JsonResponse(
+            {'detail': 'Informe ponto_operacao, funcao e data (YYYY-MM-DD).'},
+            status=400,
+        )
+    d = parse_date(data_str)
+    if not d:
+        return JsonResponse({'detail': 'Data inválida. Use YYYY-MM-DD.'}, status=400)
+    try:
+        hora = parse_hora(hora_str)
+    except ValueError as e:
+        return JsonResponse({'detail': str(e)}, status=400)
+
+    ponto = get_object_or_404(
+        PontoOperacao.objects.select_related('empresa_contratante'),
+        pk=ponto_id,
+        empresa_contratante=empresa,
+    )
+    funcao = get_object_or_404(
+        Funcao.objects.filter(Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True)),
+        pk=funcao_id,
+    )
+    if funcao.empresa_contratante_id and funcao.empresa_contratante_id != ponto.empresa_contratante_id:
+        return JsonResponse(
+            {'detail': 'Função e estabelecimento devem ser da mesma empresa.'},
+            status=400,
+        )
+
+    out = resolver_tarifa_diaria(
+        empresa_contratante_id=ponto.empresa_contratante_id,
+        ponto_operacao_id=int(ponto_id),
+        funcao_id=int(funcao_id),
+        data=d,
+        hora_inicio=hora,
+    )
+    if out.get('valor') is not None:
+        out['valor'] = str(out['valor'])
+    return JsonResponse(out)
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def pagamento_tarifa_diaria_nova(request):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    if request.method == 'POST':
+        form = TarifaDiariaPorFuncaoPontoForm(request.POST, empresa=empresa)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            try:
+                obj.full_clean()
+                obj.save()
+            except ValidationError as e:
+                for k, msgs in (e.message_dict or {}).items():
+                    for m in msgs:
+                        form.add_error(k if k != '__all__' else None, m)
+            else:
+                messages.success(request, 'Tarifa registada.')
+                return redirect('dashboard_empresa:pagamento_tarifas_diaria_lista')
+    else:
+        form = TarifaDiariaPorFuncaoPontoForm(empresa=empresa)
+    return render(
+        request,
+        'dashboard_empresa/pagamento/tarifa_form.html',
+        {
+            'empresa': empresa,
+            'form': form,
+            'titulo': 'Nova tarifa (diária por função e estabelecimento)',
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def pagamento_tarifa_diaria_editar(request, pk):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    obj = get_object_or_404(
+        TarifaDiariaPorFuncaoPonto.objects.select_related('ponto_operacao', 'funcao'),
+        pk=pk,
+        empresa_contratante=empresa,
+    )
+    if request.method == 'POST':
+        form = TarifaDiariaPorFuncaoPontoForm(request.POST, instance=obj, empresa=empresa)
+        if form.is_valid():
+            try:
+                form.instance.full_clean()
+                form.save()
+            except ValidationError as e:
+                for k, msgs in (e.message_dict or {}).items():
+                    for m in msgs:
+                        form.add_error(k if k != '__all__' else None, m)
+            else:
+                messages.success(request, 'Tarifa atualizada.')
+                return redirect('dashboard_empresa:pagamento_tarifas_diaria_lista')
+    else:
+        form = TarifaDiariaPorFuncaoPontoForm(instance=obj, empresa=empresa)
+    return render(
+        request,
+        'dashboard_empresa/pagamento/tarifa_form.html',
+        {
+            'empresa': empresa,
+            'form': form,
+            'titulo': 'Editar tarifa',
+            'obj': obj,
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def pagamento_data_tarifa_nova(request):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    if request.method == 'POST':
+        form = DataCalendarioTarifaForm(request.POST, empresa=empresa)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            try:
+                obj.full_clean()
+                obj.save()
+            except ValidationError as e:
+                for k, msgs in (e.message_dict or {}).items():
+                    for m in msgs:
+                        form.add_error(k if k != '__all__' else None, m)
+            else:
+                messages.success(request, 'Data especial registada (noite usará valor de noite especial).')
+                return redirect('dashboard_empresa:pagamento_tarifas_diaria_lista')
+    else:
+        form = DataCalendarioTarifaForm(empresa=empresa)
+    return render(
+        request,
+        'dashboard_empresa/pagamento/data_tarifa_form.html',
+        {
+            'empresa': empresa,
+            'form': form,
+            'titulo': 'Nova data especial (véspera / feriado)',
+            'user': request.user,
+        },
     )

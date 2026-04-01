@@ -748,7 +748,7 @@ def gerenciar_vagas_evento(request, evento_id):
 @login_required(login_url='/empresa/login/')
 def editar_vaga(request, vaga_id):
     """
-    Editar vaga existente
+    Editar vaga existente (evento/setor ou ponto de operação).
     """
     if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
         messages.error(request, 'Acesso negado.')
@@ -756,12 +756,12 @@ def editar_vaga(request, vaga_id):
     
     empresa = request.user.empresa_contratante
     
-    # Buscar vaga
     vaga = get_object_or_404(
-        Vaga.objects.select_related('setor', 'setor__evento'),
+        Vaga.objects.select_related('setor', 'setor__evento', 'ponto_operacao'),
         id=vaga_id,
         empresa_contratante=empresa
     )
+    is_ponto = bool(vaga.ponto_operacao_id)
     
     if request.method == 'POST':
         titulo = request.POST.get('titulo')
@@ -788,13 +788,14 @@ def editar_vaga(request, vaga_id):
                 vaga.save()
                 
                 messages.success(request, f'Vaga "{titulo}" atualizada com sucesso!')
+                if is_ponto:
+                    return redirect('dashboard_empresa:pagamento_freelancer')
                 return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
         else:
             messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
     
-    # Buscar funções disponíveis (globais ou da empresa)
     funcoes = Funcao.objects.filter(
         Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
         ativo=True,
@@ -805,9 +806,10 @@ def editar_vaga(request, vaga_id):
         'empresa': empresa,
         'vaga': vaga,
         'setor': vaga.setor,
-        'evento': vaga.setor.evento,
+        'evento': vaga.setor.evento if vaga.setor_id else None,
         'funcoes': funcoes,
         'user': request.user,
+        'is_vaga_ponto': is_ponto,
     }
     
     return render(request, 'dashboard_empresa/editar_vaga.html', context)
@@ -826,7 +828,7 @@ def desativar_vaga(request, vaga_id):
     
     # Buscar vaga
     vaga = get_object_or_404(
-        Vaga.objects.select_related('setor', 'setor__evento'),
+        Vaga.objects.select_related('setor', 'setor__evento', 'ponto_operacao'),
         id=vaga_id,
         empresa_contratante=empresa
     )
@@ -838,8 +840,12 @@ def desativar_vaga(request, vaga_id):
     status_texto = "ativada" if vaga.ativa else "desativada"
     messages.success(request, f'Vaga "{vaga.titulo}" {status_texto} com sucesso!')
     
-    # Redirecionar para a página anterior ou para gerenciar vagas
-    return redirect(request.META.get('HTTP_REFERER', 'dashboard_empresa:gerenciar_vagas_evento'), evento_id=vaga.setor.evento.id)
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+    if vaga.ponto_operacao_id:
+        return redirect('dashboard_empresa:pagamento_freelancer')
+    return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
 
 
 @login_required(login_url='/empresa/login/')

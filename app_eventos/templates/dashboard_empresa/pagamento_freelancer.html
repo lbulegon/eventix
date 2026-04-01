@@ -46,6 +46,15 @@
         </div>
     </div>
     <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-success">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-tags text-success me-2"></i>Tarifas por turno</h5>
+                <p class="card-text small">Diária por função e estabelecimento (dia / noite / noite especial); vésperas no calendário.</p>
+                <a href="{% url 'dashboard_empresa:pagamento_tarifas_diaria_lista' %}" class="btn btn-sm btn-success">Gerir tarifas</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-minus-circle me-2"></i>Vales e consumos</h5>
@@ -140,7 +149,9 @@
     <code>.../atribuir-freelancer-vaga/</code> (POST: vaga + freelance, sem candidatura),
     <code>.../unidade-operacional/com-recorrencias/</code> (POST: unidade + recorrências + opcional gerar turnos),
     <code>.../vagas-disponiveis/?ponto_operacao=</code>,
-    <code>.../contratos/?ponto_operacao=</code>
+    <code>.../contratos/?ponto_operacao=</code>,
+    <code>.../sugerir-tarifa-diaria/?ponto_operacao=&amp;funcao=&amp;data=YYYY-MM-DD&amp;hora_inicio=HH:MM</code> (JWT);
+    no dashboard web: <code>.../pagamento-freelancer/sugerir-tarifa-diaria.json?...</code> (sessão).
     — autenticação JWT.
 </div>
 {% endblock %}

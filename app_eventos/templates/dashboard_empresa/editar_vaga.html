@@ -8,9 +8,13 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        {% if is_vaga_ponto %}
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:pagamento_freelancer' %}">Pagamento freelancers</a></li>
+        {% else %}
         <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:eventos_empresa' %}">Eventos</a></li>
         <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:detalhe_evento' evento.id %}">{{ evento.nome }}</a></li>
         <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:gerenciar_vagas_evento' evento.id %}">Gerenciar Vagas</a></li>
+        {% endif %}
         <li class="breadcrumb-item active">Editar Vaga</li>
     </ol>
 </nav>
@@ -86,6 +90,23 @@
                                 <label for="remuneracao" class="form-label">Remuneração (R$) *</label>
                                 <input type="number" step="0.01" class="form-control" id="remuneracao" name="remuneracao" value="{{ vaga.remuneracao }}" min="0" required>
                                 <small class="text-muted">Valor da remuneração</small>
+                                {% if is_vaga_ponto and vaga.ponto_operacao %}
+                                <div class="mt-2 d-flex flex-wrap gap-2 align-items-end">
+                                    <div>
+                                        <label class="form-label small mb-0" for="tarifa-data">Data do turno</label>
+                                        <input type="date" class="form-control form-control-sm" id="tarifa-data">
+                                    </div>
+                                    <div>
+                                        <label class="form-label small mb-0" for="tarifa-hora">Hora início</label>
+                                        <input type="time" class="form-control form-control-sm" id="tarifa-hora" value="08:00">
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="btn-preencher-tarifa" data-ponto-id="{{ vaga.ponto_operacao.pk }}"
+                                            data-sugerir-url="{% url 'dashboard_empresa:pagamento_sugerir_tarifa_diaria_json' %}">
+                                        Usar tarifa cadastrada
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-1">Preenche conforme diária por turno (ponto + função) para a data e hora indicadas.</small>
+                                {% endif %}
                             </div>
                         </div>
                         
@@ -131,5 +152,34 @@
         </div>
     </div>
 </div>
+{% if is_vaga_ponto and vaga.ponto_operacao %}
+<script>
+(function(){
+  var btn = document.getElementById('btn-preencher-tarifa');
+  if (!btn) return;
+  var d = document.getElementById('tarifa-data');
+  if (d && !d.value) { d.value = new Date().toISOString().slice(0, 10); }
+  btn.addEventListener('click', function(){
+    var ponto = btn.getAttribute('data-ponto-id');
+    var funcSel = document.getElementById('funcao');
+    var fn = funcSel && funcSel.value;
+    var dt = d && d.value;
+    var hr = document.getElementById('tarifa-hora');
+    var hora = hr && hr.value ? hr.value : '08:00';
+    var rem = document.getElementById('remuneracao');
+    if (!fn || !dt) { alert('Selecione função e data do turno.'); return; }
+    var q = new URLSearchParams({ ponto_operacao: ponto, funcao: fn, data: dt, hora_inicio: hora });
+    fetch(btn.getAttribute('data-sugerir-url') + '?' + q.toString(), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function(r){ return r.json().then(function(j){ return { ok: r.ok, body: j }; }); })
+      .then(function(x){
+        if (!x.ok) { alert(x.body.detail || 'Não foi possível obter a tarifa.'); return; }
+        if (!x.body.encontrou) { alert(x.body.motivo || 'Sem tarifa para este ponto e função.'); return; }
+        if (rem) rem.value = x.body.valor;
+      })
+      .catch(function(){ alert('Erro de rede.'); });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}
 

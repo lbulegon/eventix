@@ -20,6 +20,7 @@ from .views_pagamento_freelancers import (
     FreelancerPrestacaoServicoViewSet,
     VagasDisponiveisPagamentoListView,
     ContratosPagamentoListView,
+    SugerirTarifaDiariaView,
 )
 
 router = DefaultRouter()
@@ -65,6 +66,11 @@ urlpatterns = [
         'pagamento-freelancer/contratos/',
         ContratosPagamentoListView.as_view(),
         name='pagamento-freelancer-contratos',
+    ),
+    path(
+        'pagamento-freelancer/sugerir-tarifa-diaria/',
+        SugerirTarifaDiariaView.as_view(),
+        name='pagamento-freelancer-sugerir-tarifa-diaria',
     ),
     path(
         'pagamento-freelancer/atribuir-freelancer-vaga/',
