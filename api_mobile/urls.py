@@ -11,6 +11,13 @@ from .views import (
 )
 from .views_funcoes import FuncaoViewSet, FreelancerFuncaoViewSet
 from .views_avancadas import VagaAvancadaViewSet, CandidaturaAvancadaViewSet
+from .views_pagamento_freelancers import (
+    FichamentoSemanaFreelancerViewSet,
+    LancamentoPagoDiarioFreelancerViewSet,
+    LancamentoDescontoFreelancerViewSet,
+    VagasDisponiveisPagamentoListView,
+    ContratosPagamentoListView,
+)
 
 router = DefaultRouter()
 router.register(r'vagas', VagaViewSet, basename='vaga')
@@ -24,8 +31,33 @@ router.register(r'empresas-contratantes', EmpresaContratanteViewSet, basename='e
 router.register(r'pontos-operacao', PontoOperacaoViewSet, basename='ponto-operacao')
 router.register(r'funcoes', FuncaoViewSet, basename='funcao')
 router.register(r'freelancers/funcoes', FreelancerFuncaoViewSet, basename='freelancer-funcao')
+router.register(
+    r'pagamento-freelancer/fichamentos',
+    FichamentoSemanaFreelancerViewSet,
+    basename='pagamento-freelancer-fichamento',
+)
+router.register(
+    r'pagamento-freelancer/lancamentos-pago',
+    LancamentoPagoDiarioFreelancerViewSet,
+    basename='pagamento-freelancer-lancamento-pago',
+)
+router.register(
+    r'pagamento-freelancer/lancamentos-desconto',
+    LancamentoDescontoFreelancerViewSet,
+    basename='pagamento-freelancer-lancamento-desconto',
+)
 
 urlpatterns = [
+    path(
+        'pagamento-freelancer/vagas-disponiveis/',
+        VagasDisponiveisPagamentoListView.as_view(),
+        name='pagamento-freelancer-vagas-disponiveis',
+    ),
+    path(
+        'pagamento-freelancer/contratos/',
+        ContratosPagamentoListView.as_view(),
+        name='pagamento-freelancer-contratos',
+    ),
     # URLs do router
     path('', include(router.urls)),
     

@@ -2,7 +2,9 @@
 from django import forms
 from .admin_restricoes import AdminRestricoesMixin
 from .models import (
-    User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao, Vaga, Funcao, TipoFuncao,
+    User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao,
+    FichamentoSemanaFreelancer, LancamentoPagoDiarioFreelancer, LancamentoDescontoFreelancer,
+    Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
@@ -352,11 +354,63 @@ class PontoOperacaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
         ("Informações", {
             "fields": ("empresa_contratante", "nome", "descricao", "ativo")
         }),
+        ("Pagamento freelancer", {
+            "fields": ("dia_semana_fechamento",),
+            "description": "Dia da semana em que termina cada período de 7 dias (pode ser sobrescrito por fichamento).",
+        }),
         ("Localização", {
             "fields": ("endereco", "cidade", "uf", "cep", "local"),
             "description": "Use endereço direto ou vincule a um LocalEvento existente"
         }),
     )
+
+
+class LancamentoPagoDiarioFreelancerInline(admin.TabularInline):
+    model = LancamentoPagoDiarioFreelancer
+    extra = 0
+    autocomplete_fields = ("freelance", "contrato_freelance")
+    fields = ("freelance", "contrato_freelance", "data", "valor_bruto", "eh_folga")
+
+
+class LancamentoDescontoFreelancerInline(admin.TabularInline):
+    model = LancamentoDescontoFreelancer
+    extra = 0
+    autocomplete_fields = ("freelance", "contrato_freelance")
+    fields = ("freelance", "contrato_freelance", "tipo", "valor", "descricao", "data")
+
+
+@admin.register(FichamentoSemanaFreelancer)
+class FichamentoSemanaFreelancerAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ("ponto_operacao", "data_fechamento", "empresa_contratante", "criado_em")
+    list_filter = ("empresa_contratante", "ponto_operacao", "data_fechamento")
+    search_fields = ("observacoes", "ponto_operacao__nome")
+    autocomplete_fields = ("empresa_contratante", "ponto_operacao")
+    readonly_fields = ("criado_em", "atualizado_em")
+    inlines = (LancamentoPagoDiarioFreelancerInline, LancamentoDescontoFreelancerInline)
+    fieldsets = (
+        ("Tenant e estabelecimento", {
+            "fields": ("empresa_contratante", "ponto_operacao", "dia_semana_fechamento", "data_fechamento"),
+            "description": "Período de 7 dias terminando em data_fechamento; o dia da semana dessa data deve coincidir com o fechamento (estabelecimento ou sobrescrito aqui).",
+        }),
+        ("Observações", {"fields": ("observacoes",)}),
+        ("Metadados", {"fields": ("criado_em", "atualizado_em"), "classes": ("collapse",)}),
+    )
+
+
+@admin.register(LancamentoPagoDiarioFreelancer)
+class LancamentoPagoDiarioFreelancerAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ("fichamento", "freelance", "contrato_freelance", "data", "valor_bruto", "eh_folga")
+    list_filter = ("fichamento__empresa_contratante", "fichamento", "data", "eh_folga")
+    search_fields = ("freelance__nome_completo", "contrato_freelance__vaga__titulo")
+    autocomplete_fields = ("fichamento", "freelance", "contrato_freelance")
+
+
+@admin.register(LancamentoDescontoFreelancer)
+class LancamentoDescontoFreelancerAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ("fichamento", "freelance", "contrato_freelance", "tipo", "valor", "data")
+    list_filter = ("fichamento__empresa_contratante", "fichamento", "tipo")
+    search_fields = ("freelance__nome_completo", "descricao", "contrato_freelance__vaga__titulo")
+    autocomplete_fields = ("fichamento", "freelance", "contrato_freelance")
 
 
 @admin.register(Vaga)

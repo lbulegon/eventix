@@ -117,7 +117,7 @@ class PontoOperacaoSerializer(serializers.ModelSerializer):
         model = PontoOperacao
         fields = [
             'id', 'nome', 'descricao', 'endereco', 'cidade', 'uf', 'cep',
-            'local', 'ativo', 'data_criacao', 'data_atualizacao'
+            'local', 'dia_semana_fechamento', 'ativo', 'data_criacao', 'data_atualizacao'
         ]
         read_only_fields = ['data_criacao', 'data_atualizacao']
 

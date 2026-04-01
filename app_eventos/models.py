@@ -1193,6 +1193,9 @@ class SetorEvento(models.Model):
         return f"{self.nome} - {self.evento.nome}"
 
 
+from .models_pagamento_freelancers import DIA_SEMANA_FECHAMENTO_CHOICES
+
+
 class PontoOperacao(models.Model):
     """
     Ponto de operação permanente - estabelecimento com necessidades contínuas.
@@ -1223,6 +1226,13 @@ class PontoOperacao(models.Model):
         related_name="pontos_operacao",
         verbose_name="Local (opcional)",
         help_text="Vincule a um LocalEvento existente, ou use endereço acima"
+    )
+    dia_semana_fechamento = models.PositiveSmallIntegerField(
+        blank=True,
+        null=True,
+        choices=DIA_SEMANA_FECHAMENTO_CHOICES,
+        verbose_name="Dia da semana de fechamento (pagamento freelancer)",
+        help_text="Dia em que termina cada período semanal de 7 dias. Pode ser sobrescrito por fichamento.",
     )
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
@@ -5195,6 +5205,13 @@ class ComissaoEventix(models.Model):
         """Valor que o freelancer recebe (sem desconto)"""
         return self.valor_vaga_freelancer
 
+
+# Pagamento de freelancers por estabelecimento (tenant)
+from .models_pagamento_freelancers import (
+    FichamentoSemanaFreelancer,
+    LancamentoPagoDiarioFreelancer,
+    LancamentoDescontoFreelancer,
+)
 
 # Importar modelos de notificação
 from .models_notificacoes import Notificacao, ConfiguracaoNotificacao
