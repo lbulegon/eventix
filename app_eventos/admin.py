@@ -5,6 +5,8 @@ from .models import (
     User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao,
     FichamentoSemanaFreelancer, LancamentoPagoDiarioFreelancer, LancamentoDescontoFreelancer,
     FreelancerPrestacaoServico,
+    UnidadeOperacional, RegraRecorrencia, RegraRecorrenciaFuncao,
+    TurnoOperacional, VagaTurno, AlocacaoTurno,
     Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
@@ -421,6 +423,94 @@ class FreelancerPrestacaoServicoAdmin(admin.ModelAdmin, EmpresaContratanteMixin)
     search_fields = ("freelance__nome_completo", "freelance__cpf")
     autocomplete_fields = ("empresa_contratante", "freelance")
     readonly_fields = ("criado_em", "atualizado_em")
+
+
+class _OperacaoEmpresaFilterMixin:
+    """Filtra por tenant via unidade.empresa_contratante (modelos sem FK direta)."""
+
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        u = request.user
+        if getattr(u, 'is_admin_sistema', False) or u.is_superuser:
+            return qs
+        if getattr(u, 'tipo_usuario', None) in ('admin_empresa', 'operador_empresa') and getattr(
+            u, 'empresa_contratante', None
+        ):
+            return self._filtrar_por_empresa(qs, u.empresa_contratante)
+        return qs.none()
+
+
+@admin.register(UnidadeOperacional)
+class UnidadeOperacionalAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    list_display = ('nome', 'tipo', 'empresa_contratante', 'ativo', 'criado_em')
+    list_filter = ('tipo', 'ativo', 'empresa_contratante')
+    search_fields = ('nome', 'descricao')
+    autocomplete_fields = ('empresa_contratante', 'evento', 'ponto_operacao')
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+
+class RegraRecorrenciaFuncaoInline(admin.TabularInline):
+    model = RegraRecorrenciaFuncao
+    extra = 0
+    autocomplete_fields = ('funcao',)
+
+
+@admin.register(RegraRecorrencia)
+class RegraRecorrenciaAdmin(admin.ModelAdmin, _OperacaoEmpresaFilterMixin):
+    list_display = ('nome', 'unidade', 'hora_inicio', 'hora_fim', 'ativo', 'criado_em')
+    list_filter = ('ativo', 'unidade__empresa_contratante')
+    search_fields = ('nome', 'unidade__nome')
+    autocomplete_fields = ('unidade',)
+    inlines = (RegraRecorrenciaFuncaoInline,)
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+    def _filtrar_por_empresa(self, qs, empresa):
+        return qs.filter(unidade__empresa_contratante=empresa)
+
+
+@admin.register(RegraRecorrenciaFuncao)
+class RegraRecorrenciaFuncaoAdmin(admin.ModelAdmin, _OperacaoEmpresaFilterMixin):
+    list_display = ('regra', 'funcao', 'quantidade')
+    autocomplete_fields = ('regra', 'funcao')
+
+    def _filtrar_por_empresa(self, qs, empresa):
+        return qs.filter(regra__unidade__empresa_contratante=empresa)
+
+
+@admin.register(TurnoOperacional)
+class TurnoOperacionalAdmin(admin.ModelAdmin, _OperacaoEmpresaFilterMixin):
+    list_display = ('data', 'hora_inicio', 'hora_fim', 'unidade', 'origem', 'status', 'regra_recorrencia')
+    list_filter = ('status', 'origem', 'unidade__empresa_contratante')
+    search_fields = ('unidade__nome',)
+    autocomplete_fields = ('unidade', 'regra_recorrencia')
+    date_hierarchy = 'data'
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+    def _filtrar_por_empresa(self, qs, empresa):
+        return qs.filter(unidade__empresa_contratante=empresa)
+
+
+@admin.register(VagaTurno)
+class VagaTurnoAdmin(admin.ModelAdmin, _OperacaoEmpresaFilterMixin):
+    list_display = ('turno', 'funcao', 'quantidade_total', 'quantidade_preenchida')
+    list_filter = ('turno__unidade__empresa_contratante',)
+    search_fields = ('funcao__nome', 'turno__unidade__nome')
+    autocomplete_fields = ('turno', 'funcao')
+
+    def _filtrar_por_empresa(self, qs, empresa):
+        return qs.filter(turno__unidade__empresa_contratante=empresa)
+
+
+@admin.register(AlocacaoTurno)
+class AlocacaoTurnoAdmin(admin.ModelAdmin, _OperacaoEmpresaFilterMixin):
+    list_display = ('freelance', 'vaga_turno', 'status', 'criado_em')
+    list_filter = ('status', 'vaga_turno__turno__unidade__empresa_contratante')
+    search_fields = ('freelance__nome_completo',)
+    autocomplete_fields = ('vaga_turno', 'freelance')
+    readonly_fields = ('criado_em', 'atualizado_em')
+
+    def _filtrar_por_empresa(self, qs, empresa):
+        return qs.filter(vaga_turno__turno__unidade__empresa_contratante=empresa)
 
 
 @admin.register(Vaga)

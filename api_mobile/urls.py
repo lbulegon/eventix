@@ -11,7 +11,9 @@ from .views import (
 )
 from .views_funcoes import FuncaoViewSet, FreelancerFuncaoViewSet
 from .views_avancadas import VagaAvancadaViewSet, CandidaturaAvancadaViewSet
+from .views_operacao_continua import UnidadeOperacionalComRecorrenciasView
 from .views_pagamento_freelancers import (
+    AtribuirFreelancerVagaDiretoView,
     FichamentoSemanaFreelancerViewSet,
     LancamentoPagoDiarioFreelancerViewSet,
     LancamentoDescontoFreelancerViewSet,
@@ -63,6 +65,16 @@ urlpatterns = [
         'pagamento-freelancer/contratos/',
         ContratosPagamentoListView.as_view(),
         name='pagamento-freelancer-contratos',
+    ),
+    path(
+        'pagamento-freelancer/atribuir-freelancer-vaga/',
+        AtribuirFreelancerVagaDiretoView.as_view(),
+        name='pagamento-freelancer-atribuir-freelancer-vaga',
+    ),
+    path(
+        'pagamento-freelancer/unidade-operacional/com-recorrencias/',
+        UnidadeOperacionalComRecorrenciasView.as_view(),
+        name='pagamento-freelancer-unidade-operacional-com-recorrencias',
     ),
     # URLs do router
     path('', include(router.urls)),

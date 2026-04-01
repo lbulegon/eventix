@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Sum
 from rest_framework import serializers
 
-from app_eventos.models import Candidatura, ContratoFreelance, Vaga
+from app_eventos.models import Candidatura, ContratoFreelance, Freelance, Vaga
 from app_eventos.models_freelancer_empresa import FreelancerPrestacaoServico
 from app_eventos.models_pagamento_freelancers import (
     DIA_SEMANA_FECHAMENTO_CHOICES,
@@ -146,6 +146,34 @@ class ContratoPagamentoSerializer(serializers.ModelSerializer):
     def get_candidatura_status(self, obj):
         c = Candidatura.objects.filter(freelance_id=obj.freelance_id, vaga_id=obj.vaga_id).first()
         return c.status if c else None
+
+
+class AtribuicaoFreelancerVagaDiretaSerializer(serializers.Serializer):
+    """POST: atribui freelancer a vaga de estabelecimento sem candidatura."""
+    vaga = serializers.PrimaryKeyRelatedField(
+        queryset=Vaga.objects.select_related('empresa_contratante', 'ponto_operacao')
+    )
+    freelance = serializers.PrimaryKeyRelatedField(queryset=Freelance.objects.all())
+    exigir_historico_empresa = serializers.BooleanField(
+        default=True,
+        required=False,
+        help_text='Se true, exige FreelancerPrestacaoServico ativo para o tenant da vaga.',
+    )
+    ignorar_limite_vagas = serializers.BooleanField(
+        default=False,
+        required=False,
+        help_text='Se true, permite atribuir mesmo com vagas_disponiveis = 0 (uso restrito).',
+    )
+
+    def validate_vaga(self, vaga):
+        request = self.context.get('request')
+        user = request.user
+        if getattr(user, 'is_empresa_user', False) and user.empresa_contratante:
+            if vaga.empresa_contratante_id != user.empresa_contratante_id:
+                raise serializers.ValidationError('Vaga não pertence à sua empresa.')
+        elif not getattr(user, 'is_admin_sistema', False):
+            raise serializers.ValidationError('Sem permissão para usar esta vaga.')
+        return vaga
 
 
 class FichamentoSemanaFreelancerSerializer(serializers.ModelSerializer):

@@ -1,6 +1,11 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import F
-from rest_framework import generics, serializers, viewsets
+from rest_framework import generics, serializers, status, viewsets
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from app_eventos.services.atribuicao_vaga_direta import atribuir_freelancer_a_vaga_direto
 
 from app_eventos.models import ContratoFreelance, Freelance, Vaga
 from app_eventos.models_freelancer_empresa import FreelancerPrestacaoServico
@@ -10,6 +15,7 @@ from app_eventos.models_pagamento_freelancers import (
     LancamentoDescontoFreelancer,
 )
 from .serializers_pagamento_freelancers import (
+    AtribuicaoFreelancerVagaDiretaSerializer,
     ContratoPagamentoSerializer,
     FichamentoSemanaFreelancerSerializer,
     FreelancerPrestacaoServicoSerializer,
@@ -204,6 +210,66 @@ class ContratosPagamentoListView(generics.ListAPIView):
             qs = qs.filter(freelance_id=freelance_id)
 
         return qs.order_by('-data_contratacao')
+
+
+class AtribuirFreelancerVagaDiretoView(APIView):
+    """
+    Atribui um freelancer a uma vaga de ponto de operação (estabelecimento) sem candidatura.
+    Cria ContratoFreelance ativo e incrementa o preenchimento da vaga.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        if not (
+            getattr(user, 'is_empresa_user', False) or getattr(user, 'is_admin_sistema', False)
+        ):
+            return Response(
+                {'detail': 'Apenas usuários da empresa ou administrador do sistema podem atribuir.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        ser = AtribuicaoFreelancerVagaDiretaSerializer(data=request.data, context={'request': request})
+        ser.is_valid(raise_exception=True)
+        vaga = ser.validated_data['vaga']
+        freelance = ser.validated_data['freelance']
+        exigir_hist = ser.validated_data.get('exigir_historico_empresa', True)
+        ignorar_limite = ser.validated_data.get('ignorar_limite_vagas', False)
+        if not exigir_hist and not getattr(user, 'is_admin_sistema', False):
+            return Response(
+                {
+                    'detail': (
+                        'Só administrador do sistema pode desativar a exigência de histórico '
+                        '(FreelancerPrestacaoServico) na atribuição.'
+                    )
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if ignorar_limite and not getattr(user, 'is_admin_sistema', False):
+            return Response(
+                {'detail': 'Só administrador do sistema pode ignorar o limite de vagas.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            contrato, meta = atribuir_freelancer_a_vaga_direto(
+                freelance,
+                vaga,
+                exigir_prestacao_servico=exigir_hist,
+                ignorar_limite_vagas=ignorar_limite,
+            )
+        except DjangoValidationError as e:
+            if hasattr(e, 'message_dict') and e.message_dict:
+                raise serializers.ValidationError(e.message_dict)
+            msgs = list(getattr(e, 'messages', []) or [str(e)])
+            raise serializers.ValidationError(msgs[0] if len(msgs) == 1 else msgs)
+
+        out = ContratoPagamentoSerializer(contrato, context={'request': request})
+        code = status.HTTP_201_CREATED if meta.get('criado') else status.HTTP_200_OK
+        return Response(
+            {'contrato': out.data, 'criado': meta.get('criado'), 'mensagem': meta.get('mensagem', '')},
+            status=code,
+        )
 
 
 class FreelancerPrestacaoServicoViewSet(viewsets.ModelViewSet):

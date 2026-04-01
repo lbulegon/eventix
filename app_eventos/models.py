@@ -5216,6 +5216,16 @@ from .models_pagamento_freelancers import (
 # Freelancers com histórico de serviço por empresa
 from .models_freelancer_empresa import FreelancerPrestacaoServico
 
+# Operação contínua + evento (unidades, recorrência, turnos, vagas por turno)
+from .models_operacao_continua import (
+    AlocacaoTurno,
+    RegraRecorrencia,
+    RegraRecorrenciaFuncao,
+    TurnoOperacional,
+    UnidadeOperacional,
+    VagaTurno,
+)
+
 # Importar modelos de notificação
 from .models_notificacoes import Notificacao, ConfiguracaoNotificacao
 
