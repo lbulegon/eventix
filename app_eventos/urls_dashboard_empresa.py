@@ -2,7 +2,7 @@
 URLs para Dashboard da Empresa
 """
 from django.urls import path, include
-from . import views_dashboard_empresa
+from . import views_dashboard_empresa, views_pagamento_empresa
 
 app_name = 'dashboard_empresa'
 
@@ -52,6 +52,62 @@ urlpatterns = [
         'operacao-turnos/',
         views_dashboard_empresa.operacao_turnos,
         name='operacao_turnos',
+    ),
+    # CRUD pagamento freelancer (fichamento, pago diário, descontos)
+    path(
+        'pagamento-freelancer/fichamentos/',
+        views_pagamento_empresa.pagamento_fichamentos_lista,
+        name='pagamento_fichamentos_lista',
+    ),
+    path(
+        'pagamento-freelancer/fichamentos/novo/',
+        views_pagamento_empresa.pagamento_fichamento_novo,
+        name='pagamento_fichamento_novo',
+    ),
+    path(
+        'pagamento-freelancer/fichamentos/<int:pk>/',
+        views_pagamento_empresa.pagamento_fichamento_detalhe,
+        name='pagamento_fichamento_detalhe',
+    ),
+    path(
+        'pagamento-freelancer/fichamentos/<int:pk>/editar/',
+        views_pagamento_empresa.pagamento_fichamento_editar,
+        name='pagamento_fichamento_editar',
+    ),
+    path(
+        'pagamento-freelancer/fichamentos/<int:pk>/excluir/',
+        views_pagamento_empresa.pagamento_fichamento_excluir,
+        name='pagamento_fichamento_excluir',
+    ),
+    path(
+        'pagamento-freelancer/fichamentos/<int:fichamento_id>/pago/novo/',
+        views_pagamento_empresa.pagamento_lancamento_pago_novo,
+        name='pagamento_lancamento_pago_novo',
+    ),
+    path(
+        'pagamento-freelancer/lancamentos-pago/<int:pk>/editar/',
+        views_pagamento_empresa.pagamento_lancamento_pago_editar,
+        name='pagamento_lancamento_pago_editar',
+    ),
+    path(
+        'pagamento-freelancer/lancamentos-pago/<int:pk>/excluir/',
+        views_pagamento_empresa.pagamento_lancamento_pago_excluir,
+        name='pagamento_lancamento_pago_excluir',
+    ),
+    path(
+        'pagamento-freelancer/fichamentos/<int:fichamento_id>/descontos/novo/',
+        views_pagamento_empresa.pagamento_lancamento_desconto_novo,
+        name='pagamento_lancamento_desconto_novo',
+    ),
+    path(
+        'pagamento-freelancer/lancamentos-desconto/<int:pk>/editar/',
+        views_pagamento_empresa.pagamento_lancamento_desconto_editar,
+        name='pagamento_lancamento_desconto_editar',
+    ),
+    path(
+        'pagamento-freelancer/lancamentos-desconto/<int:pk>/excluir/',
+        views_pagamento_empresa.pagamento_lancamento_desconto_excluir,
+        name='pagamento_lancamento_desconto_excluir',
     ),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
     

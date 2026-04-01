@@ -1,0 +1,15 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Excluir desconto{% endblock %}
+{% block content %}
+<div class="card border-danger col-lg-6">
+    <div class="card-header bg-danger text-white">Excluir desconto</div>
+    <div class="card-body">
+        <p>{{ lancamento.get_tipo_display }} — {{ lancamento.freelance.nome_completo }} — R$ {{ lancamento.valor }}</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Excluir</button>
+            <a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' fichamento.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

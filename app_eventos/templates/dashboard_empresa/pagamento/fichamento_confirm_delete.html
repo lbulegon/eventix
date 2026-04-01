@@ -1,0 +1,23 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Excluir fichamento{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' fichamento.pk %}">Fichamento</a></li>
+        <li class="breadcrumb-item active">Excluir</li>
+    </ol>
+</nav>
+
+<div class="card border-danger col-lg-6">
+    <div class="card-header bg-danger text-white">Confirmar exclusão</div>
+    <div class="card-body">
+        <p>Excluir o fichamento de <strong>{{ fichamento.ponto_operacao.nome }}</strong> (fechamento {{ fichamento.data_fechamento|date:"d/m/Y" }})?</p>
+        <p class="small text-muted">Todos os lançamentos de pago e descontos deste período serão removidos.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Sim, excluir</button>
+            <a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' fichamento.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

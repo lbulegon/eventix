@@ -1,0 +1,44 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Fichamentos (pagamento freelancer){% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:pagamento_freelancer' %}">Pagamento freelancers</a></li>
+        <li class="breadcrumb-item active">Fichamentos</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="fas fa-calendar-week me-2"></i>Fichamentos semanais</h4>
+    <a href="{% url 'dashboard_empresa:pagamento_fichamento_novo' %}" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Novo fichamento</a>
+</div>
+
+{% if fichamentos %}
+<div class="table-responsive card">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Estabelecimento</th>
+                <th>Fechamento</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for f in fichamentos %}
+            <tr>
+                <td>{{ f.ponto_operacao.nome }}</td>
+                <td>{{ f.data_fechamento|date:"d/m/Y" }}</td>
+                <td class="text-end">
+                    <a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' f.pk %}" class="btn btn-sm btn-outline-primary">Abrir</a>
+                    <a href="{% url 'dashboard_empresa:pagamento_fichamento_editar' f.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">Nenhum fichamento ainda. <a href="{% url 'dashboard_empresa:pagamento_fichamento_novo' %}">Criar o primeiro</a>.</div>
+{% endif %}
+{% endblock %}

@@ -25,11 +25,10 @@
         <div class="card h-100 border-primary">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-calendar-week text-primary me-2"></i>Fichamentos</h5>
-                <p class="card-text small">Abrir lista e criar/editar períodos semanais.</p>
+                <p class="card-text small">Lista e criação de períodos semanais por estabelecimento.</p>
+                <a href="{% url 'dashboard_empresa:pagamento_fichamentos_lista' %}" class="btn btn-sm btn-primary">Abrir fichamentos</a>
                 {% if user.is_staff %}
-                <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_changelist' %}" class="btn btn-sm btn-primary">Admin — Fichamentos</a>
-                {% else %}
-                <span class="text-muted small">Peça a um administrador com acesso ao Django Admin.</span>
+                <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_changelist' %}" class="btn btn-sm btn-outline-secondary ms-1">Admin</a>
                 {% endif %}
             </div>
         </div>
@@ -38,11 +37,10 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-coins me-2"></i>Pago (diário)</h5>
-                <p class="card-text small">Valores por dia e folgas.</p>
+                <p class="card-text small">Valores por dia e folgas, por fichamento.</p>
+                <a href="{% url 'dashboard_empresa:pagamento_fichamentos_lista' %}" class="btn btn-sm btn-outline-primary">Escolher fichamento</a>
                 {% if user.is_staff %}
-                <a href="{% url 'admin:app_eventos_lancamentopagodiariofreelancer_changelist' %}" class="btn btn-sm btn-outline-primary">Admin — Lançamentos pago</a>
-                {% else %}
-                <span class="text-muted small">Via Admin (usuário staff).</span>
+                <a href="{% url 'admin:app_eventos_lancamentopagodiariofreelancer_changelist' %}" class="btn btn-sm btn-outline-secondary ms-1">Admin</a>
                 {% endif %}
             </div>
         </div>
@@ -51,11 +49,10 @@
         <div class="card h-100">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-minus-circle me-2"></i>Vales e consumos</h5>
-                <p class="card-text small">Descontos (tipo vale ou consumo).</p>
+                <p class="card-text small">Descontos (vale, consumo ou outro), por fichamento.</p>
+                <a href="{% url 'dashboard_empresa:pagamento_fichamentos_lista' %}" class="btn btn-sm btn-outline-primary">Escolher fichamento</a>
                 {% if user.is_staff %}
-                <a href="{% url 'admin:app_eventos_lancamentodescontofreelancer_changelist' %}" class="btn btn-sm btn-outline-primary">Admin — Descontos</a>
-                {% else %}
-                <span class="text-muted small">Via Admin (usuário staff).</span>
+                <a href="{% url 'admin:app_eventos_lancamentodescontofreelancer_changelist' %}" class="btn btn-sm btn-outline-secondary ms-1">Admin</a>
                 {% endif %}
             </div>
         </div>
@@ -98,9 +95,8 @@
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="fas fa-list me-2"></i>Últimos fichamentos (sua empresa)</span>
-        {% if user.is_staff %}
-        <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_add' %}" class="btn btn-sm btn-success">+ Novo</a>
-        {% endif %}
+        <a href="{% url 'dashboard_empresa:pagamento_fichamento_novo' %}" class="btn btn-sm btn-success">+ Novo</a>
+        <a href="{% url 'dashboard_empresa:pagamento_fichamentos_lista' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
     </div>
     <div class="card-body p-0">
         {% if fichamentos %}
@@ -119,8 +115,9 @@
                         <td>{{ f.ponto_operacao.nome }}</td>
                         <td>{{ f.data_fechamento|date:"d/m/Y" }}</td>
                         <td class="text-end">
+                            <a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' f.pk %}" class="btn btn-sm btn-primary">Abrir</a>
                             {% if user.is_staff %}
-                            <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_change' f.pk %}" class="btn btn-sm btn-outline-secondary">Abrir no admin</a>
+                            <a href="{% url 'admin:app_eventos_fichamentosemanafreelancer_change' f.pk %}" class="btn btn-sm btn-outline-secondary">Admin</a>
                             {% endif %}
                         </td>
                     </tr>

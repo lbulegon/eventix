@@ -1,0 +1,94 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Fichamento — {{ fichamento.ponto_operacao.nome }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:pagamento_fichamentos_lista' %}">Fichamentos</a></li>
+        <li class="breadcrumb-item active">Período</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h4 class="mb-1">{{ fichamento.ponto_operacao.nome }}</h4>
+        <p class="text-muted small mb-0">
+            Período: <strong>{{ fichamento.data_inicio_periodo|date:"d/m/Y" }}</strong> a
+            <strong>{{ fichamento.data_fechamento|date:"d/m/Y" }}</strong> (fechamento)
+        </p>
+        {% if fichamento.observacoes %}<p class="small mt-2 mb-0">{{ fichamento.observacoes }}</p>{% endif %}
+    </div>
+    <div class="btn-group flex-wrap">
+        <a href="{% url 'dashboard_empresa:pagamento_fichamento_editar' fichamento.pk %}" class="btn btn-outline-secondary btn-sm">Editar fichamento</a>
+        <a href="{% url 'dashboard_empresa:pagamento_fichamento_excluir' fichamento.pk %}" class="btn btn-outline-danger btn-sm">Excluir fichamento</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100 border-primary">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-coins me-1"></i>Pago (diário)</span>
+                <a href="{% url 'dashboard_empresa:pagamento_lancamento_pago_novo' fichamento.pk %}" class="btn btn-sm btn-primary">+ Lançamento</a>
+            </div>
+            <div class="card-body p-0">
+                {% if lancamentos_pago %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>Data</th><th>Freelancer</th><th>Valor</th><th></th></tr></thead>
+                        <tbody>
+                            {% for l in lancamentos_pago %}
+                            <tr>
+                                <td>{{ l.data|date:"d/m" }}</td>
+                                <td>{{ l.freelance.nome_completo }}{% if l.eh_folga %} <span class="badge bg-secondary">folga</span>{% endif %}</td>
+                                <td>{% if l.eh_folga %}—{% else %}R$ {{ l.valor_bruto }}{% endif %}</td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{% url 'dashboard_empresa:pagamento_lancamento_pago_editar' l.pk %}" class="small">Editar</a>
+                                    · <a href="{% url 'dashboard_empresa:pagamento_lancamento_pago_excluir' l.pk %}" class="small text-danger">Excluir</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="p-3 text-muted small mb-0">Sem lançamentos de pago. <a href="{% url 'dashboard_empresa:pagamento_lancamento_pago_novo' fichamento.pk %}">Adicionar</a>.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 border-warning">
+            <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><i class="fas fa-minus-circle me-1"></i>Vales e consumos</span>
+                <a href="{% url 'dashboard_empresa:pagamento_lancamento_desconto_novo' fichamento.pk %}" class="btn btn-sm btn-warning text-dark">+ Desconto</a>
+            </div>
+            <div class="card-body p-0">
+                {% if lancamentos_desc %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light"><tr><th>Tipo</th><th>Freelancer</th><th>Valor</th><th></th></tr></thead>
+                        <tbody>
+                            {% for l in lancamentos_desc %}
+                            <tr>
+                                <td>{{ l.get_tipo_display }}</td>
+                                <td>{{ l.freelance.nome_completo }}</td>
+                                <td>R$ {{ l.valor }}</td>
+                                <td class="text-end text-nowrap">
+                                    <a href="{% url 'dashboard_empresa:pagamento_lancamento_desconto_editar' l.pk %}" class="small">Editar</a>
+                                    · <a href="{% url 'dashboard_empresa:pagamento_lancamento_desconto_excluir' l.pk %}" class="small text-danger">Excluir</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="p-3 text-muted small mb-0">Sem descontos. <a href="{% url 'dashboard_empresa:pagamento_lancamento_desconto_novo' fichamento.pk %}">Adicionar</a>.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<p class="small text-muted mb-0"><a href="{% url 'dashboard_empresa:pagamento_fichamentos_lista' %}">← Voltar à lista de fichamentos</a></p>
+{% endblock %}

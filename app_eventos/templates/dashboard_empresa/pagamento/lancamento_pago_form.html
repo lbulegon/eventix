@@ -1,0 +1,29 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' fichamento.pk %}">Fichamento</a></li>
+        <li class="breadcrumb-item active">Pago (diário)</li>
+    </ol>
+</nav>
+
+<div class="card col-lg-7">
+    <div class="card-header">{{ titulo }}</div>
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'dashboard_empresa:pagamento_fichamento_detalhe' fichamento.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
