@@ -134,6 +134,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'operacao_turnos' %}active{% endif %}" 
+                               href="{% url 'dashboard_empresa:operacao_turnos' %}">
+                                <i class="fas fa-sync-alt me-2"></i>Operação e turnos
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'equipamentos_empresa' %}active{% endif %}" 
                                href="{% url 'dashboard_empresa:equipamentos_empresa' %}">
                                 <i class="fas fa-cogs me-2"></i>Equipamentos

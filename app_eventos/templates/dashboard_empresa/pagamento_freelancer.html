@@ -2,6 +2,10 @@
 {% block page_title %}Pagamento de freelancers{% endblock %}
 
 {% block content %}
+<p class="small mb-3">
+    <a href="{% url 'dashboard_empresa:operacao_turnos' %}"><i class="fas fa-sync-alt me-1"></i>Operação contínua e turnos</a>
+    (unidades, recorrência, API de criação em lote)
+</p>
 <div class="mb-4">
     <p class="text-muted mb-2">
         Semana de pagamento por <strong>estabelecimento</strong>: lançamentos de <strong>pago</strong> (por dia / folga),

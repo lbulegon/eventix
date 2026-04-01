@@ -14,6 +14,7 @@ from .models import (
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
     User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao, PontoOperacao,
     FichamentoSemanaFreelancer, FreelancerPrestacaoServico,
+    TurnoOperacional, UnidadeOperacional,
 )
 from .mixins import EmpresaContratanteRequiredMixin
 
@@ -1517,3 +1518,35 @@ def pagamento_freelancer(request):
         'user': request.user,
     }
     return render(request, 'dashboard_empresa/pagamento_freelancer.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+def operacao_turnos(request):
+    """
+    Operação contínua: unidades operacionais, regras de recorrência, turnos materializados.
+    Atalhos para Admin (staff) e referência à API mobile.
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    if not request.user.empresa_contratante:
+        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
+        return redirect('dashboard_empresa:login_empresa')
+
+    empresa = request.user.empresa_contratante
+    unidades = (
+        UnidadeOperacional.objects.filter(empresa_contratante=empresa)
+        .order_by('-criado_em')[:50]
+    )
+    turnos_recentes = (
+        TurnoOperacional.objects.filter(unidade__empresa_contratante=empresa)
+        .select_related('unidade')
+        .order_by('-data', '-hora_inicio')[:30]
+    )
+    context = {
+        'empresa': empresa,
+        'unidades': unidades,
+        'turnos_recentes': turnos_recentes,
+        'user': request.user,
+    }
+    return render(request, 'dashboard_empresa/operacao_turnos.html', context)

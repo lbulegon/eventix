@@ -48,6 +48,11 @@ urlpatterns = [
         views_dashboard_empresa.pagamento_freelancer,
         name='pagamento_freelancer',
     ),
+    path(
+        'operacao-turnos/',
+        views_dashboard_empresa.operacao_turnos,
+        name='operacao_turnos',
+    ),
     path('usuarios/', views_dashboard_empresa.usuarios_empresa, name='usuarios_empresa'),
     
     # Sistema de Documentos
