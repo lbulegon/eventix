@@ -46,17 +46,15 @@
             </div>
         </div>
     </div>
-    {% if user.is_staff %}
     <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-secondary">
+        <div class="card h-100 border-primary border-opacity-25">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-user-check me-2"></i>Alocações</h5>
-                <p class="card-text small">Freelancers alocados às vagas de turno.</p>
-                <a href="{% url 'admin:app_eventos_alocacaoturno_changelist' %}" class="btn btn-sm btn-outline-secondary">Abrir no Admin</a>
+                <p class="card-text small">Freelancers alocados às vagas de turno (histórico na empresa).</p>
+                <a href="{% url 'dashboard_empresa:operacao_alocacoes_lista' %}" class="btn btn-sm btn-primary">Listar e gerir</a>
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 <div class="card mb-4">

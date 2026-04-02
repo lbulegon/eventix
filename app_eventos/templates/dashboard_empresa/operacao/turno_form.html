@@ -28,7 +28,12 @@
         <h6>Vagas neste turno</h6>
         <ul class="small mb-0">
             {% for v in vagas_turno %}
-            <li>{{ v.funcao.nome }}: {{ v.quantidade_preenchida }} / {{ v.quantidade_total }} preenchidas</li>
+            <li class="mb-1">
+                {{ v.funcao.nome }}: {{ v.quantidade_preenchida }} / {{ v.quantidade_total }} preenchidas
+                {% if v.vagas_disponiveis > 0 %}
+                — <a href="{% url 'dashboard_empresa:operacao_alocacao_nova' %}?vaga={{ v.pk }}">Alocar freelancer</a>
+                {% endif %}
+            </li>
             {% endfor %}
         </ul>
         {% endif %}

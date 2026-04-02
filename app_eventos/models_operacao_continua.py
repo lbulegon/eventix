@@ -272,6 +272,11 @@ class VagaTurno(models.Model):
             self.quantidade_preenchida += 1
             self.save(update_fields=['quantidade_preenchida'])
 
+    def decrementar_preenchida(self):
+        if self.quantidade_preenchida > 0:
+            self.quantidade_preenchida -= 1
+            self.save(update_fields=['quantidade_preenchida'])
+
 
 class AlocacaoTurno(models.Model):
     """Freelancer alocado a uma vaga de turno (substitui fluxo de candidatura quando aplicável)."""

@@ -1,0 +1,24 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Remover alocação{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_alocacoes_lista' %}">Alocações</a></li>
+        <li class="breadcrumb-item active">Remover</li>
+    </ol>
+</nav>
+<div class="card col-md-8">
+    <div class="card-body">
+        {% with t=alocacao.vaga_turno.turno %}
+        <p>Remover a alocação de <strong>{{ alocacao.freelance.nome_completo }}</strong> na vaga
+        ({{ t.data|date:"d/m/Y" }} · {{ t.unidade.nome }} · {{ alocacao.vaga_turno.funcao.nome }})?
+        O lugar volta a ficar disponível no turno.</p>
+        {% endwith %}
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Remover</button>
+            <a href="{% url 'dashboard_empresa:operacao_alocacao_editar' alocacao.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

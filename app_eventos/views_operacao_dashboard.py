@@ -1,5 +1,5 @@
 """
-CRUD de operação contínua no dashboard da empresa (pontos, unidades, regras, turnos).
+CRUD de operação contínua no dashboard da empresa (pontos, unidades, regras, turnos, alocações).
 """
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -11,6 +11,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from app_eventos.forms_operacao_dashboard import (
+    AlocacaoTurnoEditForm,
+    AlocacaoTurnoNovaForm,
     DemandaFuncaoFormSet,
     PontoOperacaoForm,
     RegraRecorrenciaForm,
@@ -19,6 +21,7 @@ from app_eventos.forms_operacao_dashboard import (
 )
 from app_eventos.models import PontoOperacao
 from app_eventos.models_operacao_continua import (
+    AlocacaoTurno,
     RegraRecorrencia,
     TurnoOperacional,
     UnidadeOperacional,
@@ -494,4 +497,141 @@ def operacao_turno_excluir(request, pk):
         request,
         'dashboard_empresa/operacao/turno_confirm_delete.html',
         {'empresa': empresa, 'turno': obj, 'user': request.user},
+    )
+
+
+@login_required(login_url='/empresa/login/')
+def operacao_alocacoes_lista(request):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    qs = (
+        AlocacaoTurno.objects.filter(vaga_turno__turno__unidade__empresa_contratante=empresa)
+        .select_related('freelance', 'vaga_turno__funcao', 'vaga_turno__turno__unidade')
+    )
+    unidade_id = request.GET.get('unidade')
+    filtro_unidade_pk = None
+    if unidade_id and str(unidade_id).isdigit():
+        filtro_unidade_pk = int(unidade_id)
+        qs = qs.filter(vaga_turno__turno__unidade_id=filtro_unidade_pk)
+    status = request.GET.get('status')
+    if status in {c[0] for c in AlocacaoTurno.STATUS_CHOICES}:
+        qs = qs.filter(status=status)
+    alocacoes = qs.order_by('-vaga_turno__turno__data', '-vaga_turno__turno__hora_inicio', '-criado_em')
+    unidades = UnidadeOperacional.objects.filter(empresa_contratante=empresa).order_by('nome')
+    return render(
+        request,
+        'dashboard_empresa/operacao/alocacao_list.html',
+        {
+            'empresa': empresa,
+            'alocacoes': alocacoes,
+            'unidades': unidades,
+            'filtro_unidade': filtro_unidade_pk,
+            'filtro_status': status or '',
+            'status_choices': AlocacaoTurno.STATUS_CHOICES,
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def operacao_alocacao_nova(request):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    initial = {}
+    vaga_id = request.GET.get('vaga')
+    if vaga_id:
+        initial['vaga_turno'] = vaga_id
+    if request.method == 'POST':
+        form = AlocacaoTurnoNovaForm(request.POST, empresa=empresa)
+        if form.is_valid():
+            vaga = form.cleaned_data['vaga_turno']
+            fl = form.cleaned_data['freelance']
+            with transaction.atomic():
+                vaga_locked = VagaTurno.objects.select_for_update().get(pk=vaga.pk)
+                if vaga_locked.turno.unidade.empresa_contratante_id != empresa.pk:
+                    form.add_error(None, 'Vaga inválida para esta empresa.')
+                elif vaga_locked.quantidade_preenchida >= vaga_locked.quantidade_total:
+                    form.add_error('vaga_turno', 'Esta vaga já está completa.')
+                elif AlocacaoTurno.objects.filter(vaga_turno_id=vaga_locked.pk, freelance_id=fl.pk).exists():
+                    form.add_error('freelance', 'Este freelancer já está alocado nesta vaga.')
+                else:
+                    aloc = form.save(commit=False)
+                    aloc.save()
+                    vaga_locked.incrementar_preenchida()
+                    messages.success(request, 'Alocação registada.')
+                    return redirect('dashboard_empresa:operacao_alocacoes_lista')
+    else:
+        form = AlocacaoTurnoNovaForm(empresa=empresa, initial=initial)
+    return render(
+        request,
+        'dashboard_empresa/operacao/alocacao_form.html',
+        {
+            'empresa': empresa,
+            'form': form,
+            'titulo': 'Nova alocação',
+            'modo': 'nova',
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def operacao_alocacao_editar(request, pk):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    obj = get_object_or_404(
+        AlocacaoTurno.objects.select_related('vaga_turno__turno__unidade', 'vaga_turno__funcao', 'freelance'),
+        pk=pk,
+        vaga_turno__turno__unidade__empresa_contratante=empresa,
+    )
+    if request.method == 'POST':
+        form = AlocacaoTurnoEditForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Alocação atualizada.')
+            return redirect('dashboard_empresa:operacao_alocacoes_lista')
+    else:
+        form = AlocacaoTurnoEditForm(instance=obj)
+    return render(
+        request,
+        'dashboard_empresa/operacao/alocacao_form.html',
+        {
+            'empresa': empresa,
+            'form': form,
+            'titulo': 'Editar alocação',
+            'modo': 'editar',
+            'alocacao': obj,
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def operacao_alocacao_excluir(request, pk):
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    obj = get_object_or_404(
+        AlocacaoTurno.objects.select_related('vaga_turno__turno'),
+        pk=pk,
+        vaga_turno__turno__unidade__empresa_contratante=empresa,
+    )
+    if request.method == 'POST':
+        with transaction.atomic():
+            vaga = VagaTurno.objects.select_for_update().get(pk=obj.vaga_turno_id)
+            nome = obj.freelance.nome_completo
+            obj.delete()
+            vaga.decrementar_preenchida()
+        messages.success(request, f'Alocação de «{nome}» removida.')
+        return redirect('dashboard_empresa:operacao_alocacoes_lista')
+    return render(
+        request,
+        'dashboard_empresa/operacao/alocacao_confirm_delete.html',
+        {'empresa': empresa, 'alocacao': obj, 'user': request.user},
     )

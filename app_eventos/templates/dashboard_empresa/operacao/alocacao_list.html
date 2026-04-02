@@ -1,0 +1,76 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Alocações (turnos){% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
+        <li class="breadcrumb-item active">Alocações</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <h4 class="mb-0">Alocações a vagas de turno</h4>
+    <a href="{% url 'dashboard_empresa:operacao_alocacao_nova' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i>Nova alocação</a>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-md-4">
+        <label class="form-label small mb-0">Unidade</label>
+        <select name="unidade" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Todas</option>
+            {% for u in unidades %}
+            <option value="{{ u.pk }}" {% if filtro_unidade == u.pk %}selected{% endif %}>{{ u.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label small mb-0">Status</label>
+        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">Todos</option>
+            {% for val, label in status_choices %}
+            <option value="{{ val }}" {% if filtro_status == val %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <button type="submit" class="btn btn-sm btn-outline-secondary">Aplicar</button>
+        {% if filtro_unidade or filtro_status %}
+        <a href="{% url 'dashboard_empresa:operacao_alocacoes_lista' %}" class="btn btn-sm btn-link">Limpar</a>
+        {% endif %}
+    </div>
+</form>
+
+{% if alocacoes %}
+<div class="table-responsive card">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Data / turno</th>
+                <th>Unidade</th>
+                <th>Função</th>
+                <th>Freelancer</th>
+                <th>Status</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for a in alocacoes %}
+            {% with t=a.vaga_turno.turno %}
+            <tr>
+                <td class="small">{{ t.data|date:"d/m/Y" }} {{ t.hora_inicio|time:"H:i" }}–{{ t.hora_fim|time:"H:i" }}</td>
+                <td>{{ t.unidade.nome }}</td>
+                <td>{{ a.vaga_turno.funcao.nome }}</td>
+                <td>{{ a.freelance.nome_completo }}</td>
+                <td>{{ a.get_status_display }}</td>
+                <td class="text-end">
+                    <a href="{% url 'dashboard_empresa:operacao_alocacao_editar' a.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                </td>
+            </tr>
+            {% endwith %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info mb-0">Nenhuma alocação. <a href="{% url 'dashboard_empresa:operacao_alocacao_nova' %}">Criar alocação</a> ou gere turnos e vagas nas unidades.</div>
+{% endif %}
+{% endblock %}

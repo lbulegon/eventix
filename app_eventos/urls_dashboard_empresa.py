@@ -87,6 +87,10 @@ urlpatterns = [
     path('operacao/turnos/nova/', views_operacao_dashboard.operacao_turno_novo, name='operacao_turno_novo'),
     path('operacao/turnos/<int:pk>/editar/', views_operacao_dashboard.operacao_turno_editar, name='operacao_turno_editar'),
     path('operacao/turnos/<int:pk>/excluir/', views_operacao_dashboard.operacao_turno_excluir, name='operacao_turno_excluir'),
+    path('operacao/alocacoes/', views_operacao_dashboard.operacao_alocacoes_lista, name='operacao_alocacoes_lista'),
+    path('operacao/alocacoes/nova/', views_operacao_dashboard.operacao_alocacao_nova, name='operacao_alocacao_nova'),
+    path('operacao/alocacoes/<int:pk>/editar/', views_operacao_dashboard.operacao_alocacao_editar, name='operacao_alocacao_editar'),
+    path('operacao/alocacoes/<int:pk>/excluir/', views_operacao_dashboard.operacao_alocacao_excluir, name='operacao_alocacao_excluir'),
     # CRUD pagamento freelancer (fichamento, pago diário, descontos)
     path(
         'pagamento-freelancer/fichamentos/',

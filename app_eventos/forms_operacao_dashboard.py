@@ -1,13 +1,17 @@
 """Formulários de operação contínua no dashboard da empresa."""
 from django import forms
+from django.db.models import F
 from django.forms import inlineformset_factory
 
-from app_eventos.models import EmpresaContratante, Evento, Funcao, LocalEvento, PontoOperacao
+from app_eventos.models import EmpresaContratante, Evento, Funcao, Freelance, LocalEvento, PontoOperacao
+from app_eventos.models_freelancer_empresa import FreelancerPrestacaoServico
 from app_eventos.models_operacao_continua import (
+    AlocacaoTurno,
     RegraRecorrencia,
     RegraRecorrenciaFuncao,
     TurnoOperacional,
     UnidadeOperacional,
+    VagaTurno,
 )
 
 DIAS_SEMANA_CHOICES = [
@@ -212,3 +216,61 @@ class TurnoOperacionalForm(forms.ModelForm):
             unidade__empresa_contratante=empresa,
         ).select_related('unidade').order_by('unidade__nome', 'hora_inicio')
         self.fields['regra_recorrencia'].required = False
+
+
+def _label_vaga_turno(obj: VagaTurno) -> str:
+    t = obj.turno
+    livres = obj.vagas_disponiveis
+    disp = 'disponível' if livres == 1 else 'disponíveis'
+    return (
+        f'{t.data.strftime("%d/%m/%Y")} {t.hora_inicio.strftime("%H:%M")}–{t.hora_fim.strftime("%H:%M")} · '
+        f'{t.unidade.nome} · {obj.funcao.nome} ({livres} {disp})'
+    )
+
+
+class AlocacaoTurnoNovaForm(forms.ModelForm):
+    """Nova alocação: freelancers com histórico na empresa; vagas com lugar disponível."""
+
+    class Meta:
+        model = AlocacaoTurno
+        fields = ['vaga_turno', 'freelance', 'status', 'observacoes']
+        widgets = {
+            'vaga_turno': forms.Select(attrs={'class': 'form-select'}),
+            'freelance': forms.Select(attrs={'class': 'form-select'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def __init__(self, *args, empresa: EmpresaContratante, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._empresa = empresa
+        qs = (
+            VagaTurno.objects.filter(
+                turno__unidade__empresa_contratante=empresa,
+            )
+            .select_related('turno__unidade', 'funcao')
+            .filter(quantidade_preenchida__lt=F('quantidade_total'))
+            .order_by('-turno__data', 'turno__hora_inicio', 'funcao__nome')
+        )
+        self.fields['vaga_turno'].queryset = qs
+        self.fields['vaga_turno'].label_from_instance = _label_vaga_turno
+        fl_ids = FreelancerPrestacaoServico.objects.filter(
+            empresa_contratante=empresa,
+            ativo=True,
+        ).values_list('freelance_id', flat=True)
+        self.fields['freelance'].queryset = Freelance.objects.filter(pk__in=fl_ids).order_by('nome_completo')
+        self.fields['observacoes'].required = False
+
+
+class AlocacaoTurnoEditForm(forms.ModelForm):
+    class Meta:
+        model = AlocacaoTurno
+        fields = ['status', 'observacoes']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-select'}),
+            'observacoes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['observacoes'].required = False
