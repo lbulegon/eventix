@@ -117,6 +117,12 @@
                                 <i class="fas fa-home me-2"></i>Dashboard
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'configuracoes_empresa' %}active{% endif %}"
+                               href="{% url 'dashboard_empresa:configuracoes_empresa' %}">
+                                <i class="fas fa-building me-2"></i>Empresa
+                            </a>
+                        </li>
                         {% if empresa.dashboard_mostra_eventos %}
                         <li class="nav-item">
                             <a class="nav-link {% if request.resolver_match.url_name == 'eventos_empresa' %}active{% endif %}" 

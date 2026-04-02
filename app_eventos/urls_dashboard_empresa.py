@@ -17,6 +17,11 @@ urlpatterns = [
     
     # Dashboard principal
     path('', views_dashboard_empresa.dashboard_empresa, name='dashboard_empresa'),
+    path(
+        'configuracoes/',
+        views_dashboard_empresa.configuracoes_empresa,
+        name='configuracoes_empresa',
+    ),
     
     # Módulos específicos
     path('eventos/', views_dashboard_empresa.eventos_empresa, name='eventos_empresa'),

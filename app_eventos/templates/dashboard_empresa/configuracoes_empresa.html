@@ -1,0 +1,172 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Configurações da empresa{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:dashboard_empresa' %}">Dashboard</a></li>
+        <li class="breadcrumb-item active">Configurações</li>
+    </ol>
+</nav>
+
+<p class="text-muted small mb-4">
+    Atualize os dados da sua empresa, o modo do dashboard e os módulos adicionais. Informações de plano e faturação abaixo são apenas consulta; para alterar plano ou condições comerciais contacte o suporte Eventix.
+</p>
+
+<form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Identificação</strong></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                        {{ form.nome }}
+                        {% for e in form.nome.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.nome_fantasia.id_for_label }}">{{ form.nome_fantasia.label }}</label>
+                        {{ form.nome_fantasia }}
+                        {% for e in form.nome_fantasia.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label" for="{{ form.razao_social.id_for_label }}">{{ form.razao_social.label }}</label>
+                        {{ form.razao_social }}
+                        {% for e in form.razao_social.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.cnpj.id_for_label }}">{{ form.cnpj.label }}</label>
+                        {{ form.cnpj }}
+                        {% for e in form.cnpj.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Contacto</strong></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.telefone.id_for_label }}">{{ form.telefone.label }}</label>
+                        {{ form.telefone }}
+                        {% for e in form.telefone.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.website.id_for_label }}">{{ form.website.label }}</label>
+                        {{ form.website }}
+                        {% for e in form.website.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>Endereço</strong></div>
+                <div class="card-body row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label" for="{{ form.cep.id_for_label }}">{{ form.cep.label }}</label>
+                        {{ form.cep }}
+                        {% for e in form.cep.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label" for="{{ form.logradouro.id_for_label }}">{{ form.logradouro.label }}</label>
+                        {{ form.logradouro }}
+                        {% for e in form.logradouro.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="{{ form.numero.id_for_label }}">{{ form.numero.label }}</label>
+                        {{ form.numero }}
+                        {% for e in form.numero.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-9">
+                        <label class="form-label" for="{{ form.complemento.id_for_label }}">{{ form.complemento.label }}</label>
+                        {{ form.complemento }}
+                        {% for e in form.complemento.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="{{ form.bairro.id_for_label }}">{{ form.bairro.label }}</label>
+                        {{ form.bairro }}
+                        {% for e in form.bairro.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="{{ form.cidade.id_for_label }}">{{ form.cidade.label }}</label>
+                        {{ form.cidade }}
+                        {% for e in form.cidade.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="{{ form.uf.id_for_label }}">{{ form.uf.label }}</label>
+                        {{ form.uf }}
+                        {% for e in form.uf.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4 border-primary">
+                <div class="card-header bg-primary bg-opacity-10"><strong>Modo do dashboard</strong></div>
+                <div class="card-body">
+                    <label class="form-label" for="{{ form.modo_dashboard.id_for_label }}">{{ form.modo_dashboard.label }}</label>
+                    {{ form.modo_dashboard }}
+                    {% if form.modo_dashboard.help_text %}<small class="text-muted d-block mt-1">{{ form.modo_dashboard.help_text }}</small>{% endif %}
+                    {% for e in form.modo_dashboard.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header"><strong>{{ form.modulos_contratados.label }}</strong></div>
+                <div class="card-body">
+                    <p class="small text-muted">{{ form.modulos_contratados.help_text }}</p>
+                    <p class="small mb-2"><strong>Módulos base (sempre incluídos):</strong></p>
+                    <ul class="small mb-3">
+                        {% for m in modulos_basicos %}
+                        <li>{{ m.nome }}</li>
+                        {% empty %}
+                        <li class="text-muted">—</li>
+                        {% endfor %}
+                    </ul>
+                    <div class="modulos-checkboxes">
+                        {{ form.modulos_contratados }}
+                    </div>
+                    {% for e in form.modulos_contratados.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-save me-2"></i>Guardar alterações</button>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-secondary mb-4">
+                <div class="card-header bg-light"><strong>Contrato (consulta)</strong></div>
+                <div class="card-body small">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Data contratação</dt>
+                        <dd class="col-sm-7">{{ empresa.data_contratacao|date:"d/m/Y" }}</dd>
+                        <dt class="col-sm-5">Vencimento</dt>
+                        <dd class="col-sm-7">{{ empresa.data_vencimento|date:"d/m/Y" }}</dd>
+                        <dt class="col-sm-5">Plano</dt>
+                        <dd class="col-sm-7">{% if empresa.plano_contratado %}{{ empresa.plano_contratado }}{% else %}—{% endif %}</dd>
+                        <dt class="col-sm-5">Valor mensal</dt>
+                        <dd class="col-sm-7">R$ {{ empresa.valor_mensal }}</dd>
+                        <dt class="col-sm-5">Estado</dt>
+                        <dd class="col-sm-7">{% if empresa.ativo %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-secondary">Inativo</span>{% endif %}</dd>
+                    </dl>
+                    <p class="text-muted mt-3 mb-0">Alterações de plano ou reativação de conta são feitas com o Eventix.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<style>
+.modulos-checkboxes ul { list-style: none; padding-left: 0; margin-bottom: 0; }
+.modulos-checkboxes li { margin-bottom: 0.5rem; }
+.modulos-checkboxes label { font-weight: normal; margin-left: 0.35rem; cursor: pointer; }
+</style>
+{% endblock %}

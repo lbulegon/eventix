@@ -5,6 +5,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
@@ -14,7 +15,9 @@ from .models import (
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
     User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao, PontoOperacao,
     FichamentoSemanaFreelancer, FreelancerPrestacaoServico,
+    EmpresaContratante, ModuloSistema,
 )
+from .forms_empresa_dashboard import EmpresaContratanteConfigForm
 from .models_operacao_continua import TurnoOperacional, UnidadeOperacional
 from .mixins import EmpresaContratanteRequiredMixin
 
@@ -1566,3 +1569,42 @@ def operacao_turnos(request):
         'user': request.user,
     }
     return render(request, 'dashboard_empresa/operacao_turnos.html', context)
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def configuracoes_empresa(request):
+    """
+    CRUD dos dados da empresa contratante no dashboard (substitui necessidade do Admin para o dia a dia).
+    Plano, valor mensal e datas de contrato são apenas leitura; demais campos e módulos adicionais são editáveis.
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    empresa = request.user.empresa_contratante
+    if not empresa:
+        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
+        return redirect('dashboard_empresa:login_empresa')
+
+    empresa = EmpresaContratante.objects.prefetch_related('modulos_contratados').get(pk=empresa.pk)
+    modulos_basicos = ModuloSistema.objects.filter(modulo_basico=True, ativo=True).order_by('nome')
+
+    if request.method == 'POST':
+        form = EmpresaContratanteConfigForm(request.POST, instance=empresa)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Configurações da empresa guardadas.')
+            return redirect('dashboard_empresa:configuracoes_empresa')
+    else:
+        form = EmpresaContratanteConfigForm(instance=empresa)
+
+    return render(
+        request,
+        'dashboard_empresa/configuracoes_empresa.html',
+        {
+            'empresa': empresa,
+            'form': form,
+            'modulos_basicos': modulos_basicos,
+            'user': request.user,
+        },
+    )
