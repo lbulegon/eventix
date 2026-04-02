@@ -1,0 +1,45 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Pontos de operação{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
+        <li class="breadcrumb-item active">Pontos de operação</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Pontos de operação</h4>
+    <a href="{% url 'dashboard_empresa:operacao_ponto_novo' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i>Novo ponto</a>
+</div>
+<p class="small text-muted mb-3">Estabelecimentos fixos (endereço, fechamento semanal). As <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">unidades operacionais</a> de operação contínua ligam-se a um ponto.</p>
+{% if pontos %}
+<div class="table-responsive card">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Nome</th>
+                <th>Cidade / UF</th>
+                <th>Unidades</th>
+                <th>Ativo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pontos %}
+            <tr>
+                <td>{{ p.nome }}</td>
+                <td class="small">{{ p.cidade }} / {{ p.uf }}</td>
+                <td>{{ p.n_unidades }}</td>
+                <td>{% if p.ativo %}<span class="badge bg-success">Sim</span>{% else %}<span class="badge bg-secondary">Não</span>{% endif %}</td>
+                <td class="text-end">
+                    <a href="{% url 'dashboard_empresa:operacao_ponto_editar' p.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">Nenhum ponto cadastrado. <a href="{% url 'dashboard_empresa:operacao_ponto_novo' %}">Criar o primeiro</a>.</div>
+{% endif %}
+{% endblock %}

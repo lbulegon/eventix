@@ -4,12 +4,21 @@
 {% block content %}
 <div class="mb-4">
     <p class="text-muted mb-2">
-        <strong>Operação contínua</strong> (restaurante, bar, etc.): unidades operacionais, regras semanais e
-        <strong>turnos</strong> gerados automaticamente. Também disponível na API do app (JWT).
+        <strong>Pontos de operação</strong> cadastram o estabelecimento; <strong>unidades operacionais</strong> definem
+        evento ou operação contínua, regras semanais e <strong>turnos</strong> gerados automaticamente. Também na API (JWT).
     </p>
 </div>
 
 <div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border-primary border-opacity-25">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-map-marker-alt me-2"></i>Pontos de operação</h5>
+                <p class="card-text small">Estabelecimentos fixos (endereço, fechamento semanal para pagamento).</p>
+                <a href="{% url 'dashboard_empresa:operacao_pontos_lista' %}" class="btn btn-sm btn-primary">Listar e gerir</a>
+            </div>
+        </div>
+    </div>
     <div class="col-md-6 col-lg-4">
         <div class="card h-100 border-primary border-opacity-25">
             <div class="card-body">
@@ -48,6 +57,39 @@
         </div>
     </div>
     {% endif %}
+</div>
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fas fa-map-marker-alt me-2"></i>Pontos desta empresa (resumo)</span>
+        <a href="{% url 'dashboard_empresa:operacao_pontos_lista' %}" class="btn btn-sm btn-outline-primary">Gerir pontos</a>
+    </div>
+    <div class="card-body p-0">
+        {% if pontos_resumo %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome</th>
+                        <th>Cidade / UF</th>
+                        <th>Ativo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pontos_resumo %}
+                    <tr>
+                        <td><a href="{% url 'dashboard_empresa:operacao_ponto_editar' p.pk %}">{{ p.nome }}</a></td>
+                        <td class="small">{{ p.cidade }} / {{ p.uf }}</td>
+                        <td>{% if p.ativo %}<span class="badge bg-success">Sim</span>{% else %}<span class="badge bg-secondary">Não</span>{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="p-3 text-muted mb-0">Nenhum ponto cadastrado. <a href="{% url 'dashboard_empresa:operacao_ponto_novo' %}">Criar ponto</a> antes de ligar unidades de operação contínua.</p>
+        {% endif %}
+    </div>
 </div>
 
 <div class="card mb-4">

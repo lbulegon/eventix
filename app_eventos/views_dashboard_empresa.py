@@ -1553,6 +1553,10 @@ def operacao_turnos(request):
         return redirect('dashboard_empresa:login_empresa')
 
     empresa = request.user.empresa_contratante
+    pontos_resumo = (
+        PontoOperacao.objects.filter(empresa_contratante=empresa)
+        .order_by('-ativo', 'nome')[:30]
+    )
     unidades = (
         UnidadeOperacional.objects.filter(empresa_contratante=empresa)
         .order_by('-criado_em')[:50]
@@ -1564,6 +1568,7 @@ def operacao_turnos(request):
     )
     context = {
         'empresa': empresa,
+        'pontos_resumo': pontos_resumo,
         'unidades': unidades,
         'turnos_recentes': turnos_recentes,
         'user': request.user,

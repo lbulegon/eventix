@@ -1,0 +1,25 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Excluir ponto de operação{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_pontos_lista' %}">Pontos de operação</a></li>
+        <li class="breadcrumb-item active">Excluir</li>
+    </ol>
+</nav>
+<div class="card col-md-8">
+    <div class="card-body">
+        {% if bloqueado %}
+        <p class="text-danger">Não é possível excluir <strong>{{ ponto.nome }}</strong>: existem unidades operacionais associadas. Remova ou altere essas unidades antes.</p>
+        <a href="{% url 'dashboard_empresa:operacao_ponto_editar' ponto.pk %}" class="btn btn-primary">Voltar à edição</a>
+        {% else %}
+        <p>Confirma a exclusão do ponto <strong>{{ ponto.nome }}</strong>?</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Excluir</button>
+            <a href="{% url 'dashboard_empresa:operacao_ponto_editar' ponto.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

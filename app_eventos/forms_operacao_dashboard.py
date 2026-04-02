@@ -2,7 +2,7 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from app_eventos.models import EmpresaContratante, Evento, Funcao, PontoOperacao
+from app_eventos.models import EmpresaContratante, Evento, Funcao, LocalEvento, PontoOperacao
 from app_eventos.models_operacao_continua import (
     RegraRecorrencia,
     RegraRecorrenciaFuncao,
@@ -56,6 +56,53 @@ class UnidadeOperacionalForm(forms.ModelForm):
         ).order_by('nome')
         self.fields['ponto_operacao'].required = False
         self.fields['descricao'].required = False
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        obj.empresa_contratante = self._empresa
+        if commit:
+            obj.save()
+        return obj
+
+
+class PontoOperacaoForm(forms.ModelForm):
+    class Meta:
+        model = PontoOperacao
+        fields = [
+            'nome',
+            'descricao',
+            'endereco',
+            'cidade',
+            'uf',
+            'cep',
+            'local',
+            'dia_semana_fechamento',
+            'ativo',
+        ]
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'endereco': forms.TextInput(attrs={'class': 'form-control'}),
+            'cidade': forms.TextInput(attrs={'class': 'form-control'}),
+            'uf': forms.TextInput(attrs={'class': 'form-control', 'maxlength': 2}),
+            'cep': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '00000-000'}),
+            'local': forms.Select(attrs={'class': 'form-select'}),
+            'dia_semana_fechamento': forms.Select(attrs={'class': 'form-select'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def __init__(self, *args, empresa: EmpresaContratante, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._empresa = empresa
+        local_ids = Evento.objects.filter(empresa_contratante=empresa).values_list('local_id', flat=True).distinct()
+        if local_ids:
+            self.fields['local'].queryset = LocalEvento.objects.filter(pk__in=local_ids).order_by('nome')
+        else:
+            self.fields['local'].queryset = LocalEvento.objects.none()
+        self.fields['local'].required = False
+        self.fields['descricao'].required = False
+        self.fields['cep'].required = False
+        self.fields['dia_semana_fechamento'].required = False
 
     def save(self, commit=True):
         obj = super().save(commit=False)
