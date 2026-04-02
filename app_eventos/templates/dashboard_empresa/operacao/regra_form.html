@@ -1,0 +1,51 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_regras_lista' unidade.pk %}">Regras</a></li>
+        <li class="breadcrumb-item active">{{ titulo }}</li>
+    </ol>
+</nav>
+<div class="card shadow-sm col-lg-10">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            <h6 class="text-muted">Regra</h6>
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="text-muted d-block">{{ field.help_text }}</small>{% endif %}
+                {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+
+            <h6 class="text-muted mt-4">Demanda por função (vagas por turno gerado)</h6>
+            {{ formset.management_form }}
+            {% if formset.non_form_errors %}
+            <div class="alert alert-danger">{{ formset.non_form_errors }}</div>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead><tr><th>Função</th><th>Quantidade</th><th>Apagar?</th></tr></thead>
+                    <tbody>
+                        {% for f in formset %}
+                        <tr>
+                            <td>{{ f.funcao }} {% for e in f.funcao.errors %}<span class="text-danger small">{{ e }}</span>{% endfor %}</td>
+                            <td style="max-width:6rem;">{{ f.quantidade }}</td>
+                            <td>{% if f.DELETE %}{{ f.DELETE }}{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% for e in formset.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+
+            <button type="submit" class="btn btn-primary mt-2">Guardar</button>
+            <a href="{% url 'dashboard_empresa:operacao_regras_lista' unidade.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

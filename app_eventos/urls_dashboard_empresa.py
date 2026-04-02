@@ -2,7 +2,7 @@
 URLs para Dashboard da Empresa
 """
 from django.urls import path, include
-from . import views_dashboard_empresa, views_pagamento_empresa
+from . import views_dashboard_empresa, views_pagamento_empresa, views_operacao_dashboard
 
 app_name = 'dashboard_empresa'
 
@@ -58,6 +58,31 @@ urlpatterns = [
         views_dashboard_empresa.operacao_turnos,
         name='operacao_turnos',
     ),
+    path('operacao/unidades/', views_operacao_dashboard.operacao_unidades_lista, name='operacao_unidades_lista'),
+    path('operacao/unidades/nova/', views_operacao_dashboard.operacao_unidade_nova, name='operacao_unidade_nova'),
+    path('operacao/unidades/<int:pk>/editar/', views_operacao_dashboard.operacao_unidade_editar, name='operacao_unidade_editar'),
+    path('operacao/unidades/<int:pk>/excluir/', views_operacao_dashboard.operacao_unidade_excluir, name='operacao_unidade_excluir'),
+    path(
+        'operacao/unidades/<int:unidade_pk>/gerar-turnos/',
+        views_operacao_dashboard.operacao_gerar_turnos,
+        name='operacao_gerar_turnos',
+    ),
+    path(
+        'operacao/unidades/<int:unidade_pk>/regras/',
+        views_operacao_dashboard.operacao_regras_lista,
+        name='operacao_regras_lista',
+    ),
+    path(
+        'operacao/unidades/<int:unidade_pk>/regras/nova/',
+        views_operacao_dashboard.operacao_regra_nova,
+        name='operacao_regra_nova',
+    ),
+    path('operacao/regras/<int:pk>/editar/', views_operacao_dashboard.operacao_regra_editar, name='operacao_regra_editar'),
+    path('operacao/regras/<int:pk>/excluir/', views_operacao_dashboard.operacao_regra_excluir, name='operacao_regra_excluir'),
+    path('operacao/turnos/', views_operacao_dashboard.operacao_turnos_lista, name='operacao_turnos_lista'),
+    path('operacao/turnos/nova/', views_operacao_dashboard.operacao_turno_novo, name='operacao_turno_novo'),
+    path('operacao/turnos/<int:pk>/editar/', views_operacao_dashboard.operacao_turno_editar, name='operacao_turno_editar'),
+    path('operacao/turnos/<int:pk>/excluir/', views_operacao_dashboard.operacao_turno_excluir, name='operacao_turno_excluir'),
     # CRUD pagamento freelancer (fichamento, pago diário, descontos)
     path(
         'pagamento-freelancer/fichamentos/',

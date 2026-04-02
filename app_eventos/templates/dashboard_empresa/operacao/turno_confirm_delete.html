@@ -1,0 +1,20 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Excluir turno{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos_lista' %}">Turnos</a></li>
+        <li class="breadcrumb-item active">Excluir</li>
+    </ol>
+</nav>
+<div class="card col-md-8">
+    <div class="card-body">
+        <p>Excluir o turno de <strong>{{ turno.data|date:"d/m/Y" }}</strong> ({{ turno.hora_inicio|time:"H:i" }}–{{ turno.hora_fim|time:"H:i" }}) em {{ turno.unidade.nome }}? Vagas e alocações associadas serão removidas.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Excluir</button>
+            <a href="{% url 'dashboard_empresa:operacao_turnos_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}{{ titulo }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">Unidades</a></li>
+        <li class="breadcrumb-item active">{{ titulo }}</li>
+    </ol>
+</nav>
+<div class="card shadow-sm col-lg-10">
+    <div class="card-body">
+        <p class="small text-muted">Modo <strong>evento</strong> exige um evento da empresa; modo <strong>operação contínua</strong> exige um estabelecimento (ponto de operação).</p>
+        <form method="post" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+            {% for field in form %}
+            <div class="mb-3">
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                {{ field }}
+                {% if field.help_text %}<small class="text-muted d-block">{{ field.help_text }}</small>{% endif %}
+                {% for e in field.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Guardar</button>
+            <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
+            {% if unidade %}
+            <a href="{% url 'dashboard_empresa:operacao_unidade_excluir' unidade.pk %}" class="btn btn-outline-danger float-end">Excluir unidade</a>
+            {% endif %}
+        </form>
+        {% if unidade %}
+        <hr>
+        <h6 class="text-muted">Gerar turnos a partir das regras</h6>
+        <form method="post" action="{% url 'dashboard_empresa:operacao_gerar_turnos' unidade.pk %}" class="row g-2 align-items-end">
+            {% csrf_token %}
+            <div class="col-auto">
+                <label class="form-label small mb-0">Dias à frente</label>
+                <input type="number" name="dias" class="form-control form-control-sm" value="7" min="1" max="60">
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-magic me-1"></i>Gerar turnos</button>
+            </div>
+        </form>
+        <p class="small text-muted mt-2 mb-0">Requer regras de recorrência ativas com demandas por função.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

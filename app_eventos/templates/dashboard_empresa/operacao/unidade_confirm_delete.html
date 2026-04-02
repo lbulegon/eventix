@@ -1,0 +1,20 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Excluir unidade{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">Unidades</a></li>
+        <li class="breadcrumb-item active">Excluir</li>
+    </ol>
+</nav>
+<div class="card col-md-8">
+    <div class="card-body">
+        <p>Confirma a exclusão da unidade <strong>{{ unidade.nome }}</strong>? Turnos e regras associados serão removidos em cascata.</p>
+        <form method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Excluir</button>
+            <a href="{% url 'dashboard_empresa:operacao_unidade_editar' unidade.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

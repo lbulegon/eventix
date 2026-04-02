@@ -1,0 +1,45 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Unidades operacionais{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
+        <li class="breadcrumb-item active">Unidades</li>
+    </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">Unidades operacionais</h4>
+    <a href="{% url 'dashboard_empresa:operacao_unidade_nova' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i>Nova unidade</a>
+</div>
+{% if unidades %}
+<div class="table-responsive card">
+    <table class="table table-hover mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>Nome</th>
+                <th>Modo</th>
+                <th>Referência</th>
+                <th>Ativo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in unidades %}
+            <tr>
+                <td>{{ u.nome }}</td>
+                <td>{{ u.get_tipo_display }}</td>
+                <td class="small">{% if u.tipo == 'evento' and u.evento %}{{ u.evento.nome }}{% elif u.ponto_operacao %}{{ u.ponto_operacao.nome }}{% else %}—{% endif %}</td>
+                <td>{% if u.ativo %}<span class="badge bg-success">Sim</span>{% else %}<span class="badge bg-secondary">Não</span>{% endif %}</td>
+                <td class="text-end">
+                    <a href="{% url 'dashboard_empresa:operacao_regras_lista' u.pk %}" class="btn btn-sm btn-outline-primary">Regras</a>
+                    <a href="{% url 'dashboard_empresa:operacao_unidade_editar' u.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">Nenhuma unidade. <a href="{% url 'dashboard_empresa:operacao_unidade_nova' %}">Criar a primeira</a>.</div>
+{% endif %}
+{% endblock %}

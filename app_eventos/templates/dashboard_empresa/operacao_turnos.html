@@ -5,60 +5,56 @@
 <div class="mb-4">
     <p class="text-muted mb-2">
         <strong>Operação contínua</strong> (restaurante, bar, etc.): unidades operacionais, regras semanais e
-        <strong>turnos</strong> gerados automaticamente. Integra com a API do app (JWT).
+        <strong>turnos</strong> gerados automaticamente. Também disponível na API do app (JWT).
     </p>
 </div>
 
-{% if user.is_staff %}
 <div class="row g-3 mb-4">
     <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-secondary">
+        <div class="card h-100 border-primary border-opacity-25">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-layer-group me-2"></i>Unidades operacionais</h5>
-                <p class="card-text small">Criar/editar unidades (evento vs operação contínua).</p>
-                <a href="{% url 'admin:app_eventos_unidadeoperacional_changelist' %}" class="btn btn-sm btn-outline-secondary">Abrir no Admin</a>
+                <p class="card-text small">Criar e editar unidades (evento vs operação contínua).</p>
+                <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}" class="btn btn-sm btn-primary">Listar e gerir</a>
             </div>
         </div>
     </div>
     <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-secondary">
+        <div class="card h-100 border-primary border-opacity-25">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-calendar-week me-2"></i>Regras de recorrência</h5>
-                <p class="card-text small">Dias da semana, horários e demanda por função.</p>
-                <a href="{% url 'admin:app_eventos_regrarecorrencia_changelist' %}" class="btn btn-sm btn-outline-secondary">Abrir no Admin</a>
+                <p class="card-text small">Dias da semana, horários e demanda por função — por unidade.</p>
+                <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}" class="btn btn-sm btn-primary">Escolher unidade</a>
             </div>
         </div>
     </div>
     <div class="col-md-6 col-lg-4">
-        <div class="card h-100 border-secondary">
+        <div class="card h-100 border-primary border-opacity-25">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-clock me-2"></i>Turnos</h5>
-                <p class="card-text small">Turnos materializados e vagas por turno.</p>
-                <a href="{% url 'admin:app_eventos_turnooperacional_changelist' %}" class="btn btn-sm btn-outline-secondary">Turnos</a>
-                <a href="{% url 'admin:app_eventos_vagaturno_changelist' %}" class="btn btn-sm btn-outline-secondary ms-1">Vagas do turno</a>
+                <p class="card-text small">Turnos materializados; vagas visíveis na edição de cada turno.</p>
+                <a href="{% url 'dashboard_empresa:operacao_turnos_lista' %}" class="btn btn-sm btn-primary">Listar e gerir</a>
             </div>
         </div>
     </div>
+    {% if user.is_staff %}
     <div class="col-md-6 col-lg-4">
-        <div class="card h-100">
+        <div class="card h-100 border-secondary">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-user-check me-2"></i>Alocações</h5>
                 <p class="card-text small">Freelancers alocados às vagas de turno.</p>
-                <a href="{% url 'admin:app_eventos_alocacaoturno_changelist' %}" class="btn btn-sm btn-outline-primary">Abrir no Admin</a>
+                <a href="{% url 'admin:app_eventos_alocacaoturno_changelist' %}" class="btn btn-sm btn-outline-secondary">Abrir no Admin</a>
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
-{% else %}
-<div class="alert alert-info mb-4">
-    <i class="fas fa-info-circle me-2"></i>
-    A criação detalhada de unidades e regras no <strong>Admin Django</strong> está disponível para utilizadores com perfil de staff.
-    A equipa pode usar as <strong>APIs</strong> abaixo no app ou pedir acesso ao administrador.
-</div>
-{% endif %}
 
 <div class="card mb-4">
-    <div class="card-header"><i class="fas fa-list me-2"></i>Unidades desta empresa (resumo)</div>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fas fa-list me-2"></i>Unidades desta empresa (resumo)</span>
+        <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}" class="btn btn-sm btn-outline-primary">Gerir unidades</a>
+    </div>
     <div class="card-body p-0">
         {% if unidades %}
         <div class="table-responsive">
@@ -68,27 +64,36 @@
                         <th>Nome</th>
                         <th>Modo</th>
                         <th>Ativo</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for u in unidades %}
                     <tr>
-                        <td>{{ u.nome }}</td>
+                        <td>
+                            <a href="{% url 'dashboard_empresa:operacao_unidade_editar' u.pk %}">{{ u.nome }}</a>
+                        </td>
                         <td>{{ u.get_tipo_display }}</td>
                         <td>{% if u.ativo %}<span class="badge bg-success">Sim</span>{% else %}<span class="badge bg-secondary">Não</span>{% endif %}</td>
+                        <td class="text-end">
+                            <a href="{% url 'dashboard_empresa:operacao_regras_lista' u.pk %}" class="btn btn-sm btn-outline-primary py-0">Regras</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         {% else %}
-        <p class="p-3 text-muted mb-0">Nenhuma unidade operacional ainda. Use a API <code>com-recorrencias</code> ou o Admin (staff).</p>
+        <p class="p-3 text-muted mb-0">Nenhuma unidade operacional ainda. <a href="{% url 'dashboard_empresa:operacao_unidade_nova' %}">Criar unidade</a> ou usar a API <code>com-recorrencias</code>.</p>
         {% endif %}
     </div>
 </div>
 
 <div class="card mb-4">
-    <div class="card-header"><i class="fas fa-history me-2"></i>Turnos recentes</div>
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <span><i class="fas fa-history me-2"></i>Turnos recentes</span>
+        <a href="{% url 'dashboard_empresa:operacao_turnos_lista' %}" class="btn btn-sm btn-outline-primary">Ver todos</a>
+    </div>
     <div class="card-body p-0">
         {% if turnos_recentes %}
         <div class="table-responsive">
@@ -107,14 +112,16 @@
                         <td>{{ t.data|date:"d/m/Y" }}</td>
                         <td>{{ t.hora_inicio|time:"H:i" }} – {{ t.hora_fim|time:"H:i" }}</td>
                         <td>{{ t.unidade.nome }}</td>
-                        <td>{{ t.get_status_display }}</td>
+                        <td>
+                            <a href="{% url 'dashboard_empresa:operacao_turno_editar' t.pk %}">{{ t.get_status_display }}</a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
         {% else %}
-        <p class="p-3 text-muted mb-0">Nenhum turno gerado ainda. Rode o comando <code>gerar_turnos_operacao</code> ou ative <code>gerar_turnos</code> na API de criação.</p>
+        <p class="p-3 text-muted mb-0">Nenhum turno gerado ainda. Na edição de uma unidade pode <strong>gerar turnos</strong>, ou rode <code>python manage.py gerar_turnos_operacao --unidade-id ID --dias 7</code>, ou ative <code>gerar_turnos</code> na API de criação.</p>
         {% endif %}
     </div>
 </div>
