@@ -1818,7 +1818,31 @@ class Freelance(models.Model):
 
     atualizado_em = models.DateTimeField(auto_now=True)
     cadastro_completo = models.BooleanField(default=False)
-    
+
+    # Confiabilidade operacional (presença / faltas) — ver RegistroPresencaFreelancer e services/freelancer_score
+    score_confiabilidade = models.IntegerField(
+        default=5,
+        verbose_name='Score de confiabilidade',
+    )
+    faltas_com_aviso = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Faltas com aviso',
+    )
+    faltas_sem_aviso = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Faltas sem aviso',
+    )
+    bloqueado = models.BooleanField(
+        default=False,
+        verbose_name='Bloqueado (confiabilidade)',
+        help_text='Definido automaticamente quando o score é ≤ 0.',
+    )
+    data_ultimo_evento = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Data do último registo de presença',
+    )
+
     def verificar_cadastro_completo(self):
         """
         Verifica se o cadastro tem todos os documentos obrigatórios e marca como completo.
@@ -5239,6 +5263,9 @@ from .models_pagamento_freelancers import (
 
 # Freelancers com histórico de serviço por empresa
 from .models_freelancer_empresa import FreelancerPrestacaoServico
+
+# Presença / score de confiabilidade (Freelance)
+from .models_registro_presenca_freelancer import RegistroPresencaFreelancer
 
 # Operação contínua + evento (unidades, recorrência, turnos, vagas por turno)
 from .models_operacao_continua import (

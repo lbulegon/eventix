@@ -1,9 +1,9 @@
 # api_mobile/serializers.py
 from rest_framework import serializers
 from app_eventos.models import (
-    Vaga, Candidatura, Evento, Freelance, Empresa, 
+    Vaga, Candidatura, Evento, Freelance, Empresa,
     EmpresaContratante, PlanoContratacao, SetorEvento, Funcao, LocalEvento, FreelancerFuncao,
-    PontoOperacao
+    PontoOperacao, RegistroPresencaFreelancer,
 )
 from django.contrib.auth import get_user_model
 
@@ -195,7 +195,7 @@ class CandidaturaSerializer(serializers.ModelSerializer):
 class FreelanceSerializer(serializers.ModelSerializer):
     usuario_email = serializers.CharField(source='usuario.email', read_only=True)
     usuario_username = serializers.CharField(source='usuario.username', read_only=True)
-    
+
     class Meta:
         model = Freelance
         fields = [
@@ -204,9 +204,35 @@ class FreelanceSerializer(serializers.ModelSerializer):
             'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf',
             'banco', 'agencia', 'conta', 'tipo_conta', 'chave_pix',
             'observacoes', 'cadastro_completo', 'atualizado_em',
-            'usuario_email', 'usuario_username'
+            'usuario_email', 'usuario_username',
+            'score_confiabilidade', 'faltas_com_aviso', 'faltas_sem_aviso',
+            'bloqueado', 'data_ultimo_evento',
         ]
-        read_only_fields = ['atualizado_em', 'cadastro_completo']
+        read_only_fields = [
+            'atualizado_em', 'cadastro_completo',
+            'score_confiabilidade', 'faltas_com_aviso', 'faltas_sem_aviso',
+            'bloqueado', 'data_ultimo_evento',
+        ]
+
+
+class RegistroPresencaFreelancerSerializer(serializers.ModelSerializer):
+    """Leitura do histórico de presença (sem campo interno de idempotência)."""
+
+    class Meta:
+        model = RegistroPresencaFreelancer
+        fields = [
+            'id', 'empresa', 'data', 'status', 'observacao', 'created_at',
+        ]
+        read_only_fields = fields
+
+
+class RegistroPresencaManualSerializer(serializers.Serializer):
+    """Corpo do POST manual de presença/falta (empresa ou admin sistema)."""
+
+    data = serializers.DateField()
+    status = serializers.ChoiceField(choices=RegistroPresencaFreelancer.STATUS_CHOICES)
+    observacao = serializers.CharField(required=False, allow_blank=True, default='')
+    empresa_id = serializers.IntegerField(required=False, allow_null=True)
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

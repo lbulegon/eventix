@@ -271,14 +271,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class FreelanceProfileSerializer(serializers.ModelSerializer):
     """Serializer para perfil de freelancer"""
     usuario = UserProfileSerializer(read_only=True)
-    
+
     class Meta:
         model = Freelance
         fields = [
             'id', 'usuario', 'nome_completo', 'telefone', 'cpf',
-            'cadastro_completo', 'atualizado_em'
+            'cadastro_completo', 'atualizado_em',
+            'score_confiabilidade', 'faltas_com_aviso', 'faltas_sem_aviso',
+            'bloqueado', 'data_ultimo_evento',
         ]
-        read_only_fields = ['id', 'cadastro_completo', 'atualizado_em']
+        read_only_fields = [
+            'id', 'cadastro_completo', 'atualizado_em',
+            'score_confiabilidade', 'faltas_com_aviso', 'faltas_sem_aviso',
+            'bloqueado', 'data_ultimo_evento',
+        ]
 
 
 class EmpresaProfileSerializer(serializers.ModelSerializer):

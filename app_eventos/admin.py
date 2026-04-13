@@ -10,6 +10,7 @@ from .models import (
     TarifaDiariaPorFuncaoPonto, DataCalendarioTarifa,
     Vaga, Funcao, TipoFuncao,
     Freelance, Candidatura, ContratoFreelance, TipoEmpresa,
+    RegistroPresencaFreelancer,
     CategoriaEquipamento, Equipamento, EquipamentoSetor, ManutencaoEquipamento,
     CategoriaFinanceira, DespesaEvento, ReceitaEvento, Fornecedor,
     # Sistema de Grupos e Permissões
@@ -595,9 +596,17 @@ class FuncaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
 
 @admin.register(Freelance)
 class FreelanceAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
-    list_display = ("nome_completo", "cpf", "telefone", "cadastro_completo", "atualizado_em")
+    list_display = (
+        "nome_completo",
+        "cpf",
+        "telefone",
+        "cadastro_completo",
+        "score_confiabilidade",
+        "bloqueado",
+        "atualizado_em",
+    )
     search_fields = ("nome_completo", "cpf", "telefone")
-    list_filter = ("cadastro_completo", "sexo", "estado_civil")
+    list_filter = ("cadastro_completo", "sexo", "estado_civil", "bloqueado")
 
     fieldsets = (
         ("Dados Pessoais", {
@@ -637,9 +646,51 @@ class FreelanceAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
         ("Status", {
             "fields": ("cadastro_completo", "atualizado_em")
         }),
+        ("Confiabilidade (presença)", {
+            "fields": (
+                "score_confiabilidade",
+                "faltas_com_aviso",
+                "faltas_sem_aviso",
+                "bloqueado",
+                "data_ultimo_evento",
+            ),
+        }),
     )
 
-    readonly_fields = ("cadastro_completo", "atualizado_em")
+    readonly_fields = (
+        "cadastro_completo",
+        "atualizado_em",
+        "score_confiabilidade",
+        "faltas_com_aviso",
+        "faltas_sem_aviso",
+        "bloqueado",
+        "data_ultimo_evento",
+    )
+
+
+@admin.register(RegistroPresencaFreelancer)
+class RegistroPresencaFreelancerAdmin(admin.ModelAdmin):
+    list_display = ('freelance', 'empresa', 'data', 'status', 'pontuacao_aplicada', 'created_at')
+    list_filter = ('status', 'data', 'pontuacao_aplicada')
+    search_fields = ('freelance__nome_completo', 'freelance__cpf')
+    autocomplete_fields = ('freelance', 'empresa')
+    readonly_fields = ('pontuacao_aplicada', 'created_at')
+
+    def get_readonly_fields(self, request, obj=None):
+        ro = list(self.readonly_fields)
+        if obj and obj.pontuacao_aplicada:
+            ro.extend(['freelance', 'empresa', 'data', 'status', 'observacao'])
+        return ro
+
+    def save_model(self, request, obj, form, change):
+        from app_eventos.services.freelancer_score import aplicar_pontuacao_para_registro
+        from app_eventos.services.prestacao_presenca import validar_prestacao_para_registro_presenca
+
+        if obj.freelance_id and obj.empresa_id:
+            validar_prestacao_para_registro_presenca(obj.freelance, obj.empresa)
+
+        super().save_model(request, obj, form, change)
+        aplicar_pontuacao_para_registro(obj.pk)
 
 
 @admin.register(Candidatura)

@@ -73,7 +73,8 @@ class MatchingService:
             # Buscar freelancers ativos com cadastro completo
             freelancers_base = Freelance.objects.filter(
                 usuario__is_active=True,
-                cadastro_completo=True
+                cadastro_completo=True,
+                bloqueado=False,
             ).select_related('usuario')
             
             # Filtrar freelancers que já se candidataram
@@ -96,9 +97,12 @@ class MatchingService:
                         'motivos': MatchingService._obter_motivos_score(freelancer, vaga)
                     })
             
-            # Ordenar por score (maior primeiro)
-            freelancers_com_score.sort(key=lambda x: x['score'], reverse=True)
-            
+            # Ordenar por score (maior primeiro); desempate por confiabilidade operacional
+            freelancers_com_score.sort(
+                key=lambda x: (x['score'], x['freelancer'].score_confiabilidade),
+                reverse=True,
+            )
+
             return freelancers_com_score[:limite]
             
         except Exception as e:
@@ -127,7 +131,15 @@ class MatchingService:
         
         # 5. Histórico de performance (10 pontos)
         score += MatchingService._score_performance(freelancer) * 0.1
-        
+
+        # 6. Confiabilidade operacional (score 0–10 no Freelance → até ~3 pts extra, peso leve)
+        sc = getattr(freelancer, 'score_confiabilidade', 5) or 0
+        try:
+            sc = max(0, min(10, int(sc)))
+        except (TypeError, ValueError):
+            sc = 5
+        score += (sc / 10.0) * 3.0
+
         return min(score, 100.0)  # Máximo 100
     
     @staticmethod
@@ -248,7 +260,11 @@ class MatchingService:
         
         if MatchingService._score_habilidades(freelancer, vaga) > 70:
             motivos.append("Habilidades compatíveis")
-        
+
+        sc = getattr(freelancer, 'score_confiabilidade', None)
+        if sc is not None and sc >= 8:
+            motivos.append("Alta confiabilidade operacional")
+
         return motivos
 
 

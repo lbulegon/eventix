@@ -483,6 +483,11 @@ def verificar_tipo_usuario(request):
                 'nome_completo': freelance.nome_completo,
                 'cpf': freelance.cpf,
                 'cadastro_completo': freelance.cadastro_completo,
+                'score_confiabilidade': freelance.score_confiabilidade,
+                'faltas_com_aviso': freelance.faltas_com_aviso,
+                'faltas_sem_aviso': freelance.faltas_sem_aviso,
+                'bloqueado': freelance.bloqueado,
+                'data_ultimo_evento': freelance.data_ultimo_evento,
             }
         except Freelance.DoesNotExist:
             response_data['freelance_info'] = None

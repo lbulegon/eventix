@@ -1,6 +1,7 @@
 # api_mobile/views.py
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -15,17 +16,24 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError as DjangoValidationError
 
 from app_eventos.models import (
-    Vaga, Candidatura, Evento, Freelance, Empresa, 
-    EmpresaContratante, SetorEvento, Funcao, PontoOperacao
+    Vaga, Candidatura, Evento, Freelance, Empresa,
+    EmpresaContratante, SetorEvento, Funcao, PontoOperacao,
+    RegistroPresencaFreelancer,
 )
+from app_eventos.services.freelancer_score import aplicar_pontuacao_para_registro
+from app_eventos.services.prestacao_presenca import validar_prestacao_para_registro_presenca
+from api_v01.permissions import IsEmpresaOrAdminSistema
 from .serializers import (
     VagaSerializer, CandidaturaSerializer, EventoSerializer,
     FreelanceSerializer, EmpresaSerializer, EmpresaContratanteSerializer,
     UserProfileSerializer, PreCadastroFreelancerSerializer,
     PasswordResetSerializer, PasswordResetConfirmSerializer,
-    PontoOperacaoSerializer
+    PontoOperacaoSerializer,
+    RegistroPresencaFreelancerSerializer,
+    RegistroPresencaManualSerializer,
 )
 
 User = get_user_model()
@@ -252,19 +260,67 @@ class FreelanceViewSet(viewsets.ModelViewSet):
     """
     serializer_class = FreelanceSerializer
     permission_classes = [IsAuthenticated]
-    
+    filter_backends = [OrderingFilter]
+    ordering_fields = [
+        'id',
+        'nome_completo',
+        'score_confiabilidade',
+        'data_ultimo_evento',
+        'faltas_com_aviso',
+        'faltas_sem_aviso',
+    ]
+    ordering = ['nome_completo']
+
     def get_queryset(self):
         user = self.request.user
-        
+
         if user.is_freelancer:
-            # Freelancer vê apenas seu próprio perfil
             try:
-                return Freelance.objects.filter(usuario=user)
+                qs = Freelance.objects.filter(usuario=user).select_related('usuario')
             except Freelance.DoesNotExist:
                 return Freelance.objects.none()
-        else:
-            # Empresas e admins veem todos os freelancers
-            return Freelance.objects.all().select_related('usuario')
+            return qs
+
+        qs = Freelance.objects.all().select_related('usuario')
+
+        bloqueado = self.request.query_params.get('bloqueado')
+        if bloqueado is not None:
+            qs = qs.filter(bloqueado=bloqueado.lower() in ('1', 'true', 'yes'))
+
+        score_min = self.request.query_params.get('score_min')
+        score_max = self.request.query_params.get('score_max')
+        if score_min is not None and str(score_min).strip() != '':
+            try:
+                qs = qs.filter(score_confiabilidade__gte=int(score_min))
+            except ValueError:
+                pass
+        if score_max is not None and str(score_max).strip() != '':
+            try:
+                qs = qs.filter(score_confiabilidade__lte=int(score_max))
+            except ValueError:
+                pass
+
+        # Apenas freelancers com prestação de serviço ativa na empresa indicada
+        somente_historico = self.request.query_params.get('somente_com_historico_empresa')
+        if somente_historico is not None and somente_historico.lower() in ('1', 'true', 'yes'):
+            if getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:
+                qs = qs.filter(
+                    prestacao_servico_empresas__empresa_contratante_id=user.empresa_contratante_id,
+                    prestacao_servico_empresas__ativo=True,
+                ).distinct()
+        prestacao_empresa = self.request.query_params.get('prestacao_empresa')
+        if prestacao_empresa is not None and str(prestacao_empresa).strip() != '':
+            if getattr(user, 'is_admin_sistema', False):
+                try:
+                    eid = int(prestacao_empresa)
+                    qs = qs.filter(
+                        prestacao_servico_empresas__empresa_contratante_id=eid,
+                        prestacao_servico_empresas__ativo=True,
+                    ).distinct()
+                except ValueError:
+                    pass
+
+        return qs
     
     def get_object(self):
         user = self.request.user
@@ -288,6 +344,87 @@ class FreelanceViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='registrar-presenca',
+        permission_classes=[IsAuthenticated, IsEmpresaOrAdminSistema],
+    )
+    def registrar_presenca(self, request, pk=None):
+        """
+        Registo manual de presença/falta; atualiza score no Freelance.
+        Apenas utilizadores de empresa ou admin de sistema.
+        """
+        freelance = super().get_object()
+        if freelance is None:
+            return Response({'detail': 'Freelancer não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        body = RegistroPresencaManualSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        vd = body.validated_data
+
+        empresa = None
+        if getattr(request.user, 'is_empresa_user', False) and request.user.empresa_contratante_id:
+            empresa = request.user.empresa_contratante
+        elif getattr(request.user, 'is_admin_sistema', False):
+            eid = vd.get('empresa_id')
+            if eid is not None:
+                empresa = get_object_or_404(EmpresaContratante, pk=eid)
+
+        try:
+            validar_prestacao_para_registro_presenca(freelance, empresa)
+        except DjangoValidationError as exc:
+            return Response(
+                {'detail': list(exc.messages) if hasattr(exc, 'messages') else [str(exc)]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        registro = RegistroPresencaFreelancer.objects.create(
+            freelance=freelance,
+            empresa=empresa,
+            data=vd['data'],
+            status=vd['status'],
+            observacao=vd.get('observacao') or None,
+        )
+        aplicar_pontuacao_para_registro(registro.id)
+        freelance.refresh_from_db()
+        return Response(
+            {
+                'registro': RegistroPresencaFreelancerSerializer(registro).data,
+                'freelance': FreelanceSerializer(freelance).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='historico-presenca',
+        permission_classes=[IsAuthenticated],
+    )
+    def historico_presenca(self, request, pk=None):
+        freelance = super().get_object()
+        if freelance is None:
+            return Response({'detail': 'Freelancer não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        qs = RegistroPresencaFreelancer.objects.filter(freelance=freelance).select_related('empresa')
+        user = request.user
+        if getattr(user, 'is_freelancer', False):
+            pass
+        elif getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:
+            qs = qs.filter(empresa_id=user.empresa_contratante_id)
+        elif getattr(user, 'is_admin_sistema', False):
+            pass
+        else:
+            return Response({'detail': 'Sem permissão.'}, status=status.HTTP_403_FORBIDDEN)
+
+        qs = qs.order_by('-data', '-created_at')
+        page = self.paginate_queryset(qs)
+        ser = RegistroPresencaFreelancerSerializer(page if page is not None else qs, many=True)
+        if page is not None:
+            return self.get_paginated_response(ser.data)
+        return Response(ser.data)
 
 
 class EmpresaViewSet(viewsets.ReadOnlyModelViewSet):
