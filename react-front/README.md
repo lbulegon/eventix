@@ -33,6 +33,15 @@ Página de demonstração: [`/login`](http://localhost:3000/login).
 
 **Ainda não replicado** (como no mobile): Firebase Messaging/Crashlytics/Analytics, pré-cadastro completo, recuperação de senha, `dashboard_freelancer` dedicado, filtros avançados de vagas.
 
+### PWA (Progressive Web App)
+
+- `app/manifest.ts` — manifesto Web (nome, cores Eventix, `standalone`, ícones).
+- `public/icon.svg` — ícone vetorial; `public/icon-192.png` e `public/icon-512.png` — PNG para instalação Android/Chrome (gerados a partir de `../assents/logo_sem_fundo.png`, fundo `#0d1117`).
+- `public/sw.js` — service worker (precache mínimo; API noutro domínio não é cacheada).
+- `components/PwaRegister.tsx` — regista o SW **apenas em produção** (`npm run build` + `npm run start` ou deploy HTTPS).
+
+Para testar instalação: Chrome → menu **Instalar Eventix** (requer HTTPS no domínio real; em `localhost` também funciona após build de produção).
+
 ## Getting Started
 
 ```bash
