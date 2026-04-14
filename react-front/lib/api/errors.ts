@@ -42,32 +42,38 @@ export function formatApiErrorBody(body: unknown): string {
     return typeof body === 'string' ? body : 'Pedido inválido';
   }
   const o = body as Record<string, unknown>;
+  const hint = typeof o.hint === 'string' && o.hint.trim() ? o.hint.trim() : '';
+  const debug = typeof o.debug === 'string' && o.debug.trim() ? o.debug.trim() : '';
 
   const fromDetail = detailToMessage(o.detail);
-  if (fromDetail) return fromDetail;
+  if (fromDetail) {
+    return [fromDetail, hint, debug].filter(Boolean).join('\n\n');
+  }
 
   if (Array.isArray(o.non_field_errors) && o.non_field_errors.length) {
     const msg = nonFieldFirstMessage(o.non_field_errors);
-    if (msg) return msg;
+    if (msg) return [msg, hint, debug].filter(Boolean).join('\n\n');
   }
 
-  if (typeof o.message === 'string') return o.message;
+  if (typeof o.message === 'string') {
+    return [o.message, hint, debug].filter(Boolean).join('\n\n');
+  }
 
   // Erros por campo: { username: ["..."], password: ["..."] }
   for (const key of Object.keys(o)) {
-    if (key === 'detail' || key === 'non_field_errors') continue;
+    if (key === 'detail' || key === 'non_field_errors' || key === 'hint' || key === 'debug') continue;
     const val = o[key];
     if (Array.isArray(val) && val.length) {
       const first = val[0];
-      if (typeof first === 'string') return first;
+      if (typeof first === 'string') return [first, hint, debug].filter(Boolean).join('\n\n');
     }
   }
 
   try {
     const s = JSON.stringify(body);
-    if (s && s !== '{}' && s !== '[]') return s;
+    if (s && s !== '{}' && s !== '[]') return [s, hint, debug].filter(Boolean).join('\n\n');
   } catch {
     /* ignore */
   }
-  return 'Erro desconhecido';
+  return ['Erro desconhecido', hint, debug].filter(Boolean).join('\n\n');
 }
