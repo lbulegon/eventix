@@ -42,6 +42,15 @@ function parseResponseBody(raw: string, contentType: string, status: number): un
       return { detail: trimmed.slice(0, 400) };
     }
   }
+  if (trimmed.toLowerCase().startsWith('<!doctype html') || trimmed.toLowerCase().startsWith('<html')) {
+    const titleMatch = trimmed.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const title = titleMatch?.[1]?.replace(/\s+/g, ' ').trim();
+    if (title) {
+      return {
+        detail: `Erro do backend: ${title}`,
+      };
+    }
+  }
   return {
     detail:
       trimmed.slice(0, 300).trim() ||

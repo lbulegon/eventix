@@ -1,5 +1,6 @@
 # api_mobile/serializers.py
 from rest_framework import serializers
+from django.db import IntegrityError, transaction
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa,
     EmpresaContratante, PlanoContratacao, SetorEvento, Funcao, LocalEvento, FreelancerFuncao,
@@ -262,26 +263,40 @@ class PreCadastroFreelancerSerializer(serializers.ModelSerializer):
             'nome_completo', 'telefone', 'cpf', 'email', 'password',
             'data_nascimento', 'sexo', 'habilidades'
         ]
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        if User.objects.filter(email__iexact=email).exists() or User.objects.filter(username__iexact=email).exists():
+            raise serializers.ValidationError('Já existe uma conta com este e-mail.')
+        return email
+
+    def validate_cpf(self, value):
+        cpf = ''.join(ch for ch in str(value) if ch.isdigit())
+        if Freelance.objects.filter(cpf=cpf).exists():
+            raise serializers.ValidationError('Já existe freelancer com este CPF.')
+        return cpf
     
     def create(self, validated_data):
-        # Criar usuário
-        email = validated_data.pop('email')
+        email = validated_data.pop('email').strip().lower()
         password = validated_data.pop('password')
-        
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=password,
-            tipo_usuario='freelancer'
-        )
-        
-        # Criar perfil freelancer
-        freelance = Freelance.objects.create(
-            usuario=user,
-            **validated_data
-        )
-        
-        return freelance
+
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=password,
+                    tipo_usuario='freelancer'
+                )
+                freelance = Freelance.objects.create(
+                    usuario=user,
+                    **validated_data
+                )
+                return freelance
+        except IntegrityError:
+            raise serializers.ValidationError(
+                {'detail': 'Dados já cadastrados (e-mail ou CPF).'}
+            )
 
 
 class PasswordResetSerializer(serializers.Serializer):
