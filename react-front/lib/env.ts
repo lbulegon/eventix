@@ -1,13 +1,15 @@
 /**
  * URL base usada pelo browser para chamar a API Django.
  *
- * - `NEXT_PUBLIC_API_VIA_PROXY=true` — força o proxy `/api/eventix/...` mesmo
- *   com `NEXT_PUBLIC_API_URL` (útil se a URL pública estiver errada no build).
- * - Sem `NEXT_PUBLIC_API_URL`, usa o proxy (servidor: `EVENTIX_API_URL`).
- * - Com `NEXT_PUBLIC_API_URL`, chamada direta ao Django; no browser, `http://`
- *   é promovido a `https://` se a página estiver em HTTPS (evita “Failed to
- *   fetch” por conteúdo misto). URLs só acessíveis na rede interna do Railway
- *   fazem fallback para o proxy.
+ * - Em **produção no browser** o default é sempre `/api/eventix` (proxy no
+ *   próprio Next): no Railway a variável `NEXT_PUBLIC_API_URL` muitas vezes
+ *   **não existe no bundle** gerado no `next build`, mas o **processo Node**
+ *   vê-a em runtime — o proxy encaminha usando `NEXT_PUBLIC_API_URL` ou
+ *   `EVENTIX_API_URL` no servidor.
+ * - `NEXT_PUBLIC_API_DIRECT=true` — força chamada direta ao Django no browser
+ *   em produção (só use se o build receber a URL correta e CORS/HTTPS estiverem ok).
+ * - `NEXT_PUBLIC_API_VIA_PROXY=true` — igual ao default prod (redundante).
+ * - Em desenvolvimento (`next dev`), usa `NEXT_PUBLIC_API_URL` se existir.
  */
 function normalizeDirectBase(url: string): string {
   let u = url.replace(/\/$/, '');
@@ -34,6 +36,18 @@ export function getPublicApiBaseUrl(): string {
     process.env.NEXT_PUBLIC_API_VIA_PROXY === '1' ||
     process.env.NEXT_PUBLIC_API_VIA_PROXY === 'true';
   if (forceProxy) {
+    return '/api/eventix';
+  }
+
+  const apiDirect =
+    process.env.NEXT_PUBLIC_API_DIRECT === '1' ||
+    process.env.NEXT_PUBLIC_API_DIRECT === 'true';
+
+  if (
+    typeof window !== 'undefined' &&
+    process.env.NODE_ENV === 'production' &&
+    !apiDirect
+  ) {
     return '/api/eventix';
   }
 
