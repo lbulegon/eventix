@@ -35,7 +35,14 @@ export default function LoginPage() {
     if (res.ok) {
       router.replace('/inicio');
     } else {
-      setError(res.error);
+      const raw = res.error;
+      const msg = typeof raw === 'string' ? raw.trim() : '';
+      // Evita exibir só "0" (resposta estranha / bug de parsing)
+      setError(
+        msg && msg !== '0'
+          ? msg
+          : 'Não foi possível entrar. Verifique e-mail e senha.',
+      );
     }
   }
 
@@ -46,14 +53,14 @@ export default function LoginPage() {
         <p className="mt-2 text-center text-base text-[#B0B3B8]">Entre na sua conta</p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
-          {error && (
+          {error != null && error !== '' ? (
             <div
               className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-center text-sm text-red-300"
               role="alert"
             >
               {error}
             </div>
-          )}
+          ) : null}
 
           <div>
             <label htmlFor="email" className="mb-1 block text-sm text-[#B0B3B8]">

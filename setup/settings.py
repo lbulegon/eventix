@@ -41,7 +41,13 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'https://eventix-development.up.railway.app',
     'http://eventix-development.up.railway.app',
+    'https://eventix-reactfront-development.up.railway.app',
 ]
+_csrf_extra = os.getenv('CSRF_TRUSTED_ORIGINS_EXTRA', '')
+if _csrf_extra.strip():
+    CSRF_TRUSTED_ORIGINS.extend(
+        x.strip() for x in _csrf_extra.split(',') if x.strip()
+    )
 
 # Configuração para Railway (proxy reverso)
 # Railway passa o protocolo real através do header X-Forwarded-Proto
@@ -200,17 +206,27 @@ LOGGING = {
     "root": {"handlers": ["console"], "level": "INFO"},
 }
 
-# CORS - Configuração fixa para funcionar em qualquer ambiente
+# CORS — em produção não use wildcards em CORS_ALLOWED_ORIGINS (não são válidos).
+# Qualquer frontend em *.up.railway.app é aceite via regex abaixo.
 if DEBUG:
     CORS_ALLOW_ALL_ORIGINS = True
+    CORS_ALLOWED_ORIGIN_REGEXES = []
 else:
     CORS_ALLOWED_ORIGINS = [
         'http://localhost:3000',
         'http://127.0.0.1:3000',
         'https://eventix-development.up.railway.app',
         'http://eventix-development.up.railway.app',
-        'https://*.railway.app',
-        'http://*.railway.app',
+        'https://eventix-reactfront-development.up.railway.app',
+    ]
+    # Novos domínios Railway (ou outros): lista separada por vírgulas
+    _cors_extra = os.getenv('CORS_ALLOWED_ORIGINS_EXTRA', '')
+    if _cors_extra.strip():
+        CORS_ALLOWED_ORIGINS.extend(
+            x.strip() for x in _cors_extra.split(',') if x.strip()
+        )
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r'^https://[\w-]+\.up\.railway\.app$',
     ]
 
 CORS_ALLOW_CREDENTIALS = True

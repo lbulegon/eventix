@@ -53,9 +53,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { ok: true as const };
     } catch (e) {
       if (e instanceof ApiError) {
-        return { ok: false as const, error: e.message };
+        let m = e.message.trim();
+        if (!m || m === '0') {
+          m =
+            e.status === 401 || e.status === 403
+              ? 'E-mail ou senha incorretos.'
+              : 'Não foi possível entrar. Tente novamente.';
+        }
+        return { ok: false as const, error: m };
       }
-      return { ok: false as const, error: 'Erro de rede ou URL da API não configurada.' };
+      if (e instanceof Error) {
+        return {
+          ok: false as const,
+          error:
+            e.message ||
+            'Erro de rede. Verifique NEXT_PUBLIC_API_URL no deploy e CORS no backend.',
+        };
+      }
+      return {
+        ok: false as const,
+        error: 'Erro de rede ou URL da API não configurada.',
+      };
     }
   }, []);
 
