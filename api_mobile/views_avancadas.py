@@ -17,6 +17,8 @@ from .serializers import (
     FreelanceSerializer, EmpresaSerializer, EmpresaContratanteSerializer
 )
 
+_VAGA_COUNT_ANNOTATE = {'_candidaturas_count': Count('candidaturas')}
+
 
 class VagaAvancadaViewSet(viewsets.ModelViewSet):
     """
@@ -30,19 +32,41 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
         
         if user.is_freelancer:
             # Freelancer vê vagas ativas e publicadas
-            return Vaga.objects.filter(
-                ativa=True,
-                publicada=True,
-                data_limite_candidatura__gte=timezone.now()
-            ).select_related('setor__evento', 'funcao', 'ponto_operacao', 'criado_por', 'empresa_contratante')
+            return (
+                Vaga.objects.filter(
+                    ativa=True,
+                    publicada=True,
+                    data_limite_candidatura__gte=timezone.now(),
+                )
+                .annotate(**_VAGA_COUNT_ANNOTATE)
+                .select_related(
+                    'setor__evento',
+                    'funcao',
+                    'ponto_operacao',
+                    'criado_por',
+                    'empresa_contratante',
+                )
+            )
         elif user.is_empresa_user:
             # Empresa vê suas próprias vagas
-            return Vaga.objects.filter(
-                empresa_contratante=user.empresa_contratante
-            ).select_related('setor__evento', 'funcao', 'ponto_operacao', 'criado_por', 'empresa_contratante')
+            return (
+                Vaga.objects.filter(empresa_contratante=user.empresa_contratante)
+                .annotate(**_VAGA_COUNT_ANNOTATE)
+                .select_related(
+                    'setor__evento',
+                    'funcao',
+                    'ponto_operacao',
+                    'criado_por',
+                    'empresa_contratante',
+                )
+            )
         else:
             # Admin vê todas
-            return Vaga.objects.all().select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
+            return (
+                Vaga.objects.all()
+                .annotate(**_VAGA_COUNT_ANNOTATE)
+                .select_related('setor__evento', 'funcao', 'criado_por', 'empresa_contratante')
+            )
     
     def perform_create(self, serializer):
         user = self.request.user

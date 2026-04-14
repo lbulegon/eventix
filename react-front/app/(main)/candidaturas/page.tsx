@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { cancelarCandidatura, fetchMinhasCandidaturas } from '@/lib/services/vagas';
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+}
+
 function statusLabel(s: string) {
   switch (s) {
     case 'pendente':
@@ -44,8 +49,8 @@ export default function CandidaturasPage() {
     setError(null);
     try {
       setList(await fetchMinhasCandidaturas());
-    } catch {
-      setError('Erro ao carregar candidaturas');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Erro ao carregar candidaturas'));
       setList([]);
     } finally {
       setLoading(false);

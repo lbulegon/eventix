@@ -155,6 +155,9 @@ class VagaSerializer(serializers.ModelSerializer):
         return None
     
     def get_candidaturas_count(self, obj):
+        c = getattr(obj, '_candidaturas_count', None)
+        if c is not None:
+            return int(c)
         return obj.candidaturas.count()
     
     def validate(self, attrs):

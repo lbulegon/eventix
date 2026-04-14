@@ -14,7 +14,9 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Count
+
+from app_eventos.utils_empresa_ativa import empresa_contexto_api, is_api_empresa_actor
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 
@@ -47,8 +49,21 @@ class VagaViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        queryset = Vaga.objects.filter(ativa=True).select_related(
-            'setor__evento', 'funcao', 'ponto_operacao'
+        queryset = (
+            Vaga.objects.filter(ativa=True)
+            .annotate(_candidaturas_count=Count('candidaturas'))
+            .select_related(
+                'setor__evento',
+                'setor__evento__empresa_contratante',
+                'setor__evento__local',
+                'evento',
+                'evento__empresa_contratante',
+                'evento__local',
+                'funcao',
+                'ponto_operacao',
+                'empresa_contratante',
+                'empresa_contratante__plano_contratado',
+            )
         )
         
         # Filtros
@@ -91,20 +106,29 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
-        if user.is_freelancer:
-            # Freelancer vê suas próprias candidaturas
+        base = Candidatura.objects.select_related(
+            'vaga__setor__evento',
+            'vaga__setor__evento__empresa_contratante',
+            'vaga__evento',
+            'vaga__evento__empresa_contratante',
+            'vaga__ponto_operacao',
+            'vaga__ponto_operacao__empresa_contratante',
+            'vaga__funcao',
+            'vaga__empresa_contratante',
+            'freelance',
+        )
+        if getattr(user, 'is_freelancer', False):
             try:
                 freelance = user.freelance
-                return Candidatura.objects.filter(freelance=freelance).select_related(
-                    'vaga__setor__evento', 'vaga__funcao'
-                )
+                return base.filter(freelance=freelance)
             except Freelance.DoesNotExist:
                 return Candidatura.objects.none()
-        else:
-            # Empresa vê candidaturas para suas vagas
-            return Candidatura.objects.filter(
-                vaga__empresa_contratante=user.empresa_contratante
-            ).select_related('vaga__setor__evento', 'vaga__funcao', 'freelance')
+        if getattr(user, 'is_admin_sistema', False):
+            return base
+        if is_api_empresa_actor(self.request):
+            emp = empresa_contexto_api(self.request)
+            return base.filter(vaga__empresa_contratante=emp)
+        return Candidatura.objects.none()
     
     def perform_create(self, serializer):
         user = self.request.user
@@ -150,9 +174,9 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         candidatura = self.get_object()
         user = request.user
         
-        if not user.is_empresa_user:
+        if not is_api_empresa_actor(request):
             return Response(
-                {'error': 'Apenas empresas podem aprovar candidaturas'},
+                {'error': 'Apenas utilizadores com escopo de empresa podem aprovar candidaturas.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -169,9 +193,9 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         candidatura = self.get_object()
         user = request.user
         
-        if not user.is_empresa_user:
+        if not is_api_empresa_actor(request):
             return Response(
-                {'error': 'Apenas empresas podem rejeitar candidaturas'},
+                {'error': 'Apenas utilizadores com escopo de empresa podem rejeitar candidaturas.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         

@@ -3,6 +3,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchVagas, candidatarNaVaga } from '@/lib/services/vagas';
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) return error.message;
+  return fallback;
+}
+
 export default function VagasPage() {
   const [list, setList] = useState<Record<string, unknown>[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,8 +24,8 @@ export default function VagasPage() {
       const { results } = await fetchVagas({ page: p, search: q });
       setList((prev) => (append ? [...prev, ...results] : results));
       setPage(p);
-    } catch {
-      setError('Erro ao carregar vagas');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Erro ao carregar vagas'));
       if (!append) setList([]);
     } finally {
       setLoading(false);
