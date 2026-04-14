@@ -14,7 +14,7 @@ def atribuir_freelancer_a_vaga_direto(
     freelance: Freelance,
     vaga: Vaga,
     *,
-    exigir_prestacao_servico: bool = True,
+    exigir_prestacao_servico: bool = False,
     ignorar_limite_vagas: bool = False,
     exigir_vaga_ativa: bool = True,
 ):

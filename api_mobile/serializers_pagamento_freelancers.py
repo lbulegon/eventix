@@ -155,9 +155,9 @@ class AtribuicaoFreelancerVagaDiretaSerializer(serializers.Serializer):
     )
     freelance = serializers.PrimaryKeyRelatedField(queryset=Freelance.objects.all())
     exigir_historico_empresa = serializers.BooleanField(
-        default=True,
+        default=False,
         required=False,
-        help_text='Se true, exige FreelancerPrestacaoServico ativo para o tenant da vaga.',
+        help_text='Se true, exige FreelancerPrestacaoServico ativo para o tenant da vaga (opcional).',
     )
     ignorar_limite_vagas = serializers.BooleanField(
         default=False,

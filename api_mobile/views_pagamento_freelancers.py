@@ -299,18 +299,8 @@ class AtribuirFreelancerVagaDiretoView(APIView):
         ser.is_valid(raise_exception=True)
         vaga = ser.validated_data['vaga']
         freelance = ser.validated_data['freelance']
-        exigir_hist = ser.validated_data.get('exigir_historico_empresa', True)
+        exigir_hist = ser.validated_data.get('exigir_historico_empresa', False)
         ignorar_limite = ser.validated_data.get('ignorar_limite_vagas', False)
-        if not exigir_hist and not getattr(user, 'is_admin_sistema', False):
-            return Response(
-                {
-                    'detail': (
-                        'Só administrador do sistema pode desativar a exigência de histórico '
-                        '(FreelancerPrestacaoServico) na atribuição.'
-                    )
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
         if ignorar_limite and not getattr(user, 'is_admin_sistema', False):
             return Response(
                 {'detail': 'Só administrador do sistema pode ignorar o limite de vagas.'},

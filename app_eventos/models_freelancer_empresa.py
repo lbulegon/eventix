@@ -1,6 +1,10 @@
 """
-Freelancers associados a uma empresa contratante como quem já prestou serviço
-(base para planilha de pagamento, histórico operacional, etc.).
+Freelancers associados a uma empresa contratante como quem já prestou serviço.
+
+Após a primeira contratação efetiva com aquele estabelecimento, o freelancer
+entra neste cadastro (par único empresa + freelancer), que serve de base para
+planilha de pagamento, histórico operacional e contexto em que a empresa o
+avalia (por exemplo via FeedbackFreelancer por evento/empresa).
 """
 from django.db import models
 
@@ -8,7 +12,10 @@ from django.db import models
 class FreelancerPrestacaoServico(models.Model):
     """
     Registo de que o freelancer já trabalhou / presta serviço para a empresa.
-    Um registo por par (empresa, freelancer).
+
+    Um registo por par (empresa, freelancer). Tipicamente criado na primeira
+    contratação ou ao constar no fichamento; consolida o vínculo operacional
+    com aquele estabelecimento.
     """
     empresa_contratante = models.ForeignKey(
         'EmpresaContratante',

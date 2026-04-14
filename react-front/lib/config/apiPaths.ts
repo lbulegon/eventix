@@ -17,4 +17,5 @@ export const paths = {
   freelancersFuncoesMinhas: () => `/api/v1/freelancers/funcoes/minhas_funcoes/`,
   freelancersFuncoesAdicionar: () => `/api/v1/freelancers/funcoes/adicionar_funcao/`,
   freelancers: () => `/api/v1/freelancers/`,
+  freelancersPreCadastro: () => `/api/v1/freelancers/pre_cadastro/`,
 } as const;
