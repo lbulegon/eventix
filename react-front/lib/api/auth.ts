@@ -26,7 +26,7 @@ export async function loginWithPassword(username: string, password: string): Pro
   });
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(formatApiErrorBody(body), res.status, body);
+    throw new ApiError(formatApiErrorBody(body, res.status), res.status, body);
   }
   const data = body as LoginResponse;
   if (!data.tokens?.access || !data.tokens?.refresh) {

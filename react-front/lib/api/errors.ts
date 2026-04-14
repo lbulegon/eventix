@@ -37,7 +37,7 @@ function nonFieldFirstMessage(arr: unknown[]): string | null {
   return null;
 }
 
-export function formatApiErrorBody(body: unknown): string {
+export function formatApiErrorBody(body: unknown, httpStatus?: number): string {
   if (body == null || typeof body !== 'object') {
     return typeof body === 'string' ? body : 'Pedido inválido';
   }
@@ -75,5 +75,9 @@ export function formatApiErrorBody(body: unknown): string {
   } catch {
     /* ignore */
   }
-  return ['Erro desconhecido', hint, debug].filter(Boolean).join('\n\n');
+  const fallback =
+    httpStatus != null && httpStatus > 0
+      ? `O servidor respondeu com HTTP ${httpStatus}. Se o problema continuar, verifique os logs do Django.`
+      : 'Erro desconhecido';
+  return [fallback, hint, debug].filter(Boolean).join('\n\n');
 }

@@ -52,7 +52,7 @@ export async function apiJson<T>(path: string, init: ApiFetchOptions = {}): Prom
   const res = await apiFetch(path, init);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(formatApiErrorBody(body), res.status, body);
+    throw new ApiError(formatApiErrorBody(body, res.status), res.status, body);
   }
   return body as T;
 }

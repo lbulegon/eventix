@@ -32,6 +32,23 @@ type PreCadastroPayload = {
   habilidades?: string;
 };
 
+function parseResponseBody(raw: string, contentType: string, status: number): unknown {
+  const trimmed = raw.trim();
+  if (!trimmed) return {};
+  if (contentType.includes('application/json') || trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      return { detail: trimmed.slice(0, 400) };
+    }
+  }
+  return {
+    detail:
+      trimmed.slice(0, 300).trim() ||
+      `Resposta não JSON do servidor (HTTP ${status}).`,
+  };
+}
+
 export async function preCadastrarFreelancer(payload: PreCadastroPayload): Promise<string> {
   const res = await apiFetch(paths.freelancersPreCadastro(), {
     method: 'POST',
@@ -40,9 +57,12 @@ export async function preCadastrarFreelancer(payload: PreCadastroPayload): Promi
     headers: { 'Content-Type': 'application/json' },
   });
 
-  const body = await res.json().catch(() => ({}));
+  const raw = await res.text();
+  const ct = res.headers.get('content-type') ?? '';
+  const body = parseResponseBody(raw, ct, res.status);
+
   if (!res.ok) {
-    throw new ApiError(formatApiErrorBody(body), res.status, body);
+    throw new ApiError(formatApiErrorBody(body, res.status), res.status, body);
   }
   const msg = (body as { message?: string }).message;
   return msg || 'Pré-cadastro realizado com sucesso.';
