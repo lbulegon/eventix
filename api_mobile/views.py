@@ -15,6 +15,7 @@ from django.utils.encoding import force_bytes, force_str
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Q, Count
+import logging
 
 from app_eventos.utils_empresa_ativa import empresa_contexto_api, is_api_empresa_actor
 from django.shortcuts import get_object_or_404
@@ -39,6 +40,7 @@ from .serializers import (
 )
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class VagaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -361,13 +363,24 @@ class FreelanceViewSet(viewsets.ModelViewSet):
         Pré-cadastro de freelancer
         """
         serializer = PreCadastroFreelancerSerializer(data=request.data)
-        if serializer.is_valid():
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
             freelance = serializer.save()
             return Response(
                 {'message': 'Pré-cadastro realizado com sucesso', 'freelance_id': freelance.id},
                 status=status.HTTP_201_CREATED
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.exception('Falha inesperada no pre_cadastro de freelancer')
+            return Response(
+                {
+                    'detail': 'Falha ao processar o pré-cadastro.',
+                    'erro': str(exc),
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @action(
         detail=True,
