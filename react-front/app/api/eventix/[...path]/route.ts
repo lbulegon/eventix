@@ -92,7 +92,9 @@ async function proxy(req: NextRequest, segments: string[]): Promise<NextResponse
       { status: 503 },
     );
   }
-  const url = `${base}/${suffix}${req.nextUrl.search}`;
+  const preserveTrailingSlash = req.nextUrl.pathname.endsWith('/');
+  const suffixWithSlash = preserveTrailingSlash && !suffix.endsWith('/') ? `${suffix}/` : suffix;
+  const url = `${base}/${suffixWithSlash}${req.nextUrl.search}`;
 
   const method = req.method.toUpperCase();
   const headers = forwardHeaders(req);
