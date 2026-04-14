@@ -50,6 +50,32 @@ function upstreamErrorPayload(err: unknown): { detail: string; hint: string; deb
   return { detail, hint, debug: msg };
 }
 
+function normalizeUpstreamErrorResponse(upstream: Response): Promise<NextResponse | null> {
+  if (upstream.ok) return Promise.resolve(null);
+  const ct = upstream.headers.get('content-type')?.toLowerCase() ?? '';
+  if (!ct.includes('text/html')) return Promise.resolve(null);
+
+  return upstream
+    .text()
+    .then((html) => {
+      const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+      const title = titleMatch?.[1]?.replace(/\s+/g, ' ').trim();
+      const detail =
+        title && title.length > 0
+          ? `Erro do backend: ${title}`
+          : `Erro do backend (HTTP ${upstream.status}).`;
+      return NextResponse.json(
+        {
+          detail,
+          hint: 'O backend devolveu HTML em vez de JSON. Consulte os logs do serviço Django no Railway.',
+          upstream_status: upstream.status,
+        },
+        { status: upstream.status },
+      );
+    })
+    .catch(() => null);
+}
+
 async function proxy(req: NextRequest, segments: string[]): Promise<NextResponse> {
   const suffix = segments.join('/');
   if (!suffix.startsWith('api/')) {
@@ -89,6 +115,9 @@ async function proxy(req: NextRequest, segments: string[]): Promise<NextResponse
     console.error('[eventix proxy] fetch falhou', { url, err });
     return NextResponse.json(upstreamErrorPayload(err), { status: 502 });
   }
+
+  const normalizedError = await normalizeUpstreamErrorResponse(upstream);
+  if (normalizedError) return normalizedError;
 
   const out = new Headers();
   const pass = ['content-type', 'www-authenticate'];
