@@ -63,16 +63,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { ok: false as const, error: m };
       }
       if (e instanceof Error) {
+        const m = e.message || '';
+        if (/failed to fetch/i.test(m) || e instanceof TypeError) {
+          return {
+            ok: false as const,
+            error:
+              'Não foi possível ligar ao servidor. No Railway, use o proxy: defina EVENTIX_API_URL no serviço Next ou NEXT_PUBLIC_API_URL no build.',
+          };
+        }
         return {
           ok: false as const,
-          error:
-            e.message ||
-            'Erro de rede. Verifique NEXT_PUBLIC_API_URL no deploy e CORS no backend.',
+          error: m || 'Erro de rede. Tente novamente.',
         };
       }
       return {
         ok: false as const,
-        error: 'Erro de rede ou URL da API não configurada.',
+        error: 'Erro de rede. Tente novamente.',
       };
     }
   }, []);

@@ -1,19 +1,20 @@
 /**
- * URL base pública do backend Django (exposta ao browser via NEXT_PUBLIC_*).
+ * URL base usada pelo browser para chamar a API Django.
+ *
+ * - Se `NEXT_PUBLIC_API_URL` estiver definida, os pedidos vão direto ao Django
+ *   (útil em desenvolvimento local).
+ * - Caso contrário, usa o proxy same-origin `/api/eventix/...` (recomendado no
+ *   Railway: evita CORS e não exige embutir a URL do backend no build do
+ *   cliente — configure `EVENTIX_API_URL` só no servidor Next).
  */
 export function getPublicApiBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim() ?? '';
-  if (!raw) return '';
-
-  // Em produção, evita erro comum de deploy quando esquecem o protocolo.
+  if (!raw) {
+    return '/api/eventix';
+  }
   const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   return withProtocol.replace(/\/$/, '');
 }
 
-export function assertApiUrlConfigured(): void {
-  if (!getPublicApiBaseUrl()) {
-    throw new Error(
-      'Defina NEXT_PUBLIC_API_URL no .env.local (copie de .env.example). Ex.: http://127.0.0.1:8000',
-    );
-  }
-}
+/** Mantido por compatibilidade; o proxy cobre o caso sem URL pública. */
+export function assertApiUrlConfigured(): void {}

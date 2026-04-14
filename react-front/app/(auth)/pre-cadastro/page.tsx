@@ -5,6 +5,19 @@ import { useState } from 'react';
 import { ApiError } from '@/lib/api';
 import { preCadastrarFreelancer } from '@/lib/services/freelancers';
 
+function mensagemErroRede(error: unknown): string {
+  if (error instanceof TypeError) {
+    return (
+      'Não foi possível contactar o servidor. Se estiver no Railway, configure EVENTIX_API_URL ' +
+      'no serviço Next (URL do Django) ou defina NEXT_PUBLIC_API_URL antes do build.'
+    );
+  }
+  if (error instanceof Error && /failed to fetch/i.test(error.message)) {
+    return mensagemErroRede(new TypeError('fetch'));
+  }
+  return '';
+}
+
 export default function PreCadastroPage() {
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [email, setEmail] = useState('');
@@ -62,10 +75,15 @@ export default function PreCadastroPage() {
     } catch (error: unknown) {
       if (error instanceof ApiError) {
         setErro(error.message || 'Não foi possível concluir o pré-cadastro.');
-      } else if (error instanceof Error) {
-        setErro(error.message || 'Erro de conexão. Tente novamente.');
       } else {
-        setErro('Erro de conexão. Tente novamente.');
+        const rede = mensagemErroRede(error);
+        if (rede) {
+          setErro(rede);
+        } else if (error instanceof Error) {
+          setErro(error.message || 'Erro de conexão. Tente novamente.');
+        } else {
+          setErro('Erro de conexão. Tente novamente.');
+        }
       }
     } finally {
       setLoading(false);
