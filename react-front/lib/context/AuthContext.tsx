@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return {
             ok: false as const,
             error:
-              'Não foi possível ligar ao servidor. No Railway, use o proxy: defina EVENTIX_API_URL no serviço Next ou NEXT_PUBLIC_API_URL no build.',
+              'Não foi possível ligar ao servidor. Confirme HTTPS na URL da API, redeploy após mudar NEXT_PUBLIC_*, ou use NEXT_PUBLIC_API_VIA_PROXY=true com EVENTIX_API_URL no Next.',
           };
         }
         return {

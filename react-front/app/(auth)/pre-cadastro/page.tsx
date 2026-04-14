@@ -8,8 +8,9 @@ import { preCadastrarFreelancer } from '@/lib/services/freelancers';
 function mensagemErroRede(error: unknown): string {
   if (error instanceof TypeError) {
     return (
-      'Não foi possível contactar o servidor. Se estiver no Railway, configure EVENTIX_API_URL ' +
-      'no serviço Next (URL do Django) ou defina NEXT_PUBLIC_API_URL antes do build.'
+      'Não foi possível contactar o servidor. No Railway: confirme EVENTIX_API_URL no serviço Next; ' +
+      'se usar NEXT_PUBLIC_API_URL tem de ser HTTPS público e existir no *build* (redeploy após alterar). ' +
+      'Evite http:// com front em https. Pode forçar proxy com NEXT_PUBLIC_API_VIA_PROXY=true.'
     );
   }
   if (error instanceof Error && /failed to fetch/i.test(error.message)) {
