@@ -93,7 +93,9 @@ async function proxy(req: NextRequest, segments: string[]): Promise<NextResponse
     );
   }
   const preserveTrailingSlash = req.nextUrl.pathname.endsWith('/');
-  const suffixWithSlash = preserveTrailingSlash && !suffix.endsWith('/') ? `${suffix}/` : suffix;
+  const mustUseTrailingSlash = suffix.startsWith('api/v1/');
+  const shouldAppendSlash = (preserveTrailingSlash || mustUseTrailingSlash) && !suffix.endsWith('/');
+  const suffixWithSlash = shouldAppendSlash ? `${suffix}/` : suffix;
   const url = `${base}/${suffixWithSlash}${req.nextUrl.search}`;
 
   const method = req.method.toUpperCase();
