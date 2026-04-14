@@ -2,7 +2,7 @@
 from django import forms
 from .admin_restricoes import AdminRestricoesMixin
 from .models import (
-    User, ModuloSistema, PlanoContratacao, EmpresaContratante, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao,
+    User, ModuloSistema, PlanoContratacao, EmpresaContratante, GrupoEmpresarial, Empresa, LocalEvento, Evento, SetorEvento, PontoOperacao,
     FichamentoSemanaFreelancer, LancamentoPagoDiarioFreelancer, LancamentoDescontoFreelancer,
     FreelancerPrestacaoServico,
     UnidadeOperacional, RegraRecorrencia, RegraRecorrenciaFuncao,
@@ -120,13 +120,21 @@ class PlanoContratacaoAdmin(admin.ModelAdmin, AdminRestricoesMixin):
         }),
     )
 
+
+@admin.register(GrupoEmpresarial)
+class GrupoEmpresarialAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'nome_fantasia', 'cnpj', 'ativo', 'atualizado_em')
+    list_filter = ('ativo',)
+    search_fields = ('nome', 'nome_fantasia', 'cnpj')
+
+
 @admin.register(EmpresaContratante)
 class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
-    list_display = ('nome_fantasia', 'cnpj', 'modo_dashboard', 'plano_contratado', 'valor_mensal', 'modulos_count', 'ativo', 'data_vencimento')
+    list_display = ('nome_fantasia', 'cnpj', 'grupo_empresarial', 'modo_dashboard', 'plano_contratado', 'valor_mensal', 'modulos_count', 'ativo', 'data_vencimento')
     list_filter = ('ativo', 'modo_dashboard', 'plano_contratado__tipo_plano', 'data_contratacao', 'modulos_contratados')
     search_fields = ('nome_fantasia', 'razao_social', 'cnpj', 'email')
     readonly_fields = ('data_contratacao', 'data_atualizacao')
-    autocomplete_fields = ('plano_contratado',)
+    autocomplete_fields = ('plano_contratado', 'grupo_empresarial')
     filter_horizontal = ('modulos_contratados',)
     
     fieldsets = (
@@ -150,6 +158,10 @@ class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
             "fields": ("modo_dashboard",),
             "description": "Menu e resumo inicial: operação contínua, eventos ou ambos. Padrão para novas empresas: só operação.",
         }),
+        ("Grupo empresarial", {
+            "fields": ("grupo_empresarial",),
+            "description": "Opcional. Vários CNPJs sob o mesmo grupo; gestores do grupo visualizam todas as empresas associadas.",
+        }),
         ("Status", {
             "fields": ("ativo", "data_atualizacao")
         }),
@@ -167,14 +179,15 @@ class EmpresaContratanteAdmin(admin.ModelAdmin, AdminRestricoesMixin):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin, EmpresaContratanteMixin, AdminRestricoesMixin):
-    list_display = ('username', 'email', 'tipo_usuario', 'empresa_contratante', 'ativo', 'data_ultimo_acesso')
+    list_display = ('username', 'email', 'tipo_usuario', 'empresa_contratante', 'grupo_empresarial', 'ativo', 'data_ultimo_acesso')
     list_filter = ('tipo_usuario', 'ativo', 'empresa_contratante', 'is_staff', 'is_active')
     search_fields = ('username', 'email', 'first_name', 'last_name')
     readonly_fields = ('data_ultimo_acesso',)
     
     fieldsets = BaseUserAdmin.fieldsets + (
         ("Empresa e Permissões", {
-            "fields": ("tipo_usuario", "empresa_contratante", "grupo_permissao", "ativo")
+            "fields": ("tipo_usuario", "empresa_contratante", "grupo_empresarial", "grupo_permissao", "ativo"),
+            "description": "Gestor de grupo: tipo gestor_grupo, preencher Grupo empresarial; deixar Empresa contratante vazio.",
         }),
         ("Informações Adicionais", {
             "fields": ("data_ultimo_acesso",)
@@ -183,7 +196,7 @@ class UserAdmin(BaseUserAdmin, EmpresaContratanteMixin, AdminRestricoesMixin):
     
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ("Empresa e Permissões", {
-            "fields": ("tipo_usuario", "empresa_contratante", "grupo_permissao", "ativo")
+            "fields": ("tipo_usuario", "empresa_contratante", "grupo_empresarial", "grupo_permissao", "ativo")
         }),
     )
     

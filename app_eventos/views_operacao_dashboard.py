@@ -28,12 +28,15 @@ from app_eventos.models_operacao_continua import (
     VagaTurno,
 )
 from app_eventos.services.motor_recorrencia_turnos import gerar_turnos_janela
+from app_eventos.utils_empresa_ativa import empresa_ativa
 
 
 def _empresa(request):
-    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa'] and not getattr(
+        request.user, 'is_gestor_grupo', False
+    ):
         return None
-    return request.user.empresa_contratante
+    return empresa_ativa(request)
 
 
 def _deny(request):

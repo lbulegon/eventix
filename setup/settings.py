@@ -231,6 +231,14 @@ else:
 
 CORS_ALLOW_CREDENTIALS = True
 
+# Cabeçalho customizado na API (gestor de grupo → contexto de empresa)
+try:
+    from corsheaders.defaults import default_headers
+
+    CORS_ALLOW_HEADERS = list(default_headers) + ["x-empresa-context-id"]
+except Exception:  # pragma: no cover
+    pass
+
 # Integrações
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")  # do painel Mercado Pago
 

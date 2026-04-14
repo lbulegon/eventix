@@ -9,6 +9,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db import transaction
 from django.utils import timezone
+from app_eventos.utils_empresa_ativa import (
+    empresa_contexto_api,
+    empresa_owner_api,
+    is_api_empresa_actor,
+)
 from app_eventos.models import (
     Vaga,
     Candidatura,
@@ -47,6 +52,15 @@ from ..serializers.serializers import (
 )
 from ..permissions import IsFreelancer, IsEmpresaUser, IsAdminSistema
 from ..filters import EmpresaScopeFilterBackend
+
+
+def _msg_sem_empresa_api(request):
+    if getattr(request.user, 'is_gestor_grupo', False):
+        return (
+            'Gestor de grupo: envie o cabeçalho X-Empresa-Context-Id com o id da empresa '
+            '(EmpresaContratante), ou em GET o parâmetro empresa_context.'
+        )
+    return 'Usuário não possui empresa associada.'
 
 
 class VagaViewSet(viewsets.ReadOnlyModelViewSet):
@@ -109,9 +123,10 @@ class CandidaturaViewSet(mixins.CreateModelMixin,
                 return qs.none()
         if getattr(user, "is_admin_sistema", False):
             return qs
-        if getattr(user, "is_empresa_user", False):
-            # candidaturas de vagas dos eventos da empresa do usuário
-            return qs.filter(vaga__setor__evento__empresa_contratante=user.empresa_contratante)
+        if is_api_empresa_actor(self.request):
+            return qs.filter(
+                vaga__setor__evento__empresa_contratante=empresa_contexto_api(self.request)
+            )
         return qs.none()
 
 class ContratoFreelanceViewSet(viewsets.ReadOnlyModelViewSet):
@@ -139,8 +154,10 @@ class ContratoFreelanceViewSet(viewsets.ReadOnlyModelViewSet):
                 return qs.none()
         if getattr(user, "is_admin_sistema", False):
             return qs
-        if getattr(user, "is_empresa_user", False):
-            return qs.filter(vaga__setor__evento__empresa_contratante=user.empresa_contratante)
+        if is_api_empresa_actor(self.request):
+            return qs.filter(
+                vaga__setor__evento__empresa_contratante=empresa_contexto_api(self.request)
+            )
         return qs.none()
 
 
@@ -150,15 +167,15 @@ def clonar_evento(request, evento_id):
     """Clona um evento existente com opções configuráveis."""
 
     usuario = request.user
-    if not (getattr(usuario, "is_empresa_user", False) or getattr(usuario, "is_admin_sistema", False)):
+    if not (is_api_empresa_actor(request) or getattr(usuario, "is_admin_sistema", False)):
         return Response(
             {'success': False, 'message': 'Usuário não tem permissão para clonar eventos.'},
             status=status.HTTP_403_FORBIDDEN,
         )
 
     eventos_qs = Evento.objects.all()
-    if getattr(usuario, "is_empresa_user", False):
-        eventos_qs = eventos_qs.filter(empresa_contratante=usuario.empresa_contratante)
+    if is_api_empresa_actor(request):
+        eventos_qs = eventos_qs.filter(empresa_contratante=empresa_contexto_api(request))
 
     try:
         evento_origem = eventos_qs.get(id=evento_id)
@@ -241,24 +258,38 @@ def login_unico(request):
             
             # Gera tokens JWT
             refresh = RefreshToken.for_user(user)
-            
+
+            user_payload = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'tipo_usuario': user.tipo_usuario,
+                'tipo_usuario_display': user.get_user_type_display_name(),
+                'is_freelancer': user.is_freelancer,
+                'is_empresa_user': user.is_empresa_user,
+                'is_admin_sistema': user.is_admin_sistema,
+                'is_gestor_grupo': getattr(user, 'is_gestor_grupo', False),
+                'empresa_contratante': user.empresa_contratante.nome_fantasia if user.empresa_contratante else None,
+                'dashboard_url': user.get_dashboard_url(),
+            }
+            if getattr(user, 'is_gestor_grupo', False):
+                user_payload['empresas_grupo'] = [
+                    {
+                        'id': e.id,
+                        'nome_fantasia': e.nome_fantasia,
+                        'cnpj': e.cnpj,
+                    }
+                    for e in user.empresas_do_grupo_queryset()
+                ]
+                user_payload['api_empresa_context_header'] = 'X-Empresa-Context-Id'
+                user_payload['api_empresa_context_query_get'] = 'empresa_context'
+
             return Response({
                 'success': True,
                 'message': 'Login realizado com sucesso!',
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'tipo_usuario': user.tipo_usuario,
-                    'tipo_usuario_display': user.get_user_type_display_name(),
-                    'is_freelancer': user.is_freelancer,
-                    'is_empresa_user': user.is_empresa_user,
-                    'is_admin_sistema': user.is_admin_sistema,
-                    'empresa_contratante': user.empresa_contratante.nome_fantasia if user.empresa_contratante else None,
-                    'dashboard_url': user.get_dashboard_url(),
-                },
+                'user': user_payload,
                 'tokens': {
                     'access': str(refresh.access_token),
                     'refresh': str(refresh),
@@ -461,7 +492,8 @@ def verificar_tipo_usuario(request):
     Verifica o tipo de usuário e retorna informações específicas
     """
     user = request.user
-    
+    tenant = empresa_owner_api(request)
+
     response_data = {
         'success': True,
         'user_type': user.tipo_usuario,
@@ -469,8 +501,9 @@ def verificar_tipo_usuario(request):
         'is_freelancer': user.is_freelancer,
         'is_empresa_user': user.is_empresa_user,
         'is_admin_sistema': user.is_admin_sistema,
+        'is_gestor_grupo': getattr(user, 'is_gestor_grupo', False),
         'empresa_contratante': user.empresa_contratante.nome_fantasia if user.empresa_contratante else None,
-        'empresa_owner': user.empresa_owner.nome_fantasia if user.empresa_owner else None,
+        'empresa_owner': tenant.nome_fantasia if tenant else None,
         'dashboard_url': user.get_dashboard_url(),
     }
     
@@ -500,7 +533,26 @@ def verificar_tipo_usuario(request):
                 'cnpj': user.empresa_contratante.cnpj,
                 'ativo': user.empresa_contratante.ativo,
             }
-    
+
+    elif getattr(user, 'is_gestor_grupo', False):
+        response_data['empresas_grupo'] = [
+            {
+                'id': e.id,
+                'nome_fantasia': e.nome_fantasia,
+                'cnpj': e.cnpj,
+            }
+            for e in user.empresas_do_grupo_queryset()
+        ]
+        response_data['api_empresa_context_header'] = 'X-Empresa-Context-Id'
+        response_data['api_empresa_context_query_get'] = 'empresa_context'
+        if tenant:
+            response_data['empresa_context_ativa'] = {
+                'id': tenant.id,
+                'nome_fantasia': tenant.nome_fantasia,
+                'cnpj': tenant.cnpj,
+                'ativo': tenant.ativo,
+            }
+
     return Response(response_data)
 
 
@@ -508,7 +560,11 @@ def verificar_tipo_usuario(request):
 @permission_classes([AllowAny])
 def listar_empresas(request):
     """Lista empresas ativas para seleção"""
-    empresas = EmpresaContratante.objects.filter(ativo=True)
+    qs = EmpresaContratante.objects.filter(ativo=True)
+    user = getattr(request, 'user', None)
+    if user and user.is_authenticated and getattr(user, 'is_gestor_grupo', False) and user.grupo_empresarial_id:
+        qs = qs.filter(grupo_empresarial_id=user.grupo_empresarial_id)
+    empresas = qs.order_by('nome_fantasia')
     data = []
     
     for empresa in empresas:
@@ -531,15 +587,14 @@ def listar_empresas(request):
 @permission_classes([IsAuthenticated])
 def categorias_financeiras(request):
     """Lista categorias financeiras da empresa do usuário"""
-    user = request.user
-    empresa = user.empresa_owner
-    
+    empresa = empresa_owner_api(request)
+
     if not empresa:
         return Response({
             'success': False,
-            'message': 'Usuário não possui empresa associada.'
+            'message': _msg_sem_empresa_api(request),
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
     categorias = CategoriaFinanceira.objects.filter(
         empresa_contratante=empresa,
         ativo=True
@@ -562,7 +617,7 @@ def despesas_evento(request, evento_id):
         
         # Verificar permissão de acesso ao evento
         user = request.user
-        if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and evento.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a este evento.'
@@ -595,7 +650,7 @@ def criar_despesa(request):
             
             # Verificar permissão de acesso ao evento
             user = request.user
-            if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+            if not user.is_admin_sistema and evento.empresa_contratante != empresa_owner_api(request):
                 return Response({
                     'success': False,
                     'message': 'Acesso negado a este evento.'
@@ -631,7 +686,7 @@ def atualizar_despesa(request, despesa_id):
         
         # Verificar permissão de acesso
         user = request.user
-        if not user.is_admin_sistema and despesa.evento.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and despesa.evento.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a esta despesa.'
@@ -670,7 +725,7 @@ def receitas_evento(request, evento_id):
         
         # Verificar permissão de acesso ao evento
         user = request.user
-        if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and evento.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a este evento.'
@@ -703,7 +758,7 @@ def criar_receita(request):
             
             # Verificar permissão de acesso ao evento
             user = request.user
-            if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+            if not user.is_admin_sistema and evento.empresa_contratante != empresa_owner_api(request):
                 return Response({
                     'success': False,
                     'message': 'Acesso negado a este evento.'
@@ -739,7 +794,7 @@ def atualizar_receita(request, receita_id):
         
         # Verificar permissão de acesso
         user = request.user
-        if not user.is_admin_sistema and receita.evento.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and receita.evento.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a esta receita.'
@@ -778,7 +833,7 @@ def fluxo_caixa_evento(request, evento_id):
         
         # Verificar permissão de acesso ao evento
         user = request.user
-        if not user.is_admin_sistema and evento.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and evento.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a este evento.'
@@ -817,15 +872,14 @@ def fluxo_caixa_evento(request, evento_id):
 @permission_classes([IsAuthenticated])
 def fluxo_caixa_empresa(request):
     """Retorna o resumo do fluxo de caixa de todos os eventos da empresa"""
-    user = request.user
-    empresa = user.empresa_owner
-    
+    empresa = empresa_owner_api(request)
+
     if not empresa:
         return Response({
             'success': False,
-            'message': 'Usuário não possui empresa associada.'
+            'message': _msg_sem_empresa_api(request),
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
     eventos = Evento.objects.filter(empresa_contratante=empresa, ativo=True)
     resumos = []
     
@@ -867,15 +921,14 @@ def fluxo_caixa_empresa(request):
 @permission_classes([IsAuthenticated])
 def listar_fornecedores(request):
     """Lista fornecedores da empresa do usuário"""
-    user = request.user
-    empresa = user.empresa_owner
-    
+    empresa = empresa_owner_api(request)
+
     if not empresa:
         return Response({
             'success': False,
-            'message': 'Usuário não possui empresa associada.'
+            'message': _msg_sem_empresa_api(request),
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
     # Filtros opcionais
     tipo_fornecedor = request.GET.get('tipo_fornecedor')
     ativo = request.GET.get('ativo')
@@ -905,7 +958,7 @@ def detalhes_fornecedor(request, fornecedor_id):
         
         # Verificar permissão de acesso
         user = request.user
-        if not user.is_admin_sistema and fornecedor.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and fornecedor.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a este fornecedor.'
@@ -956,7 +1009,7 @@ def atualizar_fornecedor(request, fornecedor_id):
         
         # Verificar permissão de acesso
         user = request.user
-        if not user.is_admin_sistema and fornecedor.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and fornecedor.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a este fornecedor.'
@@ -995,7 +1048,7 @@ def fornecedor_despesas(request, fornecedor_id):
         
         # Verificar permissão de acesso
         user = request.user
-        if not user.is_admin_sistema and fornecedor.empresa_contratante != user.empresa_owner:
+        if not user.is_admin_sistema and fornecedor.empresa_contratante != empresa_owner_api(request):
             return Response({
                 'success': False,
                 'message': 'Acesso negado a este fornecedor.'

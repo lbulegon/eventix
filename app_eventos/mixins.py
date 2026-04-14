@@ -4,6 +4,8 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from django.db import DatabaseError
 
+from .utils_empresa_ativa import empresa_ativa
+
 
 class EmpresaContratanteMixin:
     """
@@ -24,9 +26,9 @@ class EmpresaContratanteMixin:
                     return queryset.filter(usuario=self.request.user)
                 return queryset.none()
                 
-            # Usuários da empresa veem apenas dados da sua empresa
-            if hasattr(self.request.user, 'empresa_contratante') and self.request.user.empresa_contratante:
-                empresa = self.request.user.empresa_contratante
+            # Usuários da empresa (ou gestor com contexto) veem apenas dados da empresa ativa
+            empresa = empresa_ativa(self.request)
+            if empresa:
                 
                 # Filtra por empresa_contratante se o modelo tem esse campo
                 if hasattr(self.model, 'empresa_contratante'):
@@ -70,10 +72,11 @@ class EmpresaContratanteRequiredMixin(UserPassesTestMixin):
             if user.tipo_usuario == 'freelancer':
                 return True
                 
-            # Usuários da empresa precisam ter empresa contratante ativa
-            if hasattr(user, 'empresa_contratante') and user.empresa_contratante:
-                return user.empresa_contratante.ativo and user.ativo
-                
+            # Utilizadores da empresa ou gestor com empresa em sessão
+            emp = empresa_ativa(self.request)
+            if emp:
+                return emp.ativo and user.ativo
+
             return False
             
         except Exception:

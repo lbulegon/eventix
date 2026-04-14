@@ -17,6 +17,17 @@ urlpatterns = [
     
     # Dashboard principal
     path('', views_dashboard_empresa.dashboard_empresa, name='dashboard_empresa'),
+    path('grupo/', views_dashboard_empresa.dashboard_grupo, name='dashboard_grupo'),
+    path(
+        'grupo/contexto/<int:empresa_id>/',
+        views_dashboard_empresa.definir_contexto_empresa_grupo,
+        name='definir_contexto_empresa_grupo',
+    ),
+    path(
+        'grupo/contexto/limpar/',
+        views_dashboard_empresa.limpar_contexto_empresa_grupo,
+        name='limpar_contexto_empresa_grupo',
+    ),
     path(
         'configuracoes/',
         views_dashboard_empresa.configuracoes_empresa,

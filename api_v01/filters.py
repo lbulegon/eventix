@@ -1,6 +1,9 @@
 # api_v01/filters.py
 from rest_framework import filters
 
+from app_eventos.utils_empresa_ativa import empresa_contexto_api
+
+
 class EmpresaScopeFilterBackend(filters.BaseFilterBackend):
     """
     Restringe querysets por empresa_contratante do usuário empresa.
@@ -12,8 +15,7 @@ class EmpresaScopeFilterBackend(filters.BaseFilterBackend):
             return queryset.none()
         if getattr(user, "is_admin_sistema", False):
             return queryset
-        if getattr(user, "is_empresa_user", False):
-            # campo padrão 'empresa_contratante' nos models multi-tenant
-            if hasattr(queryset.model, "empresa_contratante"):
-                return queryset.filter(empresa_contratante=user.empresa_contratante)
+        emp = empresa_contexto_api(request)
+        if emp and hasattr(queryset.model, "empresa_contratante"):
+            return queryset.filter(empresa_contratante=emp)
         return queryset

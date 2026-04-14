@@ -20,6 +20,8 @@ def dashboard_redirect(request):
     
     if user.is_admin_sistema:
         return redirect('admin:index')
+    elif getattr(user, 'is_gestor_grupo', False):
+        return redirect('dashboard_empresa:dashboard_grupo')
     elif user.is_empresa_user:
         return redirect('dashboard_empresa')
     elif user.is_freelancer:

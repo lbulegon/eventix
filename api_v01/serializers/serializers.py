@@ -425,10 +425,12 @@ class FornecedorCreateSerializer(serializers.ModelSerializer):
         ]
     
     def create(self, validated_data):
-        # Associar automaticamente à empresa do usuário
+        # Associar automaticamente à empresa do utilizador (ou gestor + cabeçalho API)
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            validated_data['empresa_contratante'] = request.user.empresa_owner
+            from app_eventos.utils_empresa_ativa import empresa_owner_api
+
+            validated_data['empresa_contratante'] = empresa_owner_api(request)
         return super().create(validated_data)
 
 

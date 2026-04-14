@@ -127,18 +127,29 @@ class User(AbstractUser):
     TIPO_USUARIO_CHOICES = [
         ('admin_empresa', 'Administrador da Empresa'),
         ('operador_empresa', 'Operador da Empresa'),
+        ('gestor_grupo', 'Gestor do Grupo Empresarial'),
         ('freelancer', 'Freelancer'),
         ('admin_sistema', 'Administrador do Sistema'),
     ]
-    
-    tipo_usuario = models.CharField(max_length=20, choices=TIPO_USUARIO_CHOICES, default='freelancer')
+
+    tipo_usuario = models.CharField(max_length=22, choices=TIPO_USUARIO_CHOICES, default='freelancer')
     empresa_contratante = models.ForeignKey(
         'EmpresaContratante',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="usuarios",
-        verbose_name="Empresa Contratante"
+        verbose_name="Empresa Contratante",
+        help_text="Operação / CNPJ concreto. Vazio para gestor_grupo (visão transversal do grupo).",
+    )
+    grupo_empresarial = models.ForeignKey(
+        'GrupoEmpresarial',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='gestores',
+        verbose_name='Grupo empresarial',
+        help_text='Obrigatório para tipo gestor_grupo: agrupa vários CNPJs; o gestor vê todas as operações.',
     )
     grupo_permissao = models.ForeignKey(
         'GrupoPermissaoEmpresa',
@@ -177,6 +188,11 @@ class User(AbstractUser):
     def is_empresa_user(self):
         """Verifica se o usuário é da empresa (admin ou operador)"""
         return self.tipo_usuario in ['admin_empresa', 'operador_empresa']
+
+    @property
+    def is_gestor_grupo(self):
+        """Supervisiona todas as empresas (CNPJs) ligadas ao mesmo GrupoEmpresarial."""
+        return self.tipo_usuario == 'gestor_grupo'
 
     @property
     def is_admin_sistema(self):
@@ -285,6 +301,8 @@ class User(AbstractUser):
         """Retorna a URL do dashboard baseada no tipo de usuário"""
         if self.is_admin_sistema:
             return '/admin/'
+        elif self.is_gestor_grupo:
+            return '/empresa/grupo/'
         elif self.is_empresa_user:
             return '/empresa/dashboard/'
         elif self.is_freelancer:
@@ -295,12 +313,22 @@ class User(AbstractUser):
         """Retorna o nome amigável do tipo de usuário"""
         type_names = {
             'admin_empresa': 'Administrador da Empresa',
-            'operador_empresa': 'Operador da Empresa', 
+            'operador_empresa': 'Operador da Empresa',
+            'gestor_grupo': 'Gestor do Grupo Empresarial',
             'freelancer': 'Freelancer',
             'admin_sistema': 'Administrador do Sistema'
         }
         return type_names.get(self.tipo_usuario, self.tipo_usuario)
-    
+
+    def empresas_do_grupo_queryset(self):
+        """Empresas contratantes (CNPJs) do mesmo grupo — apenas para gestor_grupo."""
+        if self.tipo_usuario != 'gestor_grupo' or not self.grupo_empresarial_id:
+            return EmpresaContratante.objects.none()
+        return EmpresaContratante.objects.filter(
+            grupo_empresarial_id=self.grupo_empresarial_id,
+            ativo=True,
+        ).order_by('nome_fantasia')
+
     def get_grupos_ativos(self):
         """Retorna os grupos ativos do usuário"""
         return UsuarioGrupo.objects.filter(usuario=self, ativo=True).select_related('grupo')
@@ -676,6 +704,18 @@ class EmpresaContratante(models.Model):
         help_text=(
             "Define o foco do menu e da página inicial: operação contínua, eventos ou ambos. "
             "Candidaturas e freelancers permanecem disponíveis; financeiro e pagamento a freelancers são opcionais em qualquer modo."
+        ),
+    )
+    grupo_empresarial = models.ForeignKey(
+        'GrupoEmpresarial',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='empresas_contratantes',
+        verbose_name='Grupo empresarial',
+        help_text=(
+            'Opcional. Agrupa este CNPJ (empresa contratante) com outros sob o mesmo grupo; '
+            'gestores do grupo visualizam todas as operações.'
         ),
     )
 
@@ -5291,3 +5331,6 @@ from .models_documentos import *
 
 # Importar modelos de Twilio (WhatsApp + SMS)
 from .models_twilio import UserContact, OtpLog, BroadcastLog, BroadcastMessage
+
+# Grupo empresarial (vários CNPJs; gestores do grupo)
+from .models_grupo_empresarial import GrupoEmpresarial
