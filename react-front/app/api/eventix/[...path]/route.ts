@@ -1,5 +1,6 @@
 import dns from 'node:dns';
 import { NextRequest, NextResponse } from 'next/server';
+import { stripTrailingSlash, withHttpScheme } from '@/lib/sanitizeApiBaseUrl';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -15,7 +16,8 @@ const UPSTREAM_TIMEOUT_MS = 25_000;
 const RAILWAY_HINT =
   'No Railway, se o pedido falhar entre serviços, defina EVENTIX_API_URL no serviço Next com o URL ' +
   'privado do Django (Painel do serviço Django → Networking → endpoint da rede privada, ex.: http://…railway.internal:PORT) ' +
-  'ou confirme que o serviço Django está online. Opcional: EVENTIX_PROXY_DEBUG=1 para ver o erro técnico nos logs e na resposta.';
+  'ou confirme que o serviço Django está online. Não coloque "=" no início do valor (ex.: use https://… e não =https://…). ' +
+  'Opcional: EVENTIX_PROXY_DEBUG=1 para ver o erro técnico nos logs e na resposta.';
 
 function targetBase(): string {
   const raw =
@@ -23,8 +25,7 @@ function targetBase(): string {
     process.env.NEXT_PUBLIC_API_URL?.trim() ||
     '';
   if (!raw) return '';
-  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  return withProtocol.replace(/\/$/, '');
+  return stripTrailingSlash(withHttpScheme(raw));
 }
 
 function forwardHeaders(req: NextRequest): Headers {

@@ -1,3 +1,5 @@
+import { sanitizeApiBaseUrl, stripTrailingSlash, withHttpScheme } from '@/lib/sanitizeApiBaseUrl';
+
 /**
  * URL base usada pelo browser para chamar a API Django.
  *
@@ -51,12 +53,11 @@ export function getPublicApiBaseUrl(): string {
     return '/api/eventix';
   }
 
-  const raw = process.env.NEXT_PUBLIC_API_URL?.trim() ?? '';
+  const raw = sanitizeApiBaseUrl(process.env.NEXT_PUBLIC_API_URL ?? '');
   if (!raw) {
     return '/api/eventix';
   }
-  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
-  return normalizeDirectBase(withProtocol);
+  return normalizeDirectBase(stripTrailingSlash(withHttpScheme(raw)));
 }
 
 /** Mantido por compatibilidade; o proxy cobre o caso sem URL pública. */
