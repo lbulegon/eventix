@@ -3,7 +3,11 @@
  */
 export function getPublicApiBaseUrl(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim() ?? '';
-  return raw.replace(/\/$/, '');
+  if (!raw) return '';
+
+  // Em produção, evita erro comum de deploy quando esquecem o protocolo.
+  const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  return withProtocol.replace(/\/$/, '');
 }
 
 export function assertApiUrlConfigured(): void {
