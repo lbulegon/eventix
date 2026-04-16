@@ -6,7 +6,7 @@ from rest_framework import status
 from django.urls import reverse
 
 from app_eventos.models import (
-    Vaga, Candidatura, Evento, Freelance, EmpresaContratante,
+    Vaga, Candidatura, Evento, Freelance, EmpresaContratante, PlanoContratacao,
     SetorEvento, Funcao, LocalEvento, TipoFuncao, Empresa
 )
 
@@ -242,3 +242,202 @@ class VagaAPITestCase(APITestCase):
         freelance = Freelance.objects.filter(usuario=user).first()
         self.assertIsNotNone(freelance)
         self.assertEqual(freelance.nome_completo, 'Novo Freelancer')
+
+
+class VagaEmissaoContratoTestCase(APITestCase):
+    def setUp(self):
+        self.plano = PlanoContratacao.objects.create(
+            nome="Plano Teste API",
+            tipo_plano="profissional",
+            descricao="Plano para testes de emissão de vagas",
+            max_eventos_mes=100,
+            max_usuarios=100,
+            max_freelancers=1000,
+            max_equipamentos=1000,
+            max_locais=100,
+            valor_mensal=500.00,
+            valor_anual=5400.00,
+            desconto_anual=10.00,
+            percentual_comissao=6.00,
+            ativo=True,
+        )
+
+        self.empresa_a = EmpresaContratante.objects.create(
+            nome_fantasia="Empresa A",
+            cnpj="11111111000111",
+            email="a@empresa.com",
+            data_vencimento="2026-12-31",
+            plano_contratado=self.plano,
+            valor_mensal=500.00,
+        )
+        self.empresa_b = EmpresaContratante.objects.create(
+            nome_fantasia="Empresa B",
+            cnpj="22222222000122",
+            email="b@empresa.com",
+            data_vencimento="2026-12-31",
+            plano_contratado=self.plano,
+            valor_mensal=500.00,
+        )
+
+        self.user_empresa_a = User.objects.create_user(
+            username="admin.a@teste.com",
+            email="admin.a@teste.com",
+            password="testpass123",
+            tipo_usuario="admin_empresa",
+            empresa_contratante=self.empresa_a,
+        )
+
+        self.user_freelancer = User.objects.create_user(
+            username="freelancer.contrato@teste.com",
+            email="freelancer.contrato@teste.com",
+            password="testpass123",
+            tipo_usuario="freelancer",
+        )
+        self.freelancer = Freelance.objects.create(
+            usuario=self.user_freelancer,
+            nome_completo="Freelancer Contrato",
+            cpf="32165498700",
+        )
+
+        self.empresa_proprietaria = Empresa.objects.create(
+            nome="Empresa Proprietaria",
+            cnpj="33333333000133",
+        )
+
+        self.local_a = LocalEvento.objects.create(
+            nome="Local A",
+            endereco="Rua A, 100",
+            capacidade=100,
+            empresa_proprietaria=self.empresa_proprietaria,
+        )
+        self.local_b = LocalEvento.objects.create(
+            nome="Local B",
+            endereco="Rua B, 200",
+            capacidade=100,
+            empresa_proprietaria=self.empresa_proprietaria,
+        )
+
+        self.evento_a = Evento.objects.create(
+            nome="Evento A",
+            descricao="Evento empresa A",
+            data_inicio="2026-01-10",
+            data_fim="2026-01-11",
+            local=self.local_a,
+            empresa_contratante=self.empresa_a,
+            empresa_produtora=self.empresa_proprietaria,
+        )
+        self.evento_b = Evento.objects.create(
+            nome="Evento B",
+            descricao="Evento empresa B",
+            data_inicio="2026-01-12",
+            data_fim="2026-01-13",
+            local=self.local_b,
+            empresa_contratante=self.empresa_b,
+            empresa_produtora=self.empresa_proprietaria,
+        )
+
+        self.setor_a = SetorEvento.objects.create(nome="Setor A", evento=self.evento_a)
+        self.setor_b = SetorEvento.objects.create(nome="Setor B", evento=self.evento_b)
+
+        self.tipo_funcao = TipoFuncao.objects.create(nome="Operacao")
+        self.funcao_global = Funcao.objects.create(
+            nome="Garcom Global",
+            descricao="Funcao global",
+            tipo_funcao=self.tipo_funcao,
+            ativo=True,
+            disponivel_para_vagas=True,
+        )
+        self.funcao_empresa_b = Funcao.objects.create(
+            nome="Funcao Privada B",
+            descricao="Funcao tenant B",
+            tipo_funcao=self.tipo_funcao,
+            empresa_contratante=self.empresa_b,
+            ativo=True,
+            disponivel_para_vagas=True,
+        )
+
+    def test_empresa_nao_pode_criar_vaga_com_setor_de_outro_tenant(self):
+        self.client.force_authenticate(user=self.user_empresa_a)
+        url = reverse('vaga-avancada-list')
+        payload = {
+            'titulo': 'Vaga invalida cross-tenant',
+            'setor_id': self.setor_b.id,
+            'funcao_id': self.funcao_global.id,
+            'quantidade': 2,
+            'remuneracao': 130.0,
+            'descricao': 'Teste',
+            'ativa': True,
+        }
+        response = self.client.post(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Vaga.objects.filter(titulo='Vaga invalida cross-tenant').count(), 0)
+
+    def test_empresa_nao_pode_criar_vaga_com_funcao_privada_de_outro_tenant(self):
+        self.client.force_authenticate(user=self.user_empresa_a)
+        url = reverse('vaga-avancada-list')
+        payload = {
+            'titulo': 'Vaga funcao invalida',
+            'setor_id': self.setor_a.id,
+            'funcao_id': self.funcao_empresa_b.id,
+            'quantidade': 1,
+            'remuneracao': 150.0,
+            'descricao': 'Teste',
+            'ativa': True,
+        }
+        response = self.client.post(url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Vaga.objects.filter(titulo='Vaga funcao invalida').count(), 0)
+
+    def test_empresa_nao_pode_publicar_vaga_de_outro_tenant(self):
+        vaga_b = Vaga.objects.create(
+            evento=self.evento_b,
+            setor=self.setor_b,
+            empresa_contratante=self.empresa_b,
+            titulo='Vaga B privada',
+            funcao=self.funcao_global,
+            quantidade=3,
+            remuneracao=120.0,
+            descricao='Teste',
+            ativa=True,
+            publicada=False,
+        )
+        self.client.force_authenticate(user=self.user_empresa_a)
+        url = reverse('vaga-avancada-publicar', kwargs={'pk': vaga_b.id})
+        response = self.client.post(url, {}, format='json')
+        # O queryset do viewset restringe por tenant e devolve 404 antes da action.
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        vaga_b.refresh_from_db()
+        self.assertFalse(vaga_b.publicada)
+
+    def test_freelancer_lista_vagas_ativas_em_mercado_aberto(self):
+        Vaga.objects.create(
+            evento=self.evento_a,
+            setor=self.setor_a,
+            empresa_contratante=self.empresa_a,
+            titulo='Vaga aberta A',
+            funcao=self.funcao_global,
+            quantidade=2,
+            remuneracao=110.0,
+            descricao='A',
+            ativa=True,
+            publicada=True,
+        )
+        Vaga.objects.create(
+            evento=self.evento_b,
+            setor=self.setor_b,
+            empresa_contratante=self.empresa_b,
+            titulo='Vaga aberta B',
+            funcao=self.funcao_global,
+            quantidade=2,
+            remuneracao=115.0,
+            descricao='B',
+            ativa=True,
+            publicada=True,
+        )
+        self.client.force_authenticate(user=self.user_freelancer)
+        url = reverse('vaga-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titulos = [item['titulo'] for item in response.data['results']]
+        self.assertIn('Vaga aberta A', titulos)
+        self.assertIn('Vaga aberta B', titulos)

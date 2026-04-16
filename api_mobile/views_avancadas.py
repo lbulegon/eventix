@@ -1,5 +1,5 @@
 # api_mobile/views_avancadas.py
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -82,11 +82,26 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
             empresa_contratante = setor.evento.empresa_contratante
         else:
             raise serializers.ValidationError("Informe setor (evento) ou ponto_operacao")
+
+        if empresa_contratante_id := getattr(empresa_contratante, 'id', None):
+            if empresa_contratante_id != user.empresa_contratante_id:
+                raise serializers.ValidationError(
+                    "Você só pode criar vagas vinculadas à sua própria empresa."
+                )
         
         serializer.save(
             criado_por=user,
             empresa_contratante=empresa_contratante
         )
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        vaga = self.get_object()
+        if not user.is_empresa_user:
+            raise serializers.ValidationError("Apenas empresas podem editar vagas")
+        if vaga.empresa_contratante_id != user.empresa_contratante_id:
+            raise serializers.ValidationError("Você não pode editar vagas de outra empresa.")
+        serializer.save()
     
     @action(detail=False, methods=['get'])
     def recomendadas(self, request):

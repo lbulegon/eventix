@@ -125,13 +125,33 @@ class PontoOperacaoSerializer(serializers.ModelSerializer):
 
 class VagaSerializer(serializers.ModelSerializer):
     funcao = FuncaoSerializer(read_only=True)
-    funcao_id = serializers.IntegerField(write_only=True, required=False)
+    funcao_id = serializers.PrimaryKeyRelatedField(
+        source='funcao',
+        queryset=Funcao.objects.all(),
+        write_only=True,
+        required=False,
+    )
     setor = SetorEventoSerializer(read_only=True)
-    setor_id = serializers.IntegerField(write_only=True, required=False)
+    setor_id = serializers.PrimaryKeyRelatedField(
+        source='setor',
+        queryset=SetorEvento.objects.select_related('evento', 'evento__empresa_contratante'),
+        write_only=True,
+        required=False,
+    )
     ponto_operacao = PontoOperacaoSerializer(read_only=True)
-    ponto_operacao_id = serializers.IntegerField(write_only=True, required=False)
+    ponto_operacao_id = serializers.PrimaryKeyRelatedField(
+        source='ponto_operacao',
+        queryset=PontoOperacao.objects.select_related('empresa_contratante'),
+        write_only=True,
+        required=False,
+    )
     empresa_contratante = EmpresaContratanteSerializer(read_only=True)
-    empresa_contratante_id = serializers.IntegerField(write_only=True)
+    empresa_contratante_id = serializers.PrimaryKeyRelatedField(
+        source='empresa_contratante',
+        queryset=EmpresaContratante.objects.all(),
+        write_only=True,
+        required=False,
+    )
     evento_nome = serializers.SerializerMethodField()
     candidaturas_count = serializers.SerializerMethodField()
     remuneracao = serializers.DecimalField(max_digits=10, decimal_places=2, coerce_to_string=False)
@@ -162,22 +182,51 @@ class VagaSerializer(serializers.ModelSerializer):
         return obj.candidaturas.count()
     
     def validate(self, attrs):
-        """Vaga deve ter setor (evento) OU ponto_operacao"""
-        tem_setor = attrs.get('setor') or attrs.get('setor_id')
-        tem_ponto = attrs.get('ponto_operacao') or attrs.get('ponto_operacao_id')
-        if not tem_setor and not tem_ponto:
-            # Em update, verificar instance
-            if self.instance:
-                tem_setor = self.instance.setor_id
-                tem_ponto = self.instance.ponto_operacao_id
-            if not tem_setor and not tem_ponto:
-                raise serializers.ValidationError(
-                    "Informe setor (vaga de evento) ou ponto_operacao (operação permanente)."
-                )
-        if tem_setor and tem_ponto:
+        """
+        Regras de criação/edição:
+        - origem obrigatória: setor (evento) OU ponto_operacao;
+        - função obrigatória (especialidade da vaga);
+        - usuário de empresa não pode criar/editar vaga fora do próprio tenant;
+        - função deve ser global ou da própria empresa.
+        """
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+
+        setor = attrs.get('setor', getattr(self.instance, 'setor', None))
+        ponto = attrs.get('ponto_operacao', getattr(self.instance, 'ponto_operacao', None))
+        funcao = attrs.get('funcao', getattr(self.instance, 'funcao', None))
+        empresa_payload = attrs.get('empresa_contratante', getattr(self.instance, 'empresa_contratante', None))
+
+        if not setor and not ponto:
+            raise serializers.ValidationError(
+                "Informe setor (vaga de evento) ou ponto_operacao (operação permanente)."
+            )
+        if setor and ponto:
             raise serializers.ValidationError(
                 "Vaga deve pertencer a evento OU ponto de operação, não ambos."
             )
+        if not funcao:
+            raise serializers.ValidationError("Informe a função (especialidade) da vaga.")
+
+        if user and getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:
+            empresa_user_id = user.empresa_contratante_id
+
+            if setor and setor.evento.empresa_contratante_id != empresa_user_id:
+                raise serializers.ValidationError("Setor informado não pertence à sua empresa.")
+            if ponto and ponto.empresa_contratante_id != empresa_user_id:
+                raise serializers.ValidationError("Ponto de operação informado não pertence à sua empresa.")
+            if empresa_payload and empresa_payload.id != empresa_user_id:
+                raise serializers.ValidationError("empresa_contratante não pode divergir da empresa do usuário.")
+            if funcao.empresa_contratante_id and funcao.empresa_contratante_id != empresa_user_id:
+                raise serializers.ValidationError("Função informada não está disponível para sua empresa.")
+
+        # Mantém coerência entre origem e empresa quando vier no payload (caso admin).
+        if empresa_payload:
+            if setor and setor.evento.empresa_contratante_id != empresa_payload.id:
+                raise serializers.ValidationError("empresa_contratante deve ser a mesma do evento/setor.")
+            if ponto and ponto.empresa_contratante_id != empresa_payload.id:
+                raise serializers.ValidationError("empresa_contratante deve ser a mesma do ponto de operação.")
+
         return attrs
 
 

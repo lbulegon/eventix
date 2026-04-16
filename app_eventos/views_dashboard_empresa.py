@@ -541,7 +541,14 @@ def criar_vaga(request, setor_id):
         
         if titulo and quantidade and remuneracao and funcao_id:
             try:
-                funcao = Funcao.objects.get(id=funcao_id)
+                funcao = Funcao.objects.get(
+                    id=funcao_id,
+                    ativo=True,
+                    disponivel_para_vagas=True,
+                )
+                if funcao.empresa_contratante_id and funcao.empresa_contratante_id != empresa.id:
+                    messages.error(request, 'Função selecionada não está disponível para sua empresa.')
+                    return redirect('dashboard_empresa:criar_vaga', setor_id=setor.id)
                 
                 vaga = Vaga.objects.create(
                     evento=setor.evento,
@@ -560,6 +567,8 @@ def criar_vaga(request, setor_id):
                 return redirect('dashboard_empresa:detalhe_evento', evento_id=setor.evento.id)
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
+            except ValueError:
+                messages.error(request, 'Quantidade e remuneração devem ser valores válidos.')
         else:
             messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
     
@@ -608,7 +617,14 @@ def criar_vaga_generica(request, evento_id):
         
         if titulo and quantidade and remuneracao and funcao_id:
             try:
-                funcao = Funcao.objects.get(id=funcao_id)
+                funcao = Funcao.objects.get(
+                    id=funcao_id,
+                    ativo=True,
+                    disponivel_para_vagas=True,
+                )
+                if funcao.empresa_contratante_id and funcao.empresa_contratante_id != empresa.id:
+                    messages.error(request, 'Função selecionada não está disponível para sua empresa.')
+                    return redirect('dashboard_empresa:criar_vaga_generica', evento_id=evento.id)
                 
                 vaga = Vaga.objects.create(
                     evento=evento,
@@ -627,6 +643,8 @@ def criar_vaga_generica(request, evento_id):
                 return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=evento.id)
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
+            except ValueError:
+                messages.error(request, 'Quantidade e remuneração devem ser valores válidos.')
         else:
             messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
     
