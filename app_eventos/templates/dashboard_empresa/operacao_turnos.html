@@ -90,7 +90,7 @@
 
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <span><i class="fas fa-list me-2"></i>Unidades desta empresa (resumo)</span>
+        <span><i class="fas fa-list me-2"></i>Unidades operacionais (resumo)</span>
         <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}" class="btn btn-sm btn-outline-primary">Gerir unidades</a>
     </div>
     <div class="card-body p-0">
@@ -122,7 +122,7 @@
             </table>
         </div>
         {% else %}
-        <p class="p-3 text-muted mb-0">Nenhuma unidade operacional ainda. <a href="{% url 'dashboard_empresa:operacao_unidade_nova' %}">Criar unidade</a> ou usar a API <code>com-recorrencias</code>.</p>
+        <p class="p-3 text-muted mb-0">Nenhuma unidade operacional cadastrada ainda. <a href="{% url 'dashboard_empresa:operacao_unidade_nova' %}">Criar unidade</a> ou usar a API <code>com-recorrencias</code>.</p>
         {% endif %}
     </div>
 </div>
