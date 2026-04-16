@@ -11,11 +11,12 @@ from django.db import models
 
 class FreelancerPrestacaoServico(models.Model):
     """
-    Registo de que o freelancer já trabalhou / presta serviço para a empresa.
+    Registo de que o freelancer já trabalhou / presta serviço para a empresa,
+    ou foi cadastrado explicitamente por ela (ex.: criação via API do tenant).
 
     Um registo por par (empresa, freelancer). Tipicamente criado na primeira
-    contratação ou ao constar no fichamento; consolida o vínculo operacional
-    com aquele estabelecimento.
+    contratação, ao constar no fichamento ou pelo cadastro manual no contexto
+    da empresa; consolida o vínculo operacional com aquele estabelecimento.
     """
     empresa_contratante = models.ForeignKey(
         'EmpresaContratante',

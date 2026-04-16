@@ -107,7 +107,11 @@ def dashboard_freelancer(request):
 
 @login_required(login_url='/freelancer/login/')
 def vagas_disponiveis(request):
-    """Lista de vagas disponíveis para candidatura"""
+    """
+    Lista vagas ativas no mercado aberto (todas as empresas contratantes).
+    Compatível com a regra: descoberta de vagas não depende de histórico com a
+    empresa; filtros opcionais (função, evento) aproximam à especialidade.
+    """
     try:
         freelancer = _ensure_freelancer_profile(request.user)
         

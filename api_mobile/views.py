@@ -45,7 +45,10 @@ logger = logging.getLogger(__name__)
 
 class VagaViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet para listar vagas disponíveis
+    Lista vagas ativas no mercado aberto: todas as empresas contratantes expõem
+    vagas a todo freelancer autenticado; o queryset não filtra por vínculo
+    FreelancerPrestacaoServico. Especialidade: use funcao_id / search (e no app,
+    cruzar com as funções do freelancer) — não restringir por empresa aqui.
     """
     serializer_class = VagaSerializer
     permission_classes = [IsAuthenticated]
@@ -309,6 +312,21 @@ class FreelanceViewSet(viewsets.ModelViewSet):
 
         qs = Freelance.objects.all().select_related('usuario')
 
+        if getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:
+            qs = qs.filter(
+                prestacao_servico_empresas__empresa_contratante_id=user.empresa_contratante_id,
+                prestacao_servico_empresas__ativo=True,
+            ).distinct()
+        elif getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(self.request)
+            if ec:
+                qs = qs.filter(
+                    prestacao_servico_empresas__empresa_contratante_id=ec.id,
+                    prestacao_servico_empresas__ativo=True,
+                ).distinct()
+            else:
+                qs = Freelance.objects.none()
+
         bloqueado = self.request.query_params.get('bloqueado')
         if bloqueado is not None:
             qs = qs.filter(bloqueado=bloqueado.lower() in ('1', 'true', 'yes'))
@@ -326,14 +344,6 @@ class FreelanceViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass
 
-        # Apenas freelancers com prestação de serviço ativa na empresa indicada
-        somente_historico = self.request.query_params.get('somente_com_historico_empresa')
-        if somente_historico is not None and somente_historico.lower() in ('1', 'true', 'yes'):
-            if getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:
-                qs = qs.filter(
-                    prestacao_servico_empresas__empresa_contratante_id=user.empresa_contratante_id,
-                    prestacao_servico_empresas__ativo=True,
-                ).distinct()
         prestacao_empresa = self.request.query_params.get('prestacao_empresa')
         if prestacao_empresa is not None and str(prestacao_empresa).strip() != '':
             if getattr(user, 'is_admin_sistema', False):

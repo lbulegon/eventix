@@ -1574,7 +1574,14 @@ class Funcao(models.Model):
 
 class Vaga(models.Model):
     """
-    Vagas disponíveis em eventos para freelancers
+    Vaga publicada por uma EmpresaContratante (mercado aberto).
+
+    Regra de visibilidade: as vagas ativas ficam disponíveis para todo o cadastro
+    de freelancers na plataforma; não há isolamento por tenant na descoberta de
+    vagas. O alinhamento à especialidade é feito pela função da vaga (campo ``funcao``) e
+    pelas funções declaradas no perfil do freelancer (filtros na UI/API), e não
+    por histórico prévio com aquela empresa — esse histórico afeta outras telas
+    (ex.: lista de freelancers visível para a empresa).
     """
     TIPO_REMUNERACAO_CHOICES = [
         ('por_hora', 'Por Hora'),

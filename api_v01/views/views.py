@@ -65,8 +65,8 @@ def _msg_sem_empresa_api(request):
 
 class VagaViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Freelancer: lista vagas ativas.
-    Empresa/Admin: podem ver (e poderiam administrar em outro endpoint, se quiser).
+    Freelancer: vagas ativas no mercado aberto (sem filtro por vínculo prévio com
+    a empresa). Empresa/Admin: queryset completo; escopo extra via filter backend.
     """
     queryset = Vaga.objects.select_related("setor", "setor__evento", "setor__evento__empresa_contratante")
     serializer_class = VagaSerializer

@@ -12,7 +12,8 @@ Regra de negócio (cadastro privado por estabelecimento):
 
 Este módulo garante a inclusão nessa lista quando:
 - há lançamento de pagamento ou desconto no fichamento da empresa; ou
-- é criado ou reativado um contrato de vaga com status ativo na empresa.
+- é criado ou reativado um contrato de vaga com status ativo ou finalizado na empresa
+  (finalizado indica que já houve vínculo efetivo).
 """
 import logging
 
@@ -72,7 +73,7 @@ def prestacao_ao_lancar_desconto(sender, instance, **kwargs):
 
 @receiver(post_save, sender=ContratoFreelance)
 def prestacao_ao_contratar(sender, instance, **kwargs):
-    if instance.status != 'ativo':
+    if instance.status not in ('ativo', 'finalizado'):
         return
     if not instance.vaga_id:
         return

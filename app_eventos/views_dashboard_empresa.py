@@ -199,9 +199,9 @@ def dashboard_empresa(request):
         'vagas_ativas': Vaga.objects.filter(empresa_contratante=empresa, ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'total_candidaturas': Candidatura.objects.filter(vaga__empresa_contratante=empresa).count(),
         'candidaturas_pendentes': Candidatura.objects.filter(vaga__empresa_contratante=empresa, status='pendente').count(),
-        'total_freelancers': Freelance.objects.filter(
-            candidaturas__vaga__empresa_contratante=empresa
-        ).distinct().count(),
+        'total_freelancers': FreelancerPrestacaoServico.objects.filter(
+            empresa_contratante=empresa, ativo=True
+        ).count(),
         'total_equipamentos': Equipamento.objects.filter(empresa_contratante=empresa).count(),
         'equipamentos_ativos': Equipamento.objects.filter(empresa_contratante=empresa, ativo=True).count(),
         'total_usuarios': User.objects.filter(empresa_contratante=empresa).count(),
@@ -1036,7 +1036,8 @@ def rejeitar_candidatura(request, candidatura_id):
 @login_required(login_url='/empresa/login/')
 def freelancers_empresa(request):
     """
-    Lista de freelancers da empresa
+    Lista de freelancers com vínculo nesta empresa: já prestaram serviço e/ou
+    foram cadastrados explicitamente (FreelancerPrestacaoServico ativo).
     """
     empresa, rsp = require_empresa_dashboard(request)
     if rsp:
@@ -1044,21 +1045,21 @@ def freelancers_empresa(request):
     
     # Buscar parâmetro de filtro
     filtro = request.GET.get('filtro', 'todos')  # 'todos' ou 'candidatos'
-    
+
+    base = Freelance.objects.filter(
+        prestacao_servico_empresas__empresa_contratante=empresa,
+        prestacao_servico_empresas__ativo=True,
+    ).select_related('usuario').prefetch_related(
+        'funcoes__funcao'
+    ).distinct()
+
     if filtro == 'candidatos':
-        # Apenas freelancers que se candidataram a vagas da empresa
-        freelancers = Freelance.objects.filter(
+        # Entre os com vínculo: os que também se candidataram a vagas desta empresa
+        freelancers = base.filter(
             candidaturas__vaga__empresa_contratante=empresa
-        ).select_related('usuario').prefetch_related(
-            'funcoes__funcao'
         ).distinct().order_by('nome_completo')
     else:
-        # TODOS os freelancers do sistema
-        freelancers = Freelance.objects.select_related(
-            'usuario'
-        ).prefetch_related(
-            'funcoes__funcao'
-        ).all().order_by('nome_completo')
+        freelancers = base.order_by('nome_completo')
     
     # Buscar funções disponíveis para o filtro
     funcoes_disponiveis = Funcao.objects.filter(
@@ -1087,10 +1088,16 @@ def detalhe_freelancer(request, freelancer_id):
     if rsp:
         return rsp
     
-    # Buscar freelancer
+    # Apenas freelancer com vínculo ativo nesta empresa (mesma regra da lista)
     freelancer = get_object_or_404(
-        Freelance.objects.select_related('usuario').prefetch_related('funcoes__funcao__tipo_funcao'),
-        id=freelancer_id
+        Freelance.objects.filter(
+            prestacao_servico_empresas__empresa_contratante=empresa,
+            prestacao_servico_empresas__ativo=True,
+        )
+        .select_related('usuario')
+        .prefetch_related('funcoes__funcao__tipo_funcao')
+        .distinct(),
+        id=freelancer_id,
     )
     
     # Buscar candidaturas deste freelancer para vagas da empresa
@@ -1170,7 +1177,9 @@ class NotificarFreelancersEventoView(View):
                         funcoes__funcao=funcao,
                         notificacoes_ativas=True,
                         telefone__isnull=False,
-                        telefone__gt=''
+                        telefone__gt='',
+                        prestacao_servico_empresas__empresa_contratante=evento.empresa_contratante,
+                        prestacao_servico_empresas__ativo=True,
                     ).distinct()
                     freelancers_por_funcao[funcao_nome] = freelancers.count()
                 except:
@@ -1283,7 +1292,9 @@ class NotificarFreelancersEventoView(View):
                     funcoes__funcao=funcao,
                     notificacoes_ativas=True,
                     telefone__isnull=False,
-                    telefone__gt=''
+                    telefone__gt='',
+                    prestacao_servico_empresas__empresa_contratante=evento.empresa_contratante,
+                    prestacao_servico_empresas__ativo=True,
                 ).distinct()
                 
                 logger.info(f"👥 Encontrados {freelancers.count()} freelancers para função {funcao.nome}")
