@@ -7,6 +7,7 @@ from django.db.models import Q, Count, F
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
+from app_eventos.utils_empresa_ativa import empresa_contexto_api
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa, 
     EmpresaContratante, SetorEvento, Funcao
@@ -60,6 +61,21 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                     'empresa_contratante',
                 )
             )
+        elif getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(self.request)
+            if not ec:
+                return Vaga.objects.none()
+            return (
+                Vaga.objects.filter(empresa_contratante=ec)
+                .annotate(**_VAGA_COUNT_ANNOTATE)
+                .select_related(
+                    'setor__evento',
+                    'funcao',
+                    'ponto_operacao',
+                    'criado_por',
+                    'empresa_contratante',
+                )
+            )
         else:
             # Admin vê todas
             return (
@@ -70,8 +86,16 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         user = self.request.user
-        if not user.is_empresa_user:
-            raise serializers.ValidationError("Apenas empresas podem criar vagas")
+        empresa_actor_id = None
+        if user.is_empresa_user:
+            empresa_actor_id = user.empresa_contratante_id
+        elif getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(self.request)
+            if not ec:
+                raise serializers.ValidationError("Gestor de grupo deve informar contexto de empresa.")
+            empresa_actor_id = ec.id
+        else:
+            raise serializers.ValidationError("Apenas empresas ou gestor de grupo podem criar vagas")
         
         # Define empresa contratante: do setor/evento ou do ponto de operação
         setor = serializer.validated_data.get('setor')
@@ -84,24 +108,41 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError("Informe setor (evento) ou ponto_operacao")
 
         if empresa_contratante_id := getattr(empresa_contratante, 'id', None):
-            if empresa_contratante_id != user.empresa_contratante_id:
+            if empresa_contratante_id != empresa_actor_id:
                 raise serializers.ValidationError(
                     "Você só pode criar vagas vinculadas à sua própria empresa."
                 )
         
+        evento = setor.evento if setor else None
         serializer.save(
             criado_por=user,
-            empresa_contratante=empresa_contratante
+            empresa_contratante=empresa_contratante,
+            evento=evento,
         )
 
     def perform_update(self, serializer):
         user = self.request.user
         vaga = self.get_object()
-        if not user.is_empresa_user:
-            raise serializers.ValidationError("Apenas empresas podem editar vagas")
-        if vaga.empresa_contratante_id != user.empresa_contratante_id:
+        empresa_actor_id = None
+        if user.is_empresa_user:
+            empresa_actor_id = user.empresa_contratante_id
+        elif getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(self.request)
+            if not ec:
+                raise serializers.ValidationError("Gestor de grupo deve informar contexto de empresa.")
+            empresa_actor_id = ec.id
+        else:
+            raise serializers.ValidationError("Apenas empresas ou gestor de grupo podem editar vagas")
+
+        if vaga.empresa_contratante_id != empresa_actor_id:
             raise serializers.ValidationError("Você não pode editar vagas de outra empresa.")
-        serializer.save()
+        setor = serializer.validated_data.get('setor', vaga.setor)
+        ponto = serializer.validated_data.get('ponto_operacao', vaga.ponto_operacao)
+        evento = setor.evento if setor else None
+        serializer.save(
+            evento=evento,
+            setor=setor if not ponto else None,
+        )
     
     @action(detail=False, methods=['get'])
     def recomendadas(self, request):
@@ -164,13 +205,24 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
         vaga = self.get_object()
         user = request.user
         
-        if not user.is_empresa_user:
+        empresa_actor_id = None
+        if user.is_empresa_user:
+            empresa_actor_id = user.empresa_contratante_id
+        elif getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(request)
+            if not ec:
+                return Response(
+                    {'error': 'Gestor de grupo deve informar contexto de empresa'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            empresa_actor_id = ec.id
+        else:
             return Response(
-                {'error': 'Apenas empresas podem publicar vagas'},
+                {'error': 'Apenas empresas ou gestor de grupo podem publicar vagas'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if vaga.empresa_contratante != user.empresa_contratante:
+        if vaga.empresa_contratante_id != empresa_actor_id:
             return Response(
                 {'error': 'Você não pode publicar esta vaga'},
                 status=status.HTTP_403_FORBIDDEN
@@ -189,13 +241,24 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
         vaga = self.get_object()
         user = request.user
         
-        if not user.is_empresa_user:
+        empresa_actor_id = None
+        if user.is_empresa_user:
+            empresa_actor_id = user.empresa_contratante_id
+        elif getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(request)
+            if not ec:
+                return Response(
+                    {'error': 'Gestor de grupo deve informar contexto de empresa'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            empresa_actor_id = ec.id
+        else:
             return Response(
-                {'error': 'Apenas empresas podem despublicar vagas'},
+                {'error': 'Apenas empresas ou gestor de grupo podem despublicar vagas'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        if vaga.empresa_contratante != user.empresa_contratante:
+        if vaga.empresa_contratante_id != empresa_actor_id:
             return Response(
                 {'error': 'Você não pode despublicar esta vaga'},
                 status=status.HTTP_403_FORBIDDEN

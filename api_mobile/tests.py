@@ -6,7 +6,7 @@ from rest_framework import status
 from django.urls import reverse
 
 from app_eventos.models import (
-    Vaga, Candidatura, Evento, Freelance, EmpresaContratante, PlanoContratacao,
+    Vaga, Candidatura, Evento, Freelance, EmpresaContratante, PlanoContratacao, GrupoEmpresarial,
     SetorEvento, Funcao, LocalEvento, TipoFuncao, Empresa
 )
 
@@ -299,6 +299,19 @@ class VagaEmissaoContratoTestCase(APITestCase):
             cpf="32165498700",
         )
 
+        self.grupo = GrupoEmpresarial.objects.create(nome="Grupo Teste")
+        self.empresa_a.grupo_empresarial = self.grupo
+        self.empresa_a.save(update_fields=['grupo_empresarial'])
+        self.empresa_b.grupo_empresarial = self.grupo
+        self.empresa_b.save(update_fields=['grupo_empresarial'])
+        self.user_gestor = User.objects.create_user(
+            username="gestor.grupo@teste.com",
+            email="gestor.grupo@teste.com",
+            password="testpass123",
+            tipo_usuario="gestor_grupo",
+            grupo_empresarial=self.grupo,
+        )
+
         self.empresa_proprietaria = Empresa.objects.create(
             nome="Empresa Proprietaria",
             cnpj="33333333000133",
@@ -441,3 +454,94 @@ class VagaEmissaoContratoTestCase(APITestCase):
         titulos = [item['titulo'] for item in response.data['results']]
         self.assertIn('Vaga aberta A', titulos)
         self.assertIn('Vaga aberta B', titulos)
+
+    def test_empresa_pode_patch_vaga_do_proprio_tenant(self):
+        vaga_a = Vaga.objects.create(
+            evento=self.evento_a,
+            setor=self.setor_a,
+            empresa_contratante=self.empresa_a,
+            titulo='Vaga A patch',
+            funcao=self.funcao_global,
+            quantidade=2,
+            remuneracao=100.0,
+            descricao='A',
+            ativa=True,
+        )
+        self.client.force_authenticate(user=self.user_empresa_a)
+        url = reverse('vaga-avancada-detail', kwargs={'pk': vaga_a.id})
+        response = self.client.patch(url, {'titulo': 'Vaga A patch editada'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        vaga_a.refresh_from_db()
+        self.assertEqual(vaga_a.titulo, 'Vaga A patch editada')
+
+    def test_empresa_nao_pode_put_vaga_de_outro_tenant(self):
+        vaga_b = Vaga.objects.create(
+            evento=self.evento_b,
+            setor=self.setor_b,
+            empresa_contratante=self.empresa_b,
+            titulo='Vaga B put',
+            funcao=self.funcao_global,
+            quantidade=2,
+            remuneracao=100.0,
+            descricao='B',
+            ativa=True,
+        )
+        self.client.force_authenticate(user=self.user_empresa_a)
+        url = reverse('vaga-avancada-detail', kwargs={'pk': vaga_b.id})
+        response = self.client.put(
+            url,
+            {
+                'titulo': 'Tentativa indevida',
+                'setor_id': self.setor_b.id,
+                'funcao_id': self.funcao_global.id,
+                'quantidade': 3,
+                'remuneracao': 120.0,
+                'descricao': 'x',
+                'ativa': True,
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_gestor_grupo_sem_contexto_nao_pode_criar_vaga(self):
+        self.client.force_authenticate(user=self.user_gestor)
+        url = reverse('vaga-avancada-list')
+        response = self.client.post(
+            url,
+            {
+                'titulo': 'Vaga sem contexto',
+                'setor_id': self.setor_a.id,
+                'funcao_id': self.funcao_global.id,
+                'quantidade': 1,
+                'remuneracao': 100.0,
+                'descricao': 'x',
+                'ativa': True,
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_gestor_grupo_com_contexto_pode_criar_vaga_no_tenant(self):
+        self.client.force_authenticate(user=self.user_gestor)
+        self.client.credentials(HTTP_X_EMPRESA_CONTEXT_ID=str(self.empresa_a.id))
+        url = reverse('vaga-avancada-list')
+        response = self.client.post(
+            url,
+            {
+                'titulo': 'Vaga gestor contexto',
+                'setor_id': self.setor_a.id,
+                'funcao_id': self.funcao_global.id,
+                'quantidade': 1,
+                'remuneracao': 100.0,
+                'descricao': 'x',
+                'ativa': True,
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(
+            Vaga.objects.filter(
+                titulo='Vaga gestor contexto',
+                empresa_contratante=self.empresa_a,
+            ).exists()
+        )

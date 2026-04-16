@@ -1,6 +1,7 @@
 # api_mobile/serializers.py
 from rest_framework import serializers
 from django.db import IntegrityError, transaction
+from app_eventos.utils_empresa_ativa import empresa_contexto_api
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa,
     EmpresaContratante, PlanoContratacao, SetorEvento, Funcao, LocalEvento, FreelancerFuncao,
@@ -208,8 +209,14 @@ class VagaSerializer(serializers.ModelSerializer):
         if not funcao:
             raise serializers.ValidationError("Informe a função (especialidade) da vaga.")
 
+        empresa_user_id = None
         if user and getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:
             empresa_user_id = user.empresa_contratante_id
+        elif user and getattr(user, 'is_gestor_grupo', False):
+            ec = empresa_contexto_api(request) if request else None
+            empresa_user_id = ec.id if ec else None
+
+        if empresa_user_id:
 
             if setor and setor.evento.empresa_contratante_id != empresa_user_id:
                 raise serializers.ValidationError("Setor informado não pertence à sua empresa.")
