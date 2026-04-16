@@ -545,3 +545,46 @@ class VagaEmissaoContratoTestCase(APITestCase):
                 empresa_contratante=self.empresa_a,
             ).exists()
         )
+
+    def test_gestor_grupo_contexto_errado_nao_publica_vaga_de_outro_tenant(self):
+        """Contexto empresa A: vaga da empresa B não aparece no queryset → 404."""
+        vaga_b = Vaga.objects.create(
+            evento=self.evento_b,
+            setor=self.setor_b,
+            empresa_contratante=self.empresa_b,
+            titulo='Vaga B gestor contexto errado',
+            funcao=self.funcao_global,
+            quantidade=1,
+            remuneracao=100.0,
+            descricao='B',
+            ativa=True,
+            publicada=False,
+        )
+        self.client.force_authenticate(user=self.user_gestor)
+        self.client.credentials(HTTP_X_EMPRESA_CONTEXT_ID=str(self.empresa_a.id))
+        url = reverse('vaga-avancada-publicar', kwargs={'pk': vaga_b.id})
+        response = self.client.post(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        vaga_b.refresh_from_db()
+        self.assertFalse(vaga_b.publicada)
+
+    def test_gestor_grupo_contexto_errado_nao_despublica_vaga_de_outro_tenant(self):
+        vaga_b = Vaga.objects.create(
+            evento=self.evento_b,
+            setor=self.setor_b,
+            empresa_contratante=self.empresa_b,
+            titulo='Vaga B despublicar bloqueado',
+            funcao=self.funcao_global,
+            quantidade=1,
+            remuneracao=100.0,
+            descricao='B',
+            ativa=True,
+            publicada=True,
+        )
+        self.client.force_authenticate(user=self.user_gestor)
+        self.client.credentials(HTTP_X_EMPRESA_CONTEXT_ID=str(self.empresa_a.id))
+        url = reverse('vaga-avancada-despublicar', kwargs={'pk': vaga_b.id})
+        response = self.client.post(url, {}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        vaga_b.refresh_from_db()
+        self.assertTrue(vaga_b.publicada)
