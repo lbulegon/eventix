@@ -54,11 +54,13 @@ class UnidadeOperacionalForm(forms.ModelForm):
         self._empresa = empresa
         self.fields['evento'].queryset = Evento.objects.filter(empresa_contratante=empresa).order_by('-data_inicio')
         self.fields['evento'].required = False
-        self.fields['ponto_operacao'].queryset = PontoOperacao.objects.filter(
-            empresa_contratante=empresa,
-            ativo=True,
-        ).order_by('nome')
+        qs_ponto = PontoOperacao.objects.filter(empresa_contratante=empresa, ativo=True).order_by('nome')
+        self.fields['ponto_operacao'].queryset = qs_ponto
         self.fields['ponto_operacao'].required = False
+        if qs_ponto.count() == 1:
+            self.fields['ponto_operacao'].widget = forms.HiddenInput()
+            if not getattr(self.instance, 'pk', None):
+                self.fields['ponto_operacao'].initial = qs_ponto.first().pk
         self.fields['descricao'].required = False
 
     def save(self, commit=True):
@@ -107,6 +109,17 @@ class PontoOperacaoForm(forms.ModelForm):
         self.fields['descricao'].required = False
         self.fields['cep'].required = False
         self.fields['dia_semana_fechamento'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        existe_outro = PontoOperacao.objects.filter(empresa_contratante=self._empresa)
+        if self.instance and self.instance.pk:
+            existe_outro = existe_outro.exclude(pk=self.instance.pk)
+        if existe_outro.exists():
+            raise forms.ValidationError(
+                'Esta empresa já possui estabelecimento cadastrado. Edite o cadastro existente.'
+            )
+        return cleaned_data
 
     def save(self, commit=True):
         obj = super().save(commit=False)

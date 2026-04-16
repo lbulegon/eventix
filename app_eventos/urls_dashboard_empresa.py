@@ -69,6 +69,7 @@ urlpatterns = [
         views_dashboard_empresa.operacao_turnos,
         name='operacao_turnos',
     ),
+    path('operacao/ponto/', views_operacao_dashboard.operacao_ponto_gerir, name='operacao_ponto_gerir'),
     path('operacao/pontos/', views_operacao_dashboard.operacao_pontos_lista, name='operacao_pontos_lista'),
     path('operacao/pontos/novo/', views_operacao_dashboard.operacao_ponto_novo, name='operacao_ponto_novo'),
     path('operacao/pontos/<int:pk>/editar/', views_operacao_dashboard.operacao_ponto_editar, name='operacao_ponto_editar'),

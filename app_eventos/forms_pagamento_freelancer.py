@@ -46,11 +46,16 @@ class FichamentoSemanaFreelancerForm(forms.ModelForm):
     def __init__(self, *args, empresa: EmpresaContratante, **kwargs):
         super().__init__(*args, **kwargs)
         self._empresa = empresa
-        self.fields['ponto_operacao'].queryset = PontoOperacao.objects.filter(
+        qs_ponto = PontoOperacao.objects.filter(
             empresa_contratante=empresa,
             ativo=True,
         ).order_by('nome')
+        self.fields['ponto_operacao'].queryset = qs_ponto
         self.fields['ponto_operacao'].required = True
+        if qs_ponto.count() == 1:
+            self.fields['ponto_operacao'].widget = forms.HiddenInput()
+            if not getattr(self.instance, 'pk', None):
+                self.fields['ponto_operacao'].initial = qs_ponto.first().pk
         self.fields['dia_semana_fechamento'].required = False
         self.fields['dia_semana_fechamento'].empty_label = 'Usar o dia configurado no estabelecimento'
 

@@ -4,7 +4,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_pontos_lista' %}">Pontos de operação</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_ponto_gerir' %}">Estabelecimento</a></li>
         <li class="breadcrumb-item active">{{ titulo }}</li>
     </ol>
 </nav>
@@ -22,10 +22,7 @@
             </div>
             {% endfor %}
             <button type="submit" class="btn btn-primary">Guardar</button>
-            <a href="{% url 'dashboard_empresa:operacao_pontos_lista' %}" class="btn btn-outline-secondary">Cancelar</a>
-            {% if ponto %}
-            <a href="{% url 'dashboard_empresa:operacao_ponto_excluir' ponto.pk %}" class="btn btn-outline-danger float-end">Excluir ponto</a>
-            {% endif %}
+            <a href="{% url 'dashboard_empresa:operacao_turnos' %}" class="btn btn-outline-secondary">Cancelar</a>
         </form>
     </div>
 </div>

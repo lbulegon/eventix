@@ -365,8 +365,29 @@ class SetorEventoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
     autocomplete_fields = ('evento',)
 
 
+class PontoOperacaoAdminForm(forms.ModelForm):
+    class Meta:
+        model = PontoOperacao
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        empresa = cleaned_data.get('empresa_contratante') or getattr(self.instance, 'empresa_contratante', None)
+        if not empresa:
+            return cleaned_data
+        qs = PontoOperacao.objects.filter(empresa_contratante=empresa)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError(
+                'Esta empresa já possui estabelecimento cadastrado. Edite o registro existente.'
+            )
+        return cleaned_data
+
+
 @admin.register(PontoOperacao)
 class PontoOperacaoAdmin(admin.ModelAdmin, EmpresaContratanteMixin):
+    form = PontoOperacaoAdminForm
     list_display = ('nome', 'empresa_contratante', 'cidade', 'uf', 'ativo')
     list_filter = ('ativo', 'empresa_contratante')
     search_fields = ('nome', 'cidade', 'endereco')

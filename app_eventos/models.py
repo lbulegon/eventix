@@ -1262,15 +1262,14 @@ from .models_pagamento_freelancers import DIA_SEMANA_FECHAMENTO_CHOICES
 
 class PontoOperacao(models.Model):
     """
-    Ponto de operação permanente - estabelecimento com necessidades contínuas.
-    Ex: restaurante, operação diária, lugar fixo que não precisa abrir evento toda vez.
-    Vagas podem ser criadas diretamente no ponto, sem evento nem setor.
+    Estabelecimento fixo da empresa contratante (um por tenant).
+    Ex.: restaurante, operação diária. Vagas podem ser criadas no ponto sem evento nem setor.
     """
-    empresa_contratante = models.ForeignKey(
+    empresa_contratante = models.OneToOneField(
         EmpresaContratante,
         on_delete=models.CASCADE,
-        related_name="pontos_operacao",
-        verbose_name="Empresa Contratante"
+        related_name="ponto_operacao",
+        verbose_name="Empresa Contratante",
     )
     nome = models.CharField(
         max_length=200,

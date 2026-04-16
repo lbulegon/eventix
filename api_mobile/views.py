@@ -1,5 +1,5 @@
 # api_mobile/views.py
-from rest_framework import viewsets, status, permissions
+from rest_framework import viewsets, status, permissions, serializers
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.response import Response
@@ -261,7 +261,7 @@ class EventoViewSet(viewsets.ModelViewSet):
 
 class PontoOperacaoViewSet(viewsets.ModelViewSet):
     """
-    ViewSet para gerenciar pontos de operação (restaurantes, operação diária)
+    ViewSet para gerir o estabelecimento (ponto de operação) da empresa.
     """
     serializer_class = PontoOperacaoSerializer
     permission_classes = [IsAuthenticated]
@@ -279,8 +279,19 @@ class PontoOperacaoViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         if not user.is_empresa_user:
-            raise serializers.ValidationError("Apenas empresas podem criar pontos de operação")
+            raise serializers.ValidationError("Apenas empresas podem cadastrar estabelecimento")
+        if PontoOperacao.objects.filter(empresa_contratante=user.empresa_contratante).exists():
+            raise serializers.ValidationError(
+                "Já existe estabelecimento para esta empresa; use PATCH ou PUT para atualizar."
+            )
         serializer.save(empresa_contratante=user.empresa_contratante)
+
+    def perform_destroy(self, instance):
+        if not self.request.user.is_admin_sistema:
+            raise serializers.ValidationError(
+                "Não é permitido excluir o estabelecimento; cada empresa possui um único ponto."
+            )
+        return super().perform_destroy(instance)
 
 
 class FreelanceViewSet(viewsets.ModelViewSet):

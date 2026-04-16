@@ -6,7 +6,6 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
-from django.db.models import Count
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
@@ -46,42 +45,43 @@ def _deny(request):
 
 @login_required(login_url='/empresa/login/')
 def operacao_pontos_lista(request):
-    empresa = _empresa(request)
-    if not empresa:
-        return _deny(request)
-    pontos = (
-        PontoOperacao.objects.filter(empresa_contratante=empresa)
-        .annotate(n_unidades=Count('unidades_operacionais'))
-        .order_by('-ativo', 'nome')
-    )
-    return render(
-        request,
-        'dashboard_empresa/operacao/ponto_list.html',
-        {'empresa': empresa, 'pontos': pontos, 'user': request.user},
-    )
+    """Compatibilidade: cada empresa tem um único estabelecimento."""
+    return redirect('dashboard_empresa:operacao_ponto_gerir')
 
 
 @login_required(login_url='/empresa/login/')
 @require_http_methods(['GET', 'POST'])
 def operacao_ponto_novo(request):
+    return redirect('dashboard_empresa:operacao_ponto_gerir')
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def operacao_ponto_gerir(request):
+    """
+    Único ponto de operação por empresa: criar ou editar o estabelecimento fixo.
+    """
     empresa = _empresa(request)
     if not empresa:
         return _deny(request)
+    ponto = PontoOperacao.objects.filter(empresa_contratante=empresa).first()
     if request.method == 'POST':
-        form = PontoOperacaoForm(request.POST, empresa=empresa)
+        form = PontoOperacaoForm(request.POST, instance=ponto, empresa=empresa)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Ponto de operação criado.')
-            return redirect('dashboard_empresa:operacao_pontos_lista')
+            messages.success(request, 'Estabelecimento (ponto de operação) guardado.')
+            return redirect('dashboard_empresa:operacao_ponto_gerir')
     else:
-        form = PontoOperacaoForm(empresa=empresa)
+        form = PontoOperacaoForm(instance=ponto, empresa=empresa)
+    titulo = 'Estabelecimento (ponto de operação)' if ponto else 'Cadastrar estabelecimento (ponto de operação)'
     return render(
         request,
         'dashboard_empresa/operacao/ponto_form.html',
         {
             'empresa': empresa,
             'form': form,
-            'titulo': 'Novo ponto de operação',
+            'titulo': titulo,
+            'ponto': ponto,
             'user': request.user,
         },
     )
@@ -93,26 +93,10 @@ def operacao_ponto_editar(request, pk):
     empresa = _empresa(request)
     if not empresa:
         return _deny(request)
-    obj = get_object_or_404(PontoOperacao, pk=pk, empresa_contratante=empresa)
-    if request.method == 'POST':
-        form = PontoOperacaoForm(request.POST, instance=obj, empresa=empresa)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Ponto de operação atualizado.')
-            return redirect('dashboard_empresa:operacao_pontos_lista')
-    else:
-        form = PontoOperacaoForm(instance=obj, empresa=empresa)
-    return render(
-        request,
-        'dashboard_empresa/operacao/ponto_form.html',
-        {
-            'empresa': empresa,
-            'form': form,
-            'titulo': 'Editar ponto de operação',
-            'ponto': obj,
-            'user': request.user,
-        },
-    )
+    ponto = PontoOperacao.objects.filter(empresa_contratante=empresa).first()
+    if ponto is None or ponto.pk != pk:
+        return redirect('dashboard_empresa:operacao_ponto_gerir')
+    return redirect('dashboard_empresa:operacao_ponto_gerir')
 
 
 @login_required(login_url='/empresa/login/')
@@ -121,24 +105,11 @@ def operacao_ponto_excluir(request, pk):
     empresa = _empresa(request)
     if not empresa:
         return _deny(request)
-    obj = get_object_or_404(PontoOperacao, pk=pk, empresa_contratante=empresa)
-    bloqueado = obj.unidades_operacionais.exists()
-    if request.method == 'POST':
-        if bloqueado:
-            messages.error(
-                request,
-                'Não é possível excluir: existem unidades operacionais associadas a este ponto.',
-            )
-            return redirect('dashboard_empresa:operacao_ponto_editar', pk=obj.pk)
-        nome = obj.nome
-        obj.delete()
-        messages.success(request, f'Ponto «{nome}» removido.')
-        return redirect('dashboard_empresa:operacao_pontos_lista')
-    return render(
+    messages.info(
         request,
-        'dashboard_empresa/operacao/ponto_confirm_delete.html',
-        {'empresa': empresa, 'ponto': obj, 'bloqueado': bloqueado, 'user': request.user},
+        'Cada empresa contratante tem um único estabelecimento; não é possível eliminá-lo por aqui.',
     )
+    return redirect('dashboard_empresa:operacao_ponto_gerir')
 
 
 @login_required(login_url='/empresa/login/')

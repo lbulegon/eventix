@@ -1,17 +1,17 @@
 {% extends 'dashboard_empresa/base.html' %}
-{% block page_title %}Pontos de operação{% endblock %}
+{% block page_title %}Estabelecimento{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
-        <li class="breadcrumb-item active">Pontos de operação</li>
+        <li class="breadcrumb-item active">Estabelecimento</li>
     </ol>
 </nav>
 <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4 class="mb-0">Pontos de operação</h4>
-    <a href="{% url 'dashboard_empresa:operacao_ponto_novo' %}" class="btn btn-primary btn-sm"><i class="fas fa-plus me-1"></i>Novo ponto</a>
+    <h4 class="mb-0">Estabelecimento</h4>
+    <a href="{% url 'dashboard_empresa:operacao_ponto_gerir' %}" class="btn btn-primary btn-sm"><i class="fas fa-pen me-1"></i>Editar</a>
 </div>
-<p class="small text-muted mb-3">Estabelecimentos fixos (endereço, fechamento semanal). As <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">unidades operacionais</a> de operação contínua ligam-se a um ponto.</p>
+<p class="small text-muted mb-3">Cada empresa possui um único estabelecimento (endereço e fechamento semanal). As <a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">unidades operacionais</a> de operação contínua ligam-se a ele.</p>
 {% if pontos %}
 <div class="table-responsive card">
     <table class="table table-hover mb-0">
@@ -32,7 +32,7 @@
                 <td>{{ p.n_unidades }}</td>
                 <td>{% if p.ativo %}<span class="badge bg-success">Sim</span>{% else %}<span class="badge bg-secondary">Não</span>{% endif %}</td>
                 <td class="text-end">
-                    <a href="{% url 'dashboard_empresa:operacao_ponto_editar' p.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                    <a href="{% url 'dashboard_empresa:operacao_ponto_gerir' %}" class="btn btn-sm btn-outline-secondary">Editar</a>
                 </td>
             </tr>
             {% endfor %}
@@ -40,6 +40,6 @@
     </table>
 </div>
 {% else %}
-<div class="alert alert-info">Nenhum ponto cadastrado. <a href="{% url 'dashboard_empresa:operacao_ponto_novo' %}">Criar o primeiro</a>.</div>
+<div class="alert alert-info">Nenhum estabelecimento cadastrado. <a href="{% url 'dashboard_empresa:operacao_ponto_gerir' %}">Cadastrar agora</a>.</div>
 {% endif %}
 {% endblock %}
