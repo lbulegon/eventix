@@ -24,6 +24,7 @@ class EmpresaContratanteMiddleware(MiddlewareMixin):
             '/empresa/login/',
             '/empresa/logout/',
             '/freelancer/',  # Dashboard, login e rotas do freelancer (views tratam auth)
+            '/app/freelancer/',  # Compatibilidade com deploy em prefixo /app
             '/freelancer-publico/login/',  # Login do freelancer (legado)
             '/freelancer-publico/logout/',  # Logout do freelancer (legado)
             '/freelancer-publico/evento/',  # Eventos públicos (sem login)

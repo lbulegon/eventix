@@ -65,6 +65,138 @@ def logout_empresa(request):
     return redirect('home')
 
 
+@login_required(login_url='/empresa/login/')
+def dashboard_grupo(request):
+    """
+    Dashboard de gestor de grupo para selecionar a empresa em contexto.
+    """
+    if not getattr(request.user, 'is_gestor_grupo', False):
+        messages.error(request, 'Acesso restrito ao gestor de grupo.')
+        return redirect('dashboard_empresa:dashboard_empresa')
+
+    grupo = getattr(request.user, 'grupo_empresarial', None)
+    if not grupo:
+        messages.error(request, 'Usuário gestor sem grupo empresarial associado.')
+        return redirect('dashboard_empresa:login_empresa')
+
+    from .utils_empresa_ativa import SESSION_EMPRESA_GESTOR_KEY, empresa_ativa
+
+    empresas = list(grupo.empresas_contratantes.filter(ativo=True).order_by('nome_fantasia'))
+    evento_counts = {
+        row['empresa_contratante_id']: row['c']
+        for row in Evento.objects.filter(empresa_contratante__in=empresas)
+        .values('empresa_contratante_id')
+        .annotate(c=Count('id'))
+    }
+    ponto_counts = {
+        row['empresa_contratante_id']: row['c']
+        for row in LocalEvento.objects.filter(empresa_contratante__in=empresas)
+        .values('empresa_contratante_id')
+        .annotate(c=Count('id'))
+    }
+    resumo = [
+        {
+            'empresa': emp,
+            'eventos': evento_counts.get(emp.id, 0),
+            'pontos': ponto_counts.get(emp.id, 0),
+        }
+        for emp in empresas
+    ]
+
+    empresa_contexto = empresa_ativa(request)
+    # Corrige sessão quando a empresa contextual não pertence mais ao grupo.
+    if empresa_contexto and empresa_contexto.grupo_empresarial_id != grupo.id:
+        request.session.pop(SESSION_EMPRESA_GESTOR_KEY, None)
+        request.session.modified = True
+        empresa_contexto = None
+
+    return render(
+        request,
+        'dashboard_empresa/grupo_dashboard.html',
+        {
+            'grupo': grupo,
+            'resumo': resumo,
+            'empresa_contexto': empresa_contexto,
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+def definir_contexto_empresa_grupo(request, empresa_id):
+    if not getattr(request.user, 'is_gestor_grupo', False):
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:dashboard_empresa')
+
+    grupo = getattr(request.user, 'grupo_empresarial', None)
+    if not grupo:
+        messages.error(request, 'Gestor sem grupo empresarial associado.')
+        return redirect('dashboard_empresa:login_empresa')
+
+    empresa = grupo.empresas_contratantes.filter(id=empresa_id, ativo=True).first()
+    if not empresa:
+        messages.error(request, 'Empresa inválida para este grupo.')
+        return redirect('dashboard_empresa:dashboard_grupo')
+
+    from .utils_empresa_ativa import SESSION_EMPRESA_GESTOR_KEY
+
+    request.session[SESSION_EMPRESA_GESTOR_KEY] = empresa.id
+    request.session.modified = True
+    messages.success(request, f'Contexto definido para {empresa.nome_fantasia or empresa.nome}.')
+    return redirect('dashboard_empresa:dashboard_empresa')
+
+
+@login_required(login_url='/empresa/login/')
+def limpar_contexto_empresa_grupo(request):
+    if not getattr(request.user, 'is_gestor_grupo', False):
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:dashboard_empresa')
+
+    from .utils_empresa_ativa import limpar_contexto_gestor_sessao
+
+    limpar_contexto_gestor_sessao(request)
+    request.session.modified = True
+    messages.info(request, 'Contexto de empresa limpo.')
+    return redirect('dashboard_empresa:dashboard_grupo')
+
+
+@login_required(login_url='/empresa/login/')
+def configuracoes_empresa(request):
+    """
+    Página de configurações da empresa (com suporte a gestor de grupo via contexto).
+    """
+    empresa = None
+    if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+        empresa = request.user.empresa_contratante
+    elif getattr(request.user, 'is_gestor_grupo', False):
+        from .utils_empresa_ativa import empresa_ativa
+
+        empresa = empresa_ativa(request)
+    else:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+
+    if not empresa:
+        messages.error(request, 'Selecione uma empresa para continuar.')
+        return redirect('dashboard_empresa:dashboard_grupo')
+
+    return render(
+        request,
+        'dashboard_empresa/configuracoes_empresa.html',
+        {'empresa': empresa, 'user': request.user},
+    )
+
+
+@login_required(login_url='/empresa/login/')
+def pagamento_freelancer(request):
+    return redirect('dashboard_empresa:pagamento_fichamentos_lista')
+
+
+@login_required(login_url='/empresa/login/')
+def operacao_turnos(request):
+    return redirect('dashboard_empresa:operacao_turnos_lista')
+
+
 def empresa_pwa(request):
     """
     PWA da empresa (interface baseada no app Flutter)

@@ -66,6 +66,8 @@ urlpatterns = [
     
     # Dashboard público do freelancer
     path("freelancer/", include("app_eventos.urls.urls_freelancer_publico")),
+    # Compatibilidade para deploys com prefixo /app/
+    path("app/freelancer/", include("app_eventos.urls.urls_freelancer_publico")),
 ]
 
 if settings.DEBUG:
