@@ -17,6 +17,16 @@
                 </button>
             </div>
             
+            <div class="card-body border-bottom py-2 bg-light">
+                <small class="text-muted d-block mb-1">Página pública (sem login) para abrir a mesma ferramenta e gerar links:</small>
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" readonly id="urlPublicaGerarConvite" value="{{ url_gerar_convite_publico|default:'' }}" title="Cole no navegador ou compartilhe; não exige acesso à empresa.">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button" id="btnCopiarUrlPublica">Copiar</button>
+                    </div>
+                </div>
+            </div>
+            
             <div class="card-body">
                 <!-- Barra de Busca e Filtros -->
                 <div class="row mb-4">
@@ -404,6 +414,21 @@ document.addEventListener('DOMContentLoaded', function() {
             } finally {
                 btnGerarLinkCadastro.disabled = false;
                 btnGerarLinkCadastro.innerHTML = '<i class="fas fa-magic"></i> Gerar Link';
+            }
+        });
+    }
+
+    const btnCopiarUrlPublica = document.getElementById('btnCopiarUrlPublica');
+    const urlPublicaGerarConvite = document.getElementById('urlPublicaGerarConvite');
+    if (btnCopiarUrlPublica && urlPublicaGerarConvite) {
+        btnCopiarUrlPublica.addEventListener('click', async function() {
+            const texto = urlPublicaGerarConvite.value || '';
+            if (!texto) return;
+            try {
+                await navigator.clipboard.writeText(texto);
+            } catch (e) {
+                urlPublicaGerarConvite.select();
+                document.execCommand('copy');
             }
         });
     }

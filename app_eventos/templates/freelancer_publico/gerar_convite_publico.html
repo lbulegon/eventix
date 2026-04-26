@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerar convite freelancer - {{ empresa.nome_fantasia }} - Eventix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1f3c88 0%, #39a2db 100%);
+            min-height: 100vh; }
+        .wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .card-app { max-width: 520px; border: 0; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,.18); }
+        .btn-primary { background: #1f3c88; border-color: #1f3c88; font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="card card-app w-100">
+        <div class="card-body p-4 p-md-5">
+            <h4 class="mb-2">Gerar link de cadastro</h4>
+            <p class="text-muted small mb-3">Página pública — nenhum login necessário. Empresa: <strong>{{ empresa.nome_fantasia }}</strong></p>
+
+            {% csrf_token %}
+            <input type="hidden" name="empresa" id="empresaToken" value="{{ empresa_token|default:'' }}">
+
+            <div class="form-group mb-3">
+                <label for="linkTelefone" class="form-label">WhatsApp (opcional)</label>
+                <input type="text" class="form-control" id="linkTelefone" placeholder="Ex: 11999998888" autocomplete="tel">
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="linkFuncao" class="form-label">Função (opcional)</label>
+                <select class="form-select" id="linkFuncao">
+                    <option value="">Sem função pré-definida</option>
+                    {% regroup funcoes_disponiveis by tipo_funcao as funcoes_agrupadas %}
+                    {% for grupo in funcoes_agrupadas %}
+                    <optgroup label="{{ grupo.grouper.nome }}">
+                        {% for funcao in grupo.list %}
+                        <option value="{{ funcao.id }}">{{ funcao.nome }}</option>
+                        {% endfor %}
+                    </optgroup>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="alert alert-info py-2" id="linkStatus" style="display:none;" role="status"></div>
+
+            <div class="mb-3">
+                <label for="linkResultado" class="form-label">Link gerado</label>
+                <input type="text" class="form-control" id="linkResultado" readonly placeholder="Clique em Gerar link abaixo">
+            </div>
+            <div class="mb-4">
+                <label for="msgWhatsapp" class="form-label">Mensagem para WhatsApp</label>
+                <textarea class="form-control" id="msgWhatsapp" rows="4" readonly placeholder="A mensagem pronta aparece aqui"></textarea>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary" id="btnGerar">
+                    <span class="spinner-border spinner-border-sm d-none" id="btnSpinner" role="status"></span>
+                    Gerar link
+                </button>
+                <button type="button" class="btn btn-success" id="btnCopiarMsg" disabled>Copiar mensagem</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+  const postUrl = "{% url 'freelancer_publico:gerar_convite_publico' %}";
+  const empTokenEl = document.getElementById('empresaToken');
+  const getCsrf = function() {
+    const m = document.querySelector('input[name=csrfmiddlewaretoken]');
+    return m ? m.value : '';
+  };
+  const linkTelefone = document.getElementById('linkTelefone');
+  const linkFuncao = document.getElementById('linkFuncao');
+  const linkResultado = document.getElementById('linkResultado');
+  const msgWhatsapp = document.getElementById('msgWhatsapp');
+  const linkStatus = document.getElementById('linkStatus');
+  const btnGerar = document.getElementById('btnGerar');
+  const btnCopiarMsg = document.getElementById('btnCopiarMsg');
+  const btnSpinner = document.getElementById('btnSpinner');
+  function setStatus(message, isError) {
+    if (!message) { linkStatus.style.display = 'none'; return; }
+    linkStatus.textContent = message;
+    linkStatus.className = 'alert py-2 ' + (isError ? 'alert-danger' : 'alert-info');
+    linkStatus.style.display = 'block';
+  }
+  if (btnGerar) {
+    btnGerar.addEventListener('click', async function() {
+      setStatus('Gerando…', false);
+      btnSpinner.classList.remove('d-none');
+      btnGerar.disabled = true;
+      const payload = { empresa: (empTokenEl && empTokenEl.value) || '' };
+      if (linkTelefone && linkTelefone.value.trim()) { payload.telefone = linkTelefone.value.trim(); }
+      if (linkFuncao && linkFuncao.value) { payload.funcao_id = parseInt(linkFuncao.value, 10); }
+      try {
+        const r = await fetch(postUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrf()
+          },
+          body: JSON.stringify(payload)
+        });
+        const data = await r.json();
+        if (!r.ok || !data.sucesso) { throw new Error((data && data.erro) || 'Falha ao gerar.'); }
+        linkResultado.value = data.link_cadastro || '';
+        msgWhatsapp.value = data.mensagem_whatsapp || '';
+        btnCopiarMsg.disabled = !data.mensagem_whatsapp;
+        setStatus('Link gerado. Copie a mensagem abaixo e envie pelo WhatsApp.', false);
+      } catch (e) {
+        setStatus(e.message || 'Erro ao gerar link.', true);
+        btnCopiarMsg.disabled = true;
+      } finally {
+        btnSpinner.classList.add('d-none');
+        btnGerar.disabled = false;
+      }
+    });
+  }
+  if (btnCopiarMsg) {
+    btnCopiarMsg.addEventListener('click', async function() {
+      const t = msgWhatsapp ? msgWhatsapp.value : '';
+      if (!t) return;
+      try {
+        await navigator.clipboard.writeText(t);
+        setStatus('Mensagem copiada.', false);
+      } catch (e) {
+        msgWhatsapp.select();
+        document.execCommand('copy');
+        setStatus('Copiado (modo legado).', false);
+      }
+    });
+  }
+</script>
+</body>
+</html>

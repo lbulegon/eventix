@@ -7,6 +7,8 @@ urlpatterns = [
     # Autenticação
     path('login/', views_dashboard_freelancer_publico.login_freelancer, name='login'),
     path('cadastro/', views_dashboard_freelancer_publico.cadastro_freelancer_publico, name='cadastro'),
+    # Página pública: gerar link de convite (sem login; requer ?empresa=<token> do painel)
+    path('gerar-convite/', views_dashboard_freelancer_publico.gerar_convite_publico, name='gerar_convite_publico'),
     path('logout/', views_dashboard_freelancer_publico.logout_freelancer, name='logout'),
     path('app/', views_dashboard_freelancer_publico.freelancer_pwa, name='pwa'),
     

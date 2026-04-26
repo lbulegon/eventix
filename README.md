@@ -269,6 +269,12 @@ FREELANCER_REACT_UX_URL=https://sua-ux-react.exemplo.com
 
 Se a variável não estiver definida, o fallback permanece no dashboard Django (`freelancer_publico:dashboard`).
 
+### Página pública para gerar link de convite (sem login)
+
+Quem tem acesso ao painel da empresa copia **uma vez** o endereço da linha “Página pública (sem login)” na tela **Empresa → Freelancers** (`/empresa/freelancers/`). Esse link abre `/freelancer/gerar-convite/?empresa=<token>` e **não exige autenticação**: serve para quem só dispara o WhatsApp e precisa gerar links de cadastro.
+
+O parâmetro `empresa` é um token assinado pelo Django (identifica a empresa; não substitui o controle de acesso ao restante do painel).
+
 ## Deploy
 
 ### Railway

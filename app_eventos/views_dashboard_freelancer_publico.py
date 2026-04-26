@@ -166,6 +166,106 @@ def cadastro_freelancer_publico(request):
     return render(request, 'freelancer_publico/cadastro.html', context)
 
 
+@require_http_methods(["GET", "POST"])
+def gerar_convite_publico(request):
+    """
+    Página pública (sem autenticação) para gerar link e mensagem de cadastro de freelancer.
+    Uso: /freelancer/gerar-convite/?empresa=<token_assinado>
+    O token assina a empresa; quem tiver acesso ao painel copia este link uma vez.
+    """
+    from app_eventos.convite_freelancer import (
+        desassinar_empresa_para_gerar_convite_publico,
+        funcoes_disponiveis_para_empresa,
+        montar_payload_convite_cadastro,
+        parse_json_ou_post,
+    )
+
+    em_token = (request.GET.get("empresa") or "").strip()
+    if request.method == "POST":
+        payload = parse_json_ou_post(request)
+        if not em_token:
+            em_token = (payload.get("empresa") or request.POST.get("empresa") or "").strip()
+    if not em_token and request.method == "GET":
+        return render(
+            request,
+            "freelancer_publico/gerar_convite_publico_erro.html",
+            {
+                "titulo": "Acesso inválido",
+                "mensagem": (
+                    "Abra esta página a partir do link com o parâmetro de convite, "
+                    "ou use o endereço de página pública copiado do painel da Eventix (Freelancers)."
+                ),
+            },
+            status=400,
+        )
+    if not em_token and request.method == "POST":
+        return JsonResponse(
+            {"sucesso": False, "erro": "Parâmetro de empresa ausente. Recarregue a página a partir do link completo."},
+            status=400,
+        )
+
+    empresa_id = desassinar_empresa_para_gerar_convite_publico(em_token)
+    if not empresa_id:
+        return (
+            render(
+                request,
+                "freelancer_publico/gerar_convite_publico_erro.html",
+                {
+                    "titulo": "Link inválido",
+                    "mensagem": "Este endereço não pôde ser verificado. Copie o link de novo no painel da empresa (Freelancers).",
+                },
+                status=400,
+            )
+            if request.method == "GET"
+            else JsonResponse({"sucesso": False, "erro": "Token de empresa inválido."}, status=400)
+        )
+
+    empresa = EmpresaContratante.objects.filter(id=empresa_id, ativo=True).first()
+    if not empresa:
+        return (
+            render(
+                request,
+                "freelancer_publico/gerar_convite_publico_erro.html",
+                {
+                    "titulo": "Empresa não disponível",
+                    "mensagem": "Não foi possível carregar a empresa vinculada a este link.",
+                },
+                status=404,
+            )
+            if request.method == "GET"
+            else JsonResponse({"sucesso": False, "erro": "Empresa indisponível."}, status=404)
+        )
+
+    if request.method == "POST":
+        payload = parse_json_ou_post(request)
+        telefone = (payload.get("telefone") or "").strip()
+        funcao_id = payload.get("funcao_id")
+        fid = None
+        if funcao_id not in (None, "", "null"):
+            try:
+                fid = int(funcao_id)
+            except (TypeError, ValueError):
+                pass
+        return JsonResponse(
+            montar_payload_convite_cadastro(
+                request,
+                empresa,
+                telefone=telefone,
+                funcao_id=fid,
+            )
+        )
+
+    return render(
+        request,
+        "freelancer_publico/gerar_convite_publico.html",
+        {
+            "empresa": empresa,
+            "empresa_token": em_token,
+            "funcoes_disponiveis": funcoes_disponiveis_para_empresa(empresa),
+        },
+    )
+
+
 def login_freelancer(request):
     """Login do freelancer"""
     # Se já estiver autenticado e for freelancer, redirecionar para o dashboard
@@ -245,11 +345,7 @@ def dashboard_freelancer(request):
 
 @login_required(login_url='/freelancer/login/')
 def vagas_disponiveis(request):
-    """
-    Lista vagas ativas no mercado aberto (todas as empresas contratantes).
-    Compatível com a regra: descoberta de vagas não depende de histórico com a
-    empresa; filtros opcionais (função, evento) aproximam à especialidade.
-    """
+    """Lista de vagas disponíveis para candidatura"""
     try:
         freelancer = _ensure_freelancer_profile(request.user)
         

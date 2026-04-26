@@ -5,12 +5,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
-from django.core import signing
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
 import json
@@ -18,19 +16,9 @@ from datetime import datetime, timedelta
 from .models import (
     Evento, SetorEvento, Vaga, Candidatura, ContratoFreelance, Freelance,
     Equipamento, ManutencaoEquipamento, DespesaEvento, ReceitaEvento,
-    User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao, PontoOperacao,
-    FichamentoSemanaFreelancer, FreelancerPrestacaoServico,
-    EmpresaContratante, ModuloSistema,
+    User, GrupoPermissaoEmpresa, LocalEvento, Empresa, Funcao
 )
-from .forms_empresa_dashboard import EmpresaContratanteConfigForm
-from .models_operacao_continua import TurnoOperacional, UnidadeOperacional
 from .mixins import EmpresaContratanteRequiredMixin
-from .utils_empresa_ativa import (
-    SESSION_EMPRESA_GESTOR_KEY,
-    empresa_ativa,
-    require_empresa_dashboard,
-    limpar_contexto_gestor_sessao,
-)
 
 
 @csrf_protect
@@ -40,15 +28,13 @@ def login_empresa(request):
     """
     # Se já está logado
     if request.user.is_authenticated:
-        if request.user.tipo_usuario == 'gestor_grupo':
-            if empresa_ativa(request):
-                return redirect('dashboard_empresa:dashboard_empresa')
-            return redirect('dashboard_empresa:dashboard_grupo')
+        # Usuários de empresa vão direto para o dashboard
         if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
             return redirect('dashboard_empresa:dashboard_empresa')
-
+        
         # Para outros tipos de usuário, renderizar o template com mensagem
-
+        # NÃO redirecionar - isso estava causando o problema
+    
     if request.method == 'POST':
         username_or_email = request.POST.get('username')
         password = request.POST.get('password')
@@ -57,19 +43,13 @@ def login_empresa(request):
         user = authenticate(request, username=username_or_email, password=password)
         
         if user is not None:
-            if user.tipo_usuario == 'gestor_grupo':
-                if not user.grupo_empresarial_id:
-                    messages.error(request, 'Conta de gestor de grupo sem grupo associado. Contacte o suporte.')
-                else:
-                    login(request, user)
-                    messages.success(request, f'Bem-vindo(a), {user.get_full_name() or user.username}!')
-                    return redirect('dashboard_empresa:dashboard_grupo')
-            elif user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+            # Verificar se é usuário de empresa
+            if user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
                 login(request, user)
                 messages.success(request, f'Bem-vindo(a), {user.get_full_name() or user.username}!')
                 return redirect('dashboard_empresa:dashboard_empresa')
             else:
-                messages.error(request, 'Este login é para gestores de grupo ou utilizadores de empresa. Use /admin para administradores.')
+                messages.error(request, 'Este login é exclusivo para usuários de empresa. Use /admin para acessar.')
         else:
             messages.error(request, 'Usuário ou senha incorretos.')
     
@@ -80,7 +60,6 @@ def logout_empresa(request):
     """
     View de logout para usuários de empresa
     """
-    limpar_contexto_gestor_sessao(request)
     logout(request)
     messages.success(request, 'Você saiu com sucesso.')
     return redirect('home')
@@ -93,8 +72,10 @@ def empresa_pwa(request):
     """
     empresa = None
     if request.user.is_authenticated:
-        empresa = empresa_ativa(request)
-
+        if request.user.tipo_usuario in ['admin_empresa', 'operador_empresa']:
+            if hasattr(request.user, 'empresa_contratante') and request.user.empresa_contratante:
+                empresa = request.user.empresa_contratante
+    
     return render(request, 'empresa/pwa.html', {'empresa': empresa})
 
 
@@ -103,88 +84,23 @@ def test_dashboard(request):
     """
     View de teste para verificar se o dashboard está funcionando
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
-
+    # Verificar se é usuário de empresa
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado. Apenas usuários de empresa podem acessar este dashboard.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    if not request.user.empresa_contratante:
+        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
+    
     context = {
         'empresa': empresa,
         'user': request.user,
     }
-
+    
     return render(request, 'dashboard_empresa/test.html', context)
-
-
-@login_required(login_url='/empresa/login/')
-def dashboard_grupo(request):
-    """
-    Dashboard do gestor do grupo empresarial: vê todas as empresas (CNPJs)
-    ligadas ao mesmo GrupoEmpresarial. O quadro local (admin/operador por empresa)
-    continua em cada EmpresaContratante.
-    """
-    user = request.user
-    if user.tipo_usuario != 'gestor_grupo' or not user.grupo_empresarial_id:
-        messages.error(request, 'Acesso negado.')
-        return redirect('dashboard_empresa:login_empresa')
-
-    grupo = user.grupo_empresarial
-    empresas = user.empresas_do_grupo_queryset()
-    resumo = []
-    for emp in empresas:
-        resumo.append(
-            {
-                'empresa': emp,
-                'eventos': Evento.objects.filter(empresa_contratante=emp).count(),
-                'pontos': PontoOperacao.objects.filter(empresa_contratante=emp).count(),
-            }
-        )
-
-    return render(
-        request,
-        'dashboard_empresa/grupo_dashboard.html',
-        {
-            'grupo': grupo,
-            'resumo': resumo,
-            'user': user,
-            'empresa_contexto': empresa_ativa(request),
-        },
-    )
-
-
-@login_required(login_url='/empresa/login/')
-@require_http_methods(['GET'])
-def definir_contexto_empresa_grupo(request, empresa_id):
-    """Gestor de grupo: define na sessão qual empresa (CNPJ) está a gerir."""
-    user = request.user
-    if user.tipo_usuario != 'gestor_grupo' or not user.grupo_empresarial_id:
-        messages.error(request, 'Acesso negado.')
-        return redirect('dashboard_empresa:login_empresa')
-    empresa = get_object_or_404(
-        EmpresaContratante,
-        pk=empresa_id,
-        grupo_empresarial=user.grupo_empresarial,
-        ativo=True,
-    )
-
-    request.session[SESSION_EMPRESA_GESTOR_KEY] = str(empresa.pk)
-    request.session.modified = True
-    messages.success(
-        request,
-        f'A gerir no contexto da empresa: {empresa.nome_fantasia or empresa.nome}',
-    )
-    return redirect('dashboard_empresa:dashboard_empresa')
-
-
-@login_required(login_url='/empresa/login/')
-@require_http_methods(['GET'])
-def limpar_contexto_empresa_grupo(request):
-    """Remove o contexto de empresa do gestor (volta à visão só de grupo)."""
-    if request.user.tipo_usuario != 'gestor_grupo':
-        messages.error(request, 'Acesso negado.')
-        return redirect('dashboard_empresa:login_empresa')
-    limpar_contexto_gestor_sessao(request)
-    messages.info(request, 'Contexto da empresa foi limpo.')
-    return redirect('dashboard_empresa:dashboard_grupo')
 
 
 @login_required(login_url='/empresa/login/')
@@ -192,10 +108,17 @@ def dashboard_empresa(request):
     """
     Dashboard principal da empresa
     """
-    empresa, rsp = require_empresa_dashboard(request, denied_redirect='home')
-    if rsp:
-        return rsp
-
+    # Verificar se é usuário de empresa
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado. Apenas usuários de empresa podem acessar este dashboard.')
+        return redirect('home')
+    
+    if not request.user.empresa_contratante:
+        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
+        return redirect('home')
+    
+    empresa = request.user.empresa_contratante
+    
     # Estatísticas gerais
     stats = {
         'total_eventos': Evento.objects.filter(empresa_contratante=empresa).count(),
@@ -204,9 +127,9 @@ def dashboard_empresa(request):
         'vagas_ativas': Vaga.objects.filter(empresa_contratante=empresa, ativa=True).aggregate(Sum('quantidade'))['quantidade__sum'] or 0,
         'total_candidaturas': Candidatura.objects.filter(vaga__empresa_contratante=empresa).count(),
         'candidaturas_pendentes': Candidatura.objects.filter(vaga__empresa_contratante=empresa, status='pendente').count(),
-        'total_freelancers': FreelancerPrestacaoServico.objects.filter(
-            empresa_contratante=empresa, ativo=True
-        ).count(),
+        'total_freelancers': Freelance.objects.filter(
+            candidaturas__vaga__empresa_contratante=empresa
+        ).distinct().count(),
         'total_equipamentos': Equipamento.objects.filter(empresa_contratante=empresa).count(),
         'equipamentos_ativos': Equipamento.objects.filter(empresa_contratante=empresa, ativo=True).count(),
         'total_usuarios': User.objects.filter(empresa_contratante=empresa).count(),
@@ -239,17 +162,7 @@ def dashboard_empresa(request):
     stats['receitas_mes'] = receitas_mes
     stats['despesas_mes'] = despesas_mes
     stats['saldo_mes'] = receitas_mes - despesas_mes
-
-    hoje_d = timezone.now().date()
-    inicio_7d = hoje_d - timedelta(days=7)
-    stats['unidades_operacionais'] = UnidadeOperacional.objects.filter(
-        empresa_contratante=empresa,
-    ).count()
-    stats['turnos_7d'] = TurnoOperacional.objects.filter(
-        unidade__empresa_contratante=empresa,
-        data__gte=inicio_7d,
-    ).count()
-
+    
     context = {
         'empresa': empresa,
         'stats': stats,
@@ -266,9 +179,11 @@ def eventos_empresa(request):
     """
     Lista de eventos da empresa
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     eventos = Evento.objects.filter(empresa_contratante=empresa).order_by('-data_criacao')
     
     context = {
@@ -285,9 +200,11 @@ def detalhe_evento(request, evento_id):
     """
     Detalhes do evento com freelancers aprovados
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar evento
     evento = get_object_or_404(
@@ -343,9 +260,11 @@ def criar_evento(request):
     """
     Criar novo evento
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     if request.method == 'POST':
         nome = request.POST.get('nome')
@@ -410,9 +329,11 @@ def editar_evento(request, evento_id):
     """
     Editar evento existente
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar evento
     evento = get_object_or_404(
@@ -483,9 +404,11 @@ def criar_setor(request, evento_id):
     """
     Criar novo setor para o evento
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar evento
     evento = get_object_or_404(
@@ -524,9 +447,11 @@ def criar_vaga(request, setor_id):
     """
     Criar nova vaga para o setor
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar setor
     setor = get_object_or_404(
@@ -546,14 +471,7 @@ def criar_vaga(request, setor_id):
         
         if titulo and quantidade and remuneracao and funcao_id:
             try:
-                funcao = Funcao.objects.get(
-                    id=funcao_id,
-                    ativo=True,
-                    disponivel_para_vagas=True,
-                )
-                if funcao.empresa_contratante_id and funcao.empresa_contratante_id != empresa.id:
-                    messages.error(request, 'Função selecionada não está disponível para sua empresa.')
-                    return redirect('dashboard_empresa:criar_vaga', setor_id=setor.id)
+                funcao = Funcao.objects.get(id=funcao_id)
                 
                 vaga = Vaga.objects.create(
                     evento=setor.evento,
@@ -572,8 +490,6 @@ def criar_vaga(request, setor_id):
                 return redirect('dashboard_empresa:detalhe_evento', evento_id=setor.evento.id)
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
-            except ValueError:
-                messages.error(request, 'Quantidade e remuneração devem ser valores válidos.')
         else:
             messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
     
@@ -600,9 +516,11 @@ def criar_vaga_generica(request, evento_id):
     """
     Criar vaga genérica (sem setor) para o evento
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar evento
     evento = get_object_or_404(
@@ -622,14 +540,7 @@ def criar_vaga_generica(request, evento_id):
         
         if titulo and quantidade and remuneracao and funcao_id:
             try:
-                funcao = Funcao.objects.get(
-                    id=funcao_id,
-                    ativo=True,
-                    disponivel_para_vagas=True,
-                )
-                if funcao.empresa_contratante_id and funcao.empresa_contratante_id != empresa.id:
-                    messages.error(request, 'Função selecionada não está disponível para sua empresa.')
-                    return redirect('dashboard_empresa:criar_vaga_generica', evento_id=evento.id)
+                funcao = Funcao.objects.get(id=funcao_id)
                 
                 vaga = Vaga.objects.create(
                     evento=evento,
@@ -648,8 +559,6 @@ def criar_vaga_generica(request, evento_id):
                 return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=evento.id)
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
-            except ValueError:
-                messages.error(request, 'Quantidade e remuneração devem ser valores válidos.')
         else:
             messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
     
@@ -675,9 +584,11 @@ def atrelar_vaga_setor(request, vaga_id):
     """
     Atrelar vaga a um setor
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar vaga
     vaga = get_object_or_404(
@@ -720,9 +631,11 @@ def desatrelar_vaga_setor(request, vaga_id):
     """
     Desatrelar vaga de um setor (torna genérica)
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar vaga
     vaga = get_object_or_404(
@@ -747,9 +660,11 @@ def gerenciar_vagas_evento(request, evento_id):
     """
     Gerenciar todas as vagas de um evento com filtros por setor
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar evento
     evento = get_object_or_404(
@@ -835,18 +750,20 @@ def gerenciar_vagas_evento(request, evento_id):
 @login_required(login_url='/empresa/login/')
 def editar_vaga(request, vaga_id):
     """
-    Editar vaga existente (evento/setor ou ponto de operação).
+    Editar vaga existente
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
     
+    empresa = request.user.empresa_contratante
+    
+    # Buscar vaga
     vaga = get_object_or_404(
-        Vaga.objects.select_related('setor', 'setor__evento', 'ponto_operacao'),
+        Vaga.objects.select_related('setor', 'setor__evento'),
         id=vaga_id,
         empresa_contratante=empresa
     )
-    is_ponto = bool(vaga.ponto_operacao_id)
     
     if request.method == 'POST':
         titulo = request.POST.get('titulo')
@@ -873,14 +790,13 @@ def editar_vaga(request, vaga_id):
                 vaga.save()
                 
                 messages.success(request, f'Vaga "{titulo}" atualizada com sucesso!')
-                if is_ponto:
-                    return redirect('dashboard_empresa:pagamento_freelancer')
                 return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
         else:
             messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
     
+    # Buscar funções disponíveis (globais ou da empresa)
     funcoes = Funcao.objects.filter(
         Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
         ativo=True,
@@ -891,10 +807,9 @@ def editar_vaga(request, vaga_id):
         'empresa': empresa,
         'vaga': vaga,
         'setor': vaga.setor,
-        'evento': vaga.setor.evento if vaga.setor_id else None,
+        'evento': vaga.setor.evento,
         'funcoes': funcoes,
         'user': request.user,
-        'is_vaga_ponto': is_ponto,
     }
     
     return render(request, 'dashboard_empresa/editar_vaga.html', context)
@@ -905,13 +820,15 @@ def desativar_vaga(request, vaga_id):
     """
     Desativar/Ativar vaga
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar vaga
     vaga = get_object_or_404(
-        Vaga.objects.select_related('setor', 'setor__evento', 'ponto_operacao'),
+        Vaga.objects.select_related('setor', 'setor__evento'),
         id=vaga_id,
         empresa_contratante=empresa
     )
@@ -923,12 +840,8 @@ def desativar_vaga(request, vaga_id):
     status_texto = "ativada" if vaga.ativa else "desativada"
     messages.success(request, f'Vaga "{vaga.titulo}" {status_texto} com sucesso!')
     
-    referer = request.META.get('HTTP_REFERER')
-    if referer:
-        return redirect(referer)
-    if vaga.ponto_operacao_id:
-        return redirect('dashboard_empresa:pagamento_freelancer')
-    return redirect('dashboard_empresa:gerenciar_vagas_evento', evento_id=vaga.setor.evento.id)
+    # Redirecionar para a página anterior ou para gerenciar vagas
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard_empresa:gerenciar_vagas_evento'), evento_id=vaga.setor.evento.id)
 
 
 @login_required(login_url='/empresa/login/')
@@ -936,9 +849,11 @@ def candidaturas_empresa(request):
     """
     Lista de candidaturas da empresa
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     candidaturas = Candidatura.objects.filter(
         vaga__empresa_contratante=empresa
     ).select_related('freelance', 'vaga', 'vaga__setor', 'vaga__setor__evento').order_by('-data_candidatura')
@@ -957,9 +872,11 @@ def detalhe_candidatura(request, candidatura_id):
     """
     Detalhes da candidatura e freelancers aprovados para o evento
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar candidatura
     candidatura = get_object_or_404(
@@ -1007,9 +924,11 @@ def aprovar_candidatura(request, candidatura_id):
     """
     Aprovar candidatura
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar candidatura
     candidatura = get_object_or_404(
@@ -1034,9 +953,11 @@ def rejeitar_candidatura(request, candidatura_id):
     """
     Rejeitar candidatura
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar candidatura
     candidatura = get_object_or_404(
@@ -1059,30 +980,31 @@ def rejeitar_candidatura(request, candidatura_id):
 @login_required(login_url='/empresa/login/')
 def freelancers_empresa(request):
     """
-    Lista de freelancers com vínculo nesta empresa: já prestaram serviço e/ou
-    foram cadastrados explicitamente (FreelancerPrestacaoServico ativo).
+    Lista de freelancers da empresa
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     
     # Buscar parâmetro de filtro
     filtro = request.GET.get('filtro', 'todos')  # 'todos' ou 'candidatos'
-
-    base = Freelance.objects.filter(
-        prestacao_servico_empresas__empresa_contratante=empresa,
-        prestacao_servico_empresas__ativo=True,
-    ).select_related('usuario').prefetch_related(
-        'funcoes__funcao'
-    ).distinct()
-
+    
     if filtro == 'candidatos':
-        # Entre os com vínculo: os que também se candidataram a vagas desta empresa
-        freelancers = base.filter(
+        # Apenas freelancers que se candidataram a vagas da empresa
+        freelancers = Freelance.objects.filter(
             candidaturas__vaga__empresa_contratante=empresa
+        ).select_related('usuario').prefetch_related(
+            'funcoes__funcao'
         ).distinct().order_by('nome_completo')
     else:
-        freelancers = base.order_by('nome_completo')
+        # TODOS os freelancers do sistema
+        freelancers = Freelance.objects.select_related(
+            'usuario'
+        ).prefetch_related(
+            'funcoes__funcao'
+        ).all().order_by('nome_completo')
     
     # Buscar funções disponíveis para o filtro
     funcoes_disponiveis = Funcao.objects.filter(
@@ -1090,6 +1012,13 @@ def freelancers_empresa(request):
         ativo=True
     ).select_related('tipo_funcao').order_by('tipo_funcao__nome', 'nome')
     
+    from urllib.parse import urlencode
+    from app_eventos.convite_freelancer import assinar_empresa_para_gerar_convite_publico
+
+    empresa_param = assinar_empresa_para_gerar_convite_publico(empresa.id)
+    public_path = f"{reverse('freelancer_publico:gerar_convite_publico')}?{urlencode({'empresa': empresa_param})}"
+    url_gerar_convite_publico = request.build_absolute_uri(public_path)
+
     context = {
         'empresa': empresa,
         'freelancers': freelancers,
@@ -1097,6 +1026,7 @@ def freelancers_empresa(request):
         'user': request.user,
         'filtro': filtro,
         'total_freelancers': freelancers.count(),
+        'url_gerar_convite_publico': url_gerar_convite_publico,
     }
     
     return render(request, 'dashboard_empresa/freelancers.html', context)
@@ -1107,20 +1037,16 @@ def detalhe_freelancer(request, freelancer_id):
     """
     Detalhes completos do freelancer
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
     
-    # Apenas freelancer com vínculo ativo nesta empresa (mesma regra da lista)
+    empresa = request.user.empresa_contratante
+    
+    # Buscar freelancer
     freelancer = get_object_or_404(
-        Freelance.objects.filter(
-            prestacao_servico_empresas__empresa_contratante=empresa,
-            prestacao_servico_empresas__ativo=True,
-        )
-        .select_related('usuario')
-        .prefetch_related('funcoes__funcao__tipo_funcao')
-        .distinct(),
-        id=freelancer_id,
+        Freelance.objects.select_related('usuario').prefetch_related('funcoes__funcao__tipo_funcao'),
+        id=freelancer_id
     )
     
     # Buscar candidaturas deste freelancer para vagas da empresa
@@ -1198,9 +1124,7 @@ class NotificarFreelancersEventoView(View):
                         funcoes__funcao=funcao,
                         notificacoes_ativas=True,
                         telefone__isnull=False,
-                        telefone__gt='',
-                        prestacao_servico_empresas__empresa_contratante=evento.empresa_contratante,
-                        prestacao_servico_empresas__ativo=True,
+                        telefone__gt=''
                     ).distinct()
                     freelancers_por_funcao[funcao_nome] = freelancers.count()
                 except:
@@ -1313,9 +1237,7 @@ class NotificarFreelancersEventoView(View):
                     funcoes__funcao=funcao,
                     notificacoes_ativas=True,
                     telefone__isnull=False,
-                    telefone__gt='',
-                    prestacao_servico_empresas__empresa_contratante=evento.empresa_contratante,
-                    prestacao_servico_empresas__ativo=True,
+                    telefone__gt=''
                 ).distinct()
                 
                 logger.info(f"👥 Encontrados {freelancers.count()} freelancers para função {funcao.nome}")
@@ -1495,41 +1417,26 @@ def gerar_link_cadastro_freelancer(request):
     if not empresa:
         return JsonResponse({'sucesso': False, 'erro': 'Usuário sem empresa vinculada.'}, status=400)
 
-    payload = {}
-    if request.content_type and 'application/json' in request.content_type:
-        try:
-            payload = json.loads(request.body or '{}')
-        except Exception:
-            payload = {}
-    else:
-        payload = request.POST
+    from app_eventos.convite_freelancer import montar_payload_convite_cadastro, parse_json_ou_post
 
+    payload = parse_json_ou_post(request)
     telefone = (payload.get('telefone') or '').strip()
     funcao_id = payload.get('funcao_id')
-
-    token_payload = {'empresa_id': empresa.id}
-    if telefone:
-        token_payload['telefone'] = telefone
-    if funcao_id:
+    fid = None
+    if funcao_id not in (None, '', 'null'):
         try:
-            token_payload['funcao_id'] = int(funcao_id)
+            fid = int(funcao_id)
         except (TypeError, ValueError):
             pass
 
-    convite = signing.dumps(token_payload, salt='freelancer-convite')
-    cadastro_path = reverse('freelancer_publico:cadastro')
-    link_cadastro = request.build_absolute_uri(f"{cadastro_path}?convite={convite}")
-    mensagem = (
-        f"Olá! 👋\n"
-        f"Faça seu cadastro rápido de freelancer na Eventix:\n{link_cadastro}\n\n"
-        f"Leva menos de 2 minutos."
+    return JsonResponse(
+        montar_payload_convite_cadastro(
+            request,
+            empresa,
+            telefone=telefone,
+            funcao_id=fid,
+        )
     )
-
-    return JsonResponse({
-        'sucesso': True,
-        'link_cadastro': link_cadastro,
-        'mensagem_whatsapp': mensagem,
-    })
 
 
 
@@ -1546,11 +1453,8 @@ def usuarios_empresa(request):
     if request.user.tipo_usuario != 'admin_empresa':
         messages.error(request, 'Apenas administradores podem gerenciar usuários.')
         return redirect('dashboard_empresa:dashboard_empresa')
-
-    empresa = empresa_ativa(request)
-    if not empresa:
-        messages.error(request, 'Usuário não está associado a nenhuma empresa.')
-        return redirect('dashboard_empresa:dashboard_empresa')
+    
+    empresa = request.user.empresa_contratante
     usuarios = User.objects.filter(empresa_contratante=empresa).order_by('username')
     
     context = {
@@ -1567,9 +1471,11 @@ def equipamentos_empresa(request):
     """
     Lista de equipamentos da empresa
     """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('dashboard_empresa:login_empresa')
+    
+    empresa = request.user.empresa_contratante
     equipamentos = Equipamento.objects.filter(empresa_contratante=empresa).order_by('codigo_patrimonial')
     
     context = {
@@ -1586,10 +1492,12 @@ def financeiro_empresa(request):
     """
     Dashboard financeiro da empresa
     """
-    empresa, rsp = require_empresa_dashboard(request, denied_redirect='home')
-    if rsp:
-        return rsp
-
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        messages.error(request, 'Acesso negado.')
+        return redirect('home')
+    
+    empresa = request.user.empresa_contratante
+    
     # Receitas e despesas por mês (últimos 6 meses)
     hoje = timezone.now()
     meses = []
@@ -1623,98 +1531,3 @@ def financeiro_empresa(request):
     }
     
     return render(request, 'dashboard_empresa/financeiro.html', context)
-
-
-@login_required(login_url='/empresa/login/')
-def pagamento_freelancer(request):
-    """
-    Pagamento de freelancers por estabelecimento (planilha: pago, vales, consumos).
-    Lista fichamentos e atalhos para gestão (admin) e referência à API.
-    """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
-    fichamentos = (
-        FichamentoSemanaFreelancer.objects.filter(empresa_contratante=empresa)
-        .select_related('ponto_operacao')
-        .order_by('-data_fechamento')[:100]
-    )
-    pontos = PontoOperacao.objects.filter(empresa_contratante=empresa, ativo=True).order_by('nome')
-    freelancers_historico = (
-        FreelancerPrestacaoServico.objects.filter(empresa_contratante=empresa, ativo=True)
-        .select_related('freelance')
-        .order_by('freelance__nome_completo')
-    )
-
-    context = {
-        'empresa': empresa,
-        'fichamentos': fichamentos,
-        'pontos': pontos,
-        'freelancers_historico': freelancers_historico,
-        'user': request.user,
-    }
-    return render(request, 'dashboard_empresa/pagamento_freelancer.html', context)
-
-
-@login_required(login_url='/empresa/login/')
-def operacao_turnos(request):
-    """
-    Operação contínua: unidades operacionais, regras de recorrência, turnos materializados.
-    Atalhos para Admin (staff) e referência à API mobile.
-    """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
-    ponto_resumo = PontoOperacao.objects.filter(empresa_contratante=empresa).first()
-    unidades = (
-        UnidadeOperacional.objects.filter(empresa_contratante=empresa)
-        .order_by('-criado_em')[:50]
-    )
-    turnos_recentes = (
-        TurnoOperacional.objects.filter(unidade__empresa_contratante=empresa)
-        .select_related('unidade')
-        .order_by('-data', '-hora_inicio')[:30]
-    )
-    context = {
-        'empresa': empresa,
-        'ponto_resumo': ponto_resumo,
-        'unidades': unidades,
-        'turnos_recentes': turnos_recentes,
-        'user': request.user,
-    }
-    return render(request, 'dashboard_empresa/operacao_turnos.html', context)
-
-
-@login_required(login_url='/empresa/login/')
-@require_http_methods(['GET', 'POST'])
-def configuracoes_empresa(request):
-    """
-    CRUD dos dados da empresa contratante no dashboard (substitui necessidade do Admin para o dia a dia).
-    Plano, valor mensal e datas de contrato são apenas leitura; demais campos e módulos adicionais são editáveis.
-    """
-    empresa, rsp = require_empresa_dashboard(request)
-    if rsp:
-        return rsp
-
-    empresa = EmpresaContratante.objects.prefetch_related('modulos_contratados').get(pk=empresa.pk)
-    modulos_basicos = ModuloSistema.objects.filter(modulo_basico=True, ativo=True).order_by('nome')
-
-    if request.method == 'POST':
-        form = EmpresaContratanteConfigForm(request.POST, instance=empresa)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Configurações da empresa guardadas.')
-            return redirect('dashboard_empresa:configuracoes_empresa')
-    else:
-        form = EmpresaContratanteConfigForm(instance=empresa)
-
-    return render(
-        request,
-        'dashboard_empresa/configuracoes_empresa.html',
-        {
-            'empresa': empresa,
-            'form': form,
-            'modulos_basicos': modulos_basicos,
-            'user': request.user,
-        },
-    )
