@@ -7,7 +7,10 @@ from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.db.models import Q
-from app_eventos.models import Freelance, Vaga, Candidatura, Evento, Funcao
+from django.core import signing
+from django.conf import settings
+from app_eventos.models import Freelance, Vaga, Candidatura, Evento, Funcao, User, EmpresaContratante, FreelancerFuncao
+import secrets
 import logging
 
 logger = logging.getLogger(__name__)
@@ -26,6 +29,141 @@ def _ensure_freelancer_profile(user):
     )
     logger.info("✅ Perfil de freelancer criado automaticamente para o usuário %s", user.username)
     return freelancer
+
+
+def _normalize_phone(raw_phone):
+    if not raw_phone:
+        return ''
+    digits = ''.join(ch for ch in str(raw_phone) if ch.isdigit())
+    # Remove código do país se vier com 55 no início.
+    if digits.startswith('55') and len(digits) >= 12:
+        digits = digits[2:]
+    return digits
+
+
+def _load_invite_token(token):
+    if not token:
+        return {}
+    try:
+        data = signing.loads(token, salt='freelancer-convite', max_age=60 * 60 * 24 * 30)
+        return data if isinstance(data, dict) else {}
+    except signing.BadSignature:
+        return {}
+    except signing.SignatureExpired:
+        return {}
+
+
+def _redirect_after_freelancer_auth():
+    react_url = getattr(settings, 'FREELANCER_REACT_UX_URL', '') or ''
+    react_url = react_url.strip()
+    if react_url:
+        return redirect(react_url)
+    return redirect('freelancer_publico:dashboard')
+
+
+def cadastro_freelancer_publico(request):
+    """
+    Cadastro rápido para freelancers via link compartilhado (WhatsApp).
+    Link opcional com token assinado:
+      /freelancer/cadastro/?convite=<token>
+    """
+    invite_token = request.GET.get('convite') or request.POST.get('convite') or ''
+    invite_data = _load_invite_token(invite_token)
+
+    context = {
+        'convite': invite_token,
+        'telefone_prefill': invite_data.get('telefone', ''),
+        'empresa_nome': None,
+    }
+
+    empresa_id = invite_data.get('empresa_id')
+    if empresa_id:
+        empresa = EmpresaContratante.objects.filter(id=empresa_id).first()
+        if empresa:
+            context['empresa_nome'] = empresa.nome_fantasia
+
+    if request.method == 'POST':
+        nome_completo = (request.POST.get('nome_completo') or '').strip()
+        telefone = _normalize_phone(request.POST.get('telefone'))
+        email = (request.POST.get('email') or '').strip().lower()
+        cpf = (request.POST.get('cpf') or '').strip()
+        senha = (request.POST.get('senha') or '').strip()
+
+        if not nome_completo:
+            messages.error(request, 'Informe seu nome completo.')
+            return render(request, 'freelancer_publico/cadastro.html', context)
+        if not telefone:
+            messages.error(request, 'Informe um WhatsApp válido.')
+            return render(request, 'freelancer_publico/cadastro.html', context)
+
+        # Evita duplicidade de cadastro por telefone.
+        if Freelance.objects.filter(telefone=telefone).exists():
+            messages.warning(request, 'Este telefone já possui cadastro. Faça login para continuar.')
+            return redirect('freelancer_publico:login')
+
+        username_base = f"fr_{telefone[-10:]}" if len(telefone) >= 10 else f"fr_{telefone}"
+        username = username_base
+        suffix = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{username_base}_{suffix}"
+            suffix += 1
+
+        if not email:
+            email = f"{username}@freelancer.eventix.local"
+        elif User.objects.filter(email=email).exists():
+            messages.error(request, 'Este e-mail já está cadastrado. Faça login para continuar.')
+            return render(request, 'freelancer_publico/cadastro.html', context)
+
+        auto_generated_password = False
+        if not senha:
+            senha = secrets.token_urlsafe(8)
+            auto_generated_password = True
+
+        empresa_contratante = None
+        if empresa_id:
+            empresa_contratante = EmpresaContratante.objects.filter(id=empresa_id).first()
+        if not empresa_contratante:
+            empresa_contratante = EmpresaContratante.objects.filter(nome_fantasia__icontains='Eventix').first()
+
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=senha,
+            first_name=nome_completo.split(' ')[0],
+            last_name=' '.join(nome_completo.split(' ')[1:]) if len(nome_completo.split(' ')) > 1 else '',
+            tipo_usuario='freelancer',
+            empresa_contratante=empresa_contratante,
+        )
+
+        freelancer = Freelance.objects.create(
+            usuario=user,
+            nome_completo=nome_completo,
+            telefone=telefone,
+            cpf=cpf or None,
+        )
+
+        funcao_id = invite_data.get('funcao_id')
+        if funcao_id:
+            funcao = Funcao.objects.filter(id=funcao_id, ativo=True).first()
+            if funcao:
+                FreelancerFuncao.objects.get_or_create(
+                    freelancer=freelancer,
+                    funcao=funcao,
+                    defaults={'nivel': 'iniciante', 'ativo': True},
+                )
+
+        login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+        if auto_generated_password:
+            messages.success(
+                request,
+                f'Cadastro concluído! Senha temporária: {senha}. Você pode alterar no perfil.'
+            )
+        else:
+            messages.success(request, 'Cadastro concluído com sucesso!')
+        return _redirect_after_freelancer_auth()
+
+    return render(request, 'freelancer_publico/cadastro.html', context)
 
 
 def login_freelancer(request):
@@ -47,7 +185,7 @@ def login_freelancer(request):
         if user and hasattr(user, 'freelance'):
             login(request, user)
             logger.info(f"✅ Login freelancer bem-sucedido: {user.email}")
-            return redirect('freelancer_publico:dashboard')
+            return _redirect_after_freelancer_auth()
         else:
             logger.warning(f"❌ Login freelancer falhou: {email}")
             messages.error(request, 'Email ou senha incorretos')

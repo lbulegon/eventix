@@ -6,6 +6,7 @@ app_name = 'freelancer_publico'
 urlpatterns = [
     # Autenticação
     path('login/', views_dashboard_freelancer_publico.login_freelancer, name='login'),
+    path('cadastro/', views_dashboard_freelancer_publico.cadastro_freelancer_publico, name='cadastro'),
     path('logout/', views_dashboard_freelancer_publico.logout_freelancer, name='logout'),
     path('app/', views_dashboard_freelancer_publico.freelancer_pwa, name='pwa'),
     

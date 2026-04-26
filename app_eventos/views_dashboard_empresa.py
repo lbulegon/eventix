@@ -7,8 +7,13 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.urls import reverse
+from django.core import signing
 from django.db.models import Count, Sum, Q
 from django.utils import timezone
+import json
 from datetime import datetime, timedelta
 from .models import (
     Evento, SetorEvento, Vaga, Candidatura, ContratoFreelance, Freelance,
@@ -1154,8 +1159,6 @@ def detalhe_freelancer(request, freelancer_id):
 
 # Views de notificação (implementadas diretamente)
 from django.views import View
-from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
 from app_eventos.services.notificacao_vagas import NotificacaoVagasService
 import logging
 
@@ -1471,6 +1474,62 @@ def notificar_freelancers_vaga_especifica(request, vaga_id):
         return JsonResponse({
             'erro': f'Erro interno: {str(e)}'
         }, status=500)
+
+
+@require_http_methods(["POST"])
+@login_required(login_url='/empresa/login/')
+def gerar_link_cadastro_freelancer(request):
+    """
+    Gera link de cadastro rápido para compartilhar por WhatsApp.
+    Exemplo de resposta:
+      {
+        "sucesso": true,
+        "link_cadastro": "https://.../freelancer/cadastro/?convite=...",
+        "mensagem_whatsapp": "..."
+      }
+    """
+    if request.user.tipo_usuario not in ['admin_empresa', 'operador_empresa']:
+        return JsonResponse({'sucesso': False, 'erro': 'Acesso negado.'}, status=403)
+
+    empresa = request.user.empresa_contratante
+    if not empresa:
+        return JsonResponse({'sucesso': False, 'erro': 'Usuário sem empresa vinculada.'}, status=400)
+
+    payload = {}
+    if request.content_type and 'application/json' in request.content_type:
+        try:
+            payload = json.loads(request.body or '{}')
+        except Exception:
+            payload = {}
+    else:
+        payload = request.POST
+
+    telefone = (payload.get('telefone') or '').strip()
+    funcao_id = payload.get('funcao_id')
+
+    token_payload = {'empresa_id': empresa.id}
+    if telefone:
+        token_payload['telefone'] = telefone
+    if funcao_id:
+        try:
+            token_payload['funcao_id'] = int(funcao_id)
+        except (TypeError, ValueError):
+            pass
+
+    convite = signing.dumps(token_payload, salt='freelancer-convite')
+    cadastro_path = reverse('freelancer_publico:cadastro')
+    link_cadastro = request.build_absolute_uri(f"{cadastro_path}?convite={convite}")
+    mensagem = (
+        f"Olá! 👋\n"
+        f"Faça seu cadastro rápido de freelancer na Eventix:\n{link_cadastro}\n\n"
+        f"Leva menos de 2 minutos."
+    )
+
+    return JsonResponse({
+        'sucesso': True,
+        'link_cadastro': link_cadastro,
+        'mensagem_whatsapp': mensagem,
+    })
 
 
 

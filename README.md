@@ -237,6 +237,7 @@ Variáveis esperadas no `.env` (exemplo no `.env.example`):
 - `DATABASE_HOST`
 - `DATABASE_PORT`
 - `MERCADOPAGO_ACCESS_TOKEN`
+- (Opcional) `FREELANCER_REACT_UX_URL` (URL da UX React para redirecionar após cadastro/login público)
 - (Opcional) `CORS_ALLOWED_ORIGINS` (separados por vírgula)
 
 6. Execute as migrações:
@@ -254,6 +255,19 @@ python manage.py createsuperuser
 ```bash
 python manage.py runserver
 ```
+
+### Redirecionamento do freelancer para UX React
+
+Após cadastro/login público do freelancer (`/freelancer/cadastro/` e `/freelancer/login/`),
+o sistema pode redirecionar para uma aplicação React externa.
+
+Configure no `.env`:
+
+```bash
+FREELANCER_REACT_UX_URL=https://sua-ux-react.exemplo.com
+```
+
+Se a variável não estiver definida, o fallback permanece no dashboard Django (`freelancer_publico:dashboard`).
 
 ## Deploy
 

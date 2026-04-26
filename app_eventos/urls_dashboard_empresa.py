@@ -53,6 +53,7 @@ urlpatterns = [
     path('candidaturas/<int:candidatura_id>/rejeitar/', views_dashboard_empresa.rejeitar_candidatura, name='rejeitar_candidatura'),
     path('freelancers/', views_dashboard_empresa.freelancers_empresa, name='freelancers_empresa'),
     path('freelancers/<int:freelancer_id>/', views_dashboard_empresa.detalhe_freelancer, name='detalhe_freelancer'),
+    path('freelancers/gerar-link-cadastro/', views_dashboard_empresa.gerar_link_cadastro_freelancer, name='gerar_link_cadastro_freelancer'),
     path('equipamentos/', views_dashboard_empresa.equipamentos_empresa, name='equipamentos_empresa'),
     
     # Notificações

@@ -198,6 +198,10 @@ LOGIN_URL = "/admin/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
+# UX React do freelancer (opcional).
+# Se definido, login/cadastro do freelancer redirecionam para esta URL.
+FREELANCER_REACT_UX_URL = os.getenv("FREELANCER_REACT_UX_URL", "").strip()
+
 # ========== LOGGING (dev) ==========
 LOGGING = {
     "version": 1,

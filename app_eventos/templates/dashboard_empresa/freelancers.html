@@ -12,6 +12,9 @@
                     Freelancers Cadastrados
                     <span class="badge badge-primary ml-2" id="totalFreelancers">{{ total_freelancers|default:0 }}</span>
                 </h6>
+                <button type="button" class="btn btn-success btn-sm" data-toggle="modal" data-target="#modalLinkCadastro">
+                    <i class="fas fa-link"></i> Gerar Link de Cadastro
+                </button>
             </div>
             
             <div class="card-body">
@@ -154,6 +157,64 @@
     </div>
 </div>
 
+<!-- Modal: Gerar link de cadastro -->
+<div class="modal fade" id="modalLinkCadastro" tabindex="-1" role="dialog" aria-labelledby="modalLinkCadastroLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLinkCadastroLabel">Gerar link de cadastro freelancer</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="csrfTokenInput" value="{{ csrf_token }}">
+
+                <div class="form-group">
+                    <label for="linkTelefone">WhatsApp (opcional)</label>
+                    <input type="text" class="form-control" id="linkTelefone" placeholder="Ex: 11999998888">
+                    <small class="text-muted">Se preenchido, o telefone já vai pré-preenchido no cadastro.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="linkFuncao">Função (opcional)</label>
+                    <select class="form-control" id="linkFuncao">
+                        <option value="">Sem função pré-definida</option>
+                        {% regroup funcoes_disponiveis by tipo_funcao as funcoes_agrupadas_modal %}
+                        {% for grupo in funcoes_agrupadas_modal %}
+                            <optgroup label="{{ grupo.grouper.nome }}">
+                                {% for funcao in grupo.list %}
+                                    <option value="{{ funcao.id }}">{{ funcao.nome }}</option>
+                                {% endfor %}
+                            </optgroup>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="alert alert-info py-2 mb-2" id="linkCadastroStatus" style="display:none;"></div>
+
+                <div class="form-group">
+                    <label for="linkCadastroResultado">Link gerado</label>
+                    <input type="text" class="form-control" id="linkCadastroResultado" readonly placeholder="Gere um link para visualizar aqui">
+                </div>
+                <div class="form-group mb-0">
+                    <label for="mensagemWhatsappResultado">Mensagem WhatsApp pronta</label>
+                    <textarea class="form-control" id="mensagemWhatsappResultado" rows="4" readonly placeholder="A mensagem para envio aparecerá aqui"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary" id="btnGerarLinkCadastro">
+                    <i class="fas fa-magic"></i> Gerar Link
+                </button>
+                <button type="button" class="btn btn-success" id="btnCopiarMensagem" disabled>
+                    <i class="fas fa-copy"></i> Copiar Mensagem
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .filter-btn.active {
         background-color: #4e73df;
@@ -193,6 +254,21 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let currentFilter = 'todos';
     let currentFuncao = '';
+    const btnGerarLinkCadastro = document.getElementById('btnGerarLinkCadastro');
+    const btnCopiarMensagem = document.getElementById('btnCopiarMensagem');
+    const linkCadastroStatus = document.getElementById('linkCadastroStatus');
+    const linkCadastroResultado = document.getElementById('linkCadastroResultado');
+    const mensagemWhatsappResultado = document.getElementById('mensagemWhatsappResultado');
+    const linkTelefone = document.getElementById('linkTelefone');
+    const linkFuncao = document.getElementById('linkFuncao');
+    const csrfTokenInput = document.getElementById('csrfTokenInput');
+
+    function setStatusLinkCadastro(message, type='info') {
+        if (!linkCadastroStatus) return;
+        linkCadastroStatus.className = `alert alert-${type} py-2 mb-2`;
+        linkCadastroStatus.textContent = message;
+        linkCadastroStatus.style.display = '';
+    }
     
     // Função para aplicar busca e filtros
     function applyFilters() {
@@ -288,6 +364,62 @@ document.addEventListener('DOMContentLoaded', function() {
             applyFilters();
         }
     });
+
+    // Gerar link rápido de cadastro
+    if (btnGerarLinkCadastro) {
+        btnGerarLinkCadastro.addEventListener('click', async function() {
+            try {
+                btnGerarLinkCadastro.disabled = true;
+                btnGerarLinkCadastro.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+                setStatusLinkCadastro('Gerando link de cadastro...', 'info');
+
+                const payload = {};
+                if (linkTelefone && linkTelefone.value.trim()) {
+                    payload.telefone = linkTelefone.value.trim();
+                }
+                if (linkFuncao && linkFuncao.value) {
+                    payload.funcao_id = parseInt(linkFuncao.value, 10);
+                }
+
+                const response = await fetch('{% url "dashboard_empresa:gerar_link_cadastro_freelancer" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfTokenInput ? csrfTokenInput.value : ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.sucesso) {
+                    throw new Error(data.erro || 'Falha ao gerar link.');
+                }
+
+                linkCadastroResultado.value = data.link_cadastro || '';
+                mensagemWhatsappResultado.value = data.mensagem_whatsapp || '';
+                btnCopiarMensagem.disabled = !(data.mensagem_whatsapp);
+                setStatusLinkCadastro('Link gerado com sucesso.', 'success');
+            } catch (err) {
+                setStatusLinkCadastro(err.message || 'Erro ao gerar link.', 'danger');
+            } finally {
+                btnGerarLinkCadastro.disabled = false;
+                btnGerarLinkCadastro.innerHTML = '<i class="fas fa-magic"></i> Gerar Link';
+            }
+        });
+    }
+
+    if (btnCopiarMensagem) {
+        btnCopiarMensagem.addEventListener('click', async function() {
+            const texto = mensagemWhatsappResultado ? mensagemWhatsappResultado.value : '';
+            if (!texto) return;
+            try {
+                await navigator.clipboard.writeText(texto);
+                setStatusLinkCadastro('Mensagem copiada para a área de transferência.', 'success');
+            } catch (err) {
+                setStatusLinkCadastro('Não foi possível copiar automaticamente. Copie manualmente.', 'warning');
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
