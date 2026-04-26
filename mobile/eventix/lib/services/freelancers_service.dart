@@ -231,6 +231,47 @@ class FreelancersService {
     };
   }
 
+  /// Estado do onboarding (nível 2) + prompt sugerido (texto de apoio / IA).
+  static Future<Map<String, dynamic>?> getOnboardingNivel2() async {
+    try {
+      final response = await _dio.get(AppConfig.freelancerOnboardingNivel2);
+      if (response.statusCode == 200 && response.data is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (e) {
+      AppLogger.error('Failed to fetch onboarding nivel 2',
+          category: LogCategory.api, error: e);
+    }
+    return null;
+  }
+
+  /// Atualiza apenas os campos do nível 2 (dados pessoais e endereço, sem bancário).
+  static Future<Map<String, dynamic>> patchOnboardingNivel2(
+      Map<String, dynamic> campos) async {
+    try {
+      final response = await _dio.patch(
+        AppConfig.freelancerOnboardingNivel2,
+        data: campos,
+      );
+      if (response.statusCode == 200 && response.data is Map) {
+        return {
+          'success': true,
+          'data': response.data,
+        };
+      }
+    } catch (e) {
+      AppLogger.error('Failed to patch onboarding nivel 2',
+          category: LogCategory.api, error: e);
+      if (e is DioException) {
+        return {
+          'success': false,
+          'error': e.response?.data?.toString() ?? e.message,
+        };
+      }
+    }
+    return {'success': false, 'error': 'Erro desconhecido'};
+  }
+
   /// Obtém perfil do freelancer
   static Future<Map<String, dynamic>?> getPerfilFreelancer() async {
     try {

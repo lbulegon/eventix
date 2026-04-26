@@ -243,6 +243,31 @@ class VagaAPITestCase(APITestCase):
         self.assertIsNotNone(freelance)
         self.assertEqual(freelance.nome_completo, 'Novo Freelancer')
 
+    def test_onboarding_nivel2_freelancer(self):
+        """GET/PATCH /freelancers/onboarding/ — estado nível 2 e atualização parcial segura."""
+        self.client.force_authenticate(user=self.user_freelancer)
+        url = reverse('freelancer-onboarding')
+        r0 = self.client.get(url)
+        self.assertEqual(r0.status_code, status.HTTP_200_OK)
+        self.assertIn('onboarding', r0.data)
+        self.assertIn('prompt_suporte_nivel2', r0.data)
+        self.assertIn('nivel2_dados_complementares', r0.data['onboarding'])
+        r1 = self.client.patch(
+            url,
+            {'cidade': 'São Paulo', 'uf': 'SP', 'cep': '01001000'},
+            format='json',
+        )
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+        self.assertTrue(r1.data.get('success'))
+        self.freelancer.refresh_from_db()
+        self.assertEqual(self.freelancer.cidade, 'São Paulo')
+
+    def test_onboarding_nivel2_rejeita_nao_freelancer(self):
+        self.client.force_authenticate(user=self.user_empresa)
+        url = reverse('freelancer-onboarding')
+        r = self.client.get(url)
+        self.assertEqual(r.status_code, status.HTTP_403_FORBIDDEN)
+
 
 class VagaEmissaoContratoTestCase(APITestCase):
     def setUp(self):

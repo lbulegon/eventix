@@ -27,11 +27,18 @@ from app_eventos.models import (
     RegistroPresencaFreelancer,
 )
 from app_eventos.services.freelancer_score import aplicar_pontuacao_para_registro
+from app_eventos.services.onboarding_freelance import (
+    FREELANCE_ONBOARDING_NIVEL2_WRITE_FIELDS,
+    calcular_marcadores_onboarding,
+    gerar_texto_assistente_nivel2,
+    listar_pendentes_nivel2,
+)
 from app_eventos.services.prestacao_presenca import validar_prestacao_para_registro_presenca
 from api_v01.permissions import IsEmpresaOrAdminSistema
 from .serializers import (
     VagaSerializer, CandidaturaSerializer, EventoSerializer,
-    FreelanceSerializer, EmpresaSerializer, EmpresaContratanteSerializer,
+    FreelanceSerializer, FreelanceOnboardingNivel2Serializer,
+    EmpresaSerializer, EmpresaContratanteSerializer,
     UserProfileSerializer, PreCadastroFreelancerSerializer,
     PasswordResetSerializer, PasswordResetConfirmSerializer,
     PontoOperacaoSerializer,
@@ -483,6 +490,60 @@ class FreelanceViewSet(viewsets.ModelViewSet):
         if page is not None:
             return self.get_paginated_response(ser.data)
         return Response(ser.data)
+
+    @action(
+        detail=False,
+        methods=['get', 'patch'],
+        url_path='onboarding',
+        permission_classes=[IsAuthenticated],
+    )
+    def onboarding(self, request):
+        """
+        Nível 2: estado do onboarding + (PATCH) complemento de dados pessoais/endereço
+        sem substituir PUT geral de /freelancers/{id}/.
+        Apenas o próprio freelancer (autenticado como freelancer) pode acessar.
+        """
+        if not getattr(request.user, 'is_freelancer', False):
+            return Response(
+                {'detail': 'Apenas freelancers.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            fl = request.user.freelance
+        except Freelance.DoesNotExist:
+            return Response(
+                {'detail': 'Perfil de freelancer não encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if request.method == 'GET':
+            pendentes = listar_pendentes_nivel2(fl)
+            return Response(
+                {
+                    'onboarding': calcular_marcadores_onboarding(fl),
+                    'nivel2_campos_permitidos': list(FREELANCE_ONBOARDING_NIVEL2_WRITE_FIELDS),
+                    'perfil_nivel2': FreelanceOnboardingNivel2Serializer(fl).data,
+                    'prompt_suporte_nivel2': gerar_texto_assistente_nivel2(
+                        fl.nome_completo, pendentes=pendentes
+                    ),
+                }
+            )
+        ser = FreelanceOnboardingNivel2Serializer(
+            fl, data=request.data, partial=True, context={'request': request}
+        )
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        fl.refresh_from_db()
+        pendentes = listar_pendentes_nivel2(fl)
+        return Response(
+            {
+                'success': True,
+                'onboarding': calcular_marcadores_onboarding(fl),
+                'perfil_nivel2': FreelanceOnboardingNivel2Serializer(fl).data,
+                'prompt_suporte_nivel2': gerar_texto_assistente_nivel2(
+                    fl.nome_completo, pendentes=pendentes
+                ),
+            }
+        )
 
 
 class EmpresaViewSet(viewsets.ReadOnlyModelViewSet):

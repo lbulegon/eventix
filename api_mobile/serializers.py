@@ -1,6 +1,7 @@
 # api_mobile/serializers.py
 from rest_framework import serializers
 from django.db import IntegrityError, transaction
+from app_eventos.services.onboarding_freelance import FREELANCE_ONBOARDING_NIVEL2_WRITE_FIELDS
 from app_eventos.utils_empresa_ativa import empresa_contexto_api
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa,
@@ -273,6 +274,30 @@ class FreelanceSerializer(serializers.ModelSerializer):
             'score_confiabilidade', 'faltas_com_aviso', 'faltas_sem_aviso',
             'bloqueado', 'data_ultimo_evento',
         ]
+
+
+class FreelanceOnboardingNivel2Serializer(serializers.ModelSerializer):
+    """
+    Nível 2 = dados pessoais + endereço + notas; exclui bancário e arquivos.
+    Reutiliza a lista única em app_eventos.services.onboarding_freelance.
+    """
+
+    class Meta:
+        model = Freelance
+        fields = list(FREELANCE_ONBOARDING_NIVEL2_WRITE_FIELDS)
+
+    def validate_cpf(self, value):
+        if not value or not str(value).strip():
+            return value
+        cpf = ''.join(ch for ch in str(value) if ch.isdigit())
+        if not cpf:
+            return value
+        qs = Freelance.objects.filter(cpf=cpf)
+        if self.instance is not None:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError('Já existe freelancer com este CPF.')
+        return value
 
 
 class RegistroPresencaFreelancerSerializer(serializers.ModelSerializer):

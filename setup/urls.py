@@ -24,8 +24,8 @@ urlpatterns = [
     path("", views.home, name="home"),
     path("eventos/", views.evento_list, name="evento_list"),
     
-    # Sistema de autenticação única
-    path("api/auth/", include("api_v01.urls.urls")),
+    # Sistema de autenticação única (namespace dedicado para evitar colisão)
+    path("api/auth/", include(("api_v01.urls.urls", "api_v01"), namespace="api_v01_auth")),
     
     # API Eventos v1 (novo fluxo operacional)
     path("api/v1/", include("api_v01.urls.eventos")),
@@ -64,10 +64,16 @@ urlpatterns = [
     # Links curtos (Deep Links + Fallback Web)
     path("links/", include("app_eventos.urls.urls_links_curtos")),
     
-    # Dashboard público do freelancer
+    # Dashboard público do freelancer (namespace principal)
     path("freelancer/", include("app_eventos.urls.urls_freelancer_publico")),
-    # Compatibilidade para deploys com prefixo /app/
-    path("app/freelancer/", include("app_eventos.urls.urls_freelancer_publico")),
+    # Compatibilidade para deploys com prefixo /app/ (namespace dedicado)
+    path(
+        "app/freelancer/",
+        include(
+            ("app_eventos.urls.urls_freelancer_publico", "freelancer_publico"),
+            namespace="freelancer_publico_app",
+        ),
+    ),
 ]
 
 if settings.DEBUG:

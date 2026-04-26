@@ -12,6 +12,7 @@ class AppConfig {
 
   // Endpoints de Freelancers
   static const String preCadastro = '$apiUrl/freelancers/pre_cadastro/';
+  static const String freelancerOnboardingNivel2 = '$apiUrl/freelancers/onboarding/';
   static const String freelancerProfile = '$apiUrl/freelancers/';
   static const String freelancerFuncoes = '$apiUrl/freelancers/funcoes/';
   static const String funcoes = '$apiUrl/funcoes/';
