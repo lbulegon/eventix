@@ -158,3 +158,33 @@ class FreelancerCadastroLinkTestCase(TestCase):
         self.assertIn(r.status_code, (301, 302, 303))
         self.assertIn(reverse("freelancer_publico:login"), r["Location"])
 
+    def test_post_cpf_duplicado_nao_quebra_com_500(self):
+        user_existente = User.objects.create_user(
+            username="cpf.existente@teste.com",
+            email="cpf.existente@teste.com",
+            password="x",
+            tipo_usuario="freelancer",
+        )
+        Freelance.objects.create(
+            usuario=user_existente,
+            nome_completo="CPF Existente",
+            telefone="11988776603",
+            cpf="66821762015",
+        )
+
+        client = Client()
+        url = reverse("freelancer_publico:cadastro")
+        r = client.post(
+            url,
+            {
+                "nome_completo": "Novo Com CPF Dup",
+                "telefone": "11988776609",
+                "email": "novo.cpf.dup@example.com",
+                "cpf": "668.217.620-15",
+                "senha": "SenhaForte-99",
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "CPF já possui cadastro", status_code=200)
+        self.assertFalse(User.objects.filter(email="novo.cpf.dup@example.com").exists())
+

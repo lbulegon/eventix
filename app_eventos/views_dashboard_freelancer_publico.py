@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.db.models import Q
+from django.db import IntegrityError, transaction
 from django.core import signing
 from django.conf import settings
 from app_eventos.models import Freelance, Vaga, Candidatura, Evento, Funcao, User, EmpresaContratante, FreelancerFuncao
@@ -86,7 +87,9 @@ def cadastro_freelancer_publico(request):
         nome_completo = (request.POST.get('nome_completo') or '').strip()
         telefone = _normalize_phone(request.POST.get('telefone'))
         email = (request.POST.get('email') or '').strip().lower()
-        cpf = (request.POST.get('cpf') or '').strip()
+        cpf_raw = (request.POST.get('cpf') or '').strip()
+        cpf_digits = ''.join(ch for ch in cpf_raw if ch.isdigit())
+        cpf = cpf_digits or None
         senha = (request.POST.get('senha') or '').strip()
 
         if not nome_completo:
@@ -114,6 +117,11 @@ def cadastro_freelancer_publico(request):
             messages.error(request, 'Este e-mail já está cadastrado. Faça login para continuar.')
             return render(request, 'freelancer_publico/cadastro.html', context)
 
+        # Evita 500 por CPF já existente (compatível com dados legados formatados).
+        if cpf and Freelance.objects.filter(Q(cpf=cpf) | Q(cpf=cpf_raw)).exists():
+            messages.error(request, 'Este CPF já possui cadastro. Faça login para continuar.')
+            return render(request, 'freelancer_publico/cadastro.html', context)
+
         auto_generated_password = False
         if not senha:
             senha = secrets.token_urlsafe(8)
@@ -125,32 +133,37 @@ def cadastro_freelancer_publico(request):
         if not empresa_contratante:
             empresa_contratante = EmpresaContratante.objects.filter(nome_fantasia__icontains='Eventix').first()
 
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password=senha,
-            first_name=nome_completo.split(' ')[0],
-            last_name=' '.join(nome_completo.split(' ')[1:]) if len(nome_completo.split(' ')) > 1 else '',
-            tipo_usuario='freelancer',
-            empresa_contratante=empresa_contratante,
-        )
-
-        freelancer = Freelance.objects.create(
-            usuario=user,
-            nome_completo=nome_completo,
-            telefone=telefone,
-            cpf=cpf or None,
-        )
-
-        funcao_id = invite_data.get('funcao_id')
-        if funcao_id:
-            funcao = Funcao.objects.filter(id=funcao_id, ativo=True).first()
-            if funcao:
-                FreelancerFuncao.objects.get_or_create(
-                    freelancer=freelancer,
-                    funcao=funcao,
-                    defaults={'nivel': 'iniciante', 'ativo': True},
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=senha,
+                    first_name=nome_completo.split(' ')[0],
+                    last_name=' '.join(nome_completo.split(' ')[1:]) if len(nome_completo.split(' ')) > 1 else '',
+                    tipo_usuario='freelancer',
+                    empresa_contratante=empresa_contratante,
                 )
+
+                freelancer = Freelance.objects.create(
+                    usuario=user,
+                    nome_completo=nome_completo,
+                    telefone=telefone,
+                    cpf=cpf,
+                )
+
+                funcao_id = invite_data.get('funcao_id')
+                if funcao_id:
+                    funcao = Funcao.objects.filter(id=funcao_id, ativo=True).first()
+                    if funcao:
+                        FreelancerFuncao.objects.get_or_create(
+                            freelancer=freelancer,
+                            funcao=funcao,
+                            defaults={'nivel': 'iniciante', 'ativo': True},
+                        )
+        except IntegrityError:
+            messages.error(request, 'Não foi possível concluir o cadastro. Confira CPF/e-mail e tente novamente.')
+            return render(request, 'freelancer_publico/cadastro.html', context)
 
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
