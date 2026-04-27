@@ -32,7 +32,7 @@ Future<LoginResult?> login(String email, String senha) async {
     final response = await ApiClient.dio.post(
       AppConfig.login,
       data: {
-        "email": email,
+        "username": email,
         "password": senha,
       },
     );
@@ -40,19 +40,21 @@ Future<LoginResult?> login(String email, String senha) async {
     print('🔑 Resposta do login: ${response.data}');
     print('🔑 Status code: ${response.statusCode}');
 
+    final data = response.data;
+    final tokens = data['tokens'] is Map ? data['tokens'] as Map : const {};
+
     // Checar se as chaves existem
-    if (response.data['access'] == null || response.data['refresh'] == null) {
+    if (tokens['access'] == null || tokens['refresh'] == null) {
       print('❌ ERRO: API não retornou tokens.');
       return null;
     }
 
     // Montar objeto
-    final data = response.data;
     final user = data['user'] ?? {};
 
     return LoginResult(
-      accessToken: data['access'],
-      refreshToken: data['refresh'],
+      accessToken: tokens['access'],
+      refreshToken: tokens['refresh'],
       nome: user['first_name'] ?? user['nome'] ?? 'Usuário',
       email: user['email'] ?? email,
       telefone: user['telefone'] ?? '',

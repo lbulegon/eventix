@@ -26,6 +26,11 @@ urlpatterns = [
     
     # Sistema de autenticação única (namespace dedicado para evitar colisão)
     path("api/auth/", include(("api_v01.urls.urls", "api_v01"), namespace="api_v01_auth")),
+    # Compatibilidade para clientes antigos que ainda chamam /api/v1/auth/*
+    path(
+        "api/v1/auth/",
+        include(("api_v01.urls.urls", "api_v01"), namespace="api_v01_auth_v1_compat"),
+    ),
     
     # API Eventos v1 (novo fluxo operacional)
     path("api/v1/", include("api_v01.urls.eventos")),
