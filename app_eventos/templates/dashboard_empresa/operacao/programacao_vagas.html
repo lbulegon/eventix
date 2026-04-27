@@ -1,0 +1,247 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Programação de vagas — {{ unidade.nome }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">Unidades</a></li>
+        <li class="breadcrumb-item active">Programação de vagas</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h4 class="mb-1">Programação de vagas</h4>
+        <p class="text-muted small mb-0">
+            Defina a carga semanal por função e gere as vagas para os próximos dias em um único fluxo.
+        </p>
+    </div>
+    <a href="{% url 'dashboard_empresa:operacao_regras_lista' unidade.pk %}" class="btn btn-outline-secondary btn-sm">Ver regras técnicas</a>
+</div>
+
+{% if sem_funcoes %}
+<div class="alert alert-danger">Sem funções disponíveis para programar vagas nesta empresa.</div>
+{% endif %}
+
+<form method="post" id="form-programacao-vagas" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="carga_json" id="carga_json" value="" />
+    <input type="hidden" name="acao" id="acao_programacao" value="" />
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <h6 class="mb-2">Passo 1 — Configurar janela e modo de aplicação</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label for="dias_geracao" class="form-label">Janela de geração</label>
+                    <select class="form-select" id="dias_geracao" name="dias_geracao">
+                        <option value="7" {% if dias_janela == 7 %}selected{% endif %}>7 dias</option>
+                        <option value="14" {% if dias_janela == 14 %}selected{% endif %}>14 dias</option>
+                        <option value="30" {% if dias_janela == 30 %}selected{% endif %}>30 dias</option>
+                        <option value="60" {% if dias_janela == 60 %}selected{% endif %}>60 dias</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="modo_aplicacao" class="form-label">Modo de aplicação</label>
+                    <select class="form-select" id="modo_aplicacao" name="modo_aplicacao">
+                        <option value="sincronizar" {% if modo_aplicacao == 'sincronizar' %}selected{% endif %}>
+                            Sincronizar futuras (cria e atualiza)
+                        </option>
+                        <option value="somente_novos" {% if modo_aplicacao == 'somente_novos' %}selected{% endif %}>
+                            Somente novas datas (não altera existentes)
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <div class="alert alert-warning py-2 mb-0 small">
+                        <strong>Aplicar programação</strong> substitui as regras de recorrência da unidade na janela escolhida.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h6 class="mb-2">Passo 2 — Definir carga semanal</h6>
+    <div class="row g-3">
+        {% for d in dias %}
+        <div class="col-12" data-weekday-card="{{ d.weekday }}">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                    <div class="form-check m-0">
+                        <input class="form-check-input js-dia-ativo" type="checkbox" id="ativo_{{ d.weekday }}" {% if d.ativo %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="ativo_{{ d.weekday }}">{{ d.label }}</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <input type="time" class="form-control form-control-sm js-hora-ini" style="width:7.5rem" value="{{ d.hora_inicio }}">
+                        <span>—</span>
+                        <input type="time" class="form-control form-control-sm js-hora-fim" style="width:7.5rem" value="{{ d.hora_fim }}">
+                    </div>
+                </div>
+                <div class="card-body py-2">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr><th>Função</th><th style="width:7rem">Qtd</th><th style="width:3rem"></th></tr>
+                            </thead>
+                            <tbody class="js-tbody-demandas">
+                                {% for dem in d.demandas %}
+                                <tr class="js-linha-demanda">
+                                    <td>
+                                        <select class="form-select form-select-sm js-sel-funcao" {% if sem_funcoes %}disabled{% endif %}>
+                                            <option value="">—</option>
+                                            {% for f in funcoes %}
+                                            <option value="{{ f.pk }}" {% if f.pk == dem.funcao_id %}selected{% endif %}>{{ f.nome }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="form-control form-control-sm js-inp-qtd" min="0" value="{{ dem.quantidade|default:1 }}"></td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-danger js-linha-rm">×</button></td>
+                                </tr>
+                                {% empty %}
+                                <tr class="js-linha-demanda">
+                                    <td>
+                                        <select class="form-select form-select-sm js-sel-funcao" {% if sem_funcoes %}disabled{% endif %}>
+                                            <option value="">—</option>
+                                            {% for f in funcoes %}
+                                            <option value="{{ f.pk }}">{{ f.nome }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="form-control form-control-sm js-inp-qtd" min="0" value="1"></td>
+                                    <td><button type="button" class="btn btn-sm btn-outline-danger js-linha-rm">×</button></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-2 js-add-linha" {% if sem_funcoes %}disabled{% endif %}>+ Função</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="button" class="btn btn-outline-primary" id="btn-preview" {% if sem_funcoes %}disabled{% endif %}>Passo 3: Pré-visualizar geração</button>
+        <button type="button" class="btn btn-primary" id="btn-apply" {% if sem_funcoes %}disabled{% endif %}>Passo 4: Aplicar programação</button>
+    </div>
+</form>
+
+{% if preview %}
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-light">
+        <strong>Pré-visualização</strong>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-primary py-2 small mb-3">
+            <strong>Resumo:</strong>
+            Serão analisados {{ preview.totais.vagas_total_planeadas }} slot(s) de vaga em
+            {{ preview.totais.itens_analisados }} turno(s), com {{ preview.totais.funcoes_unicas }} função(ões).
+            Impacto direto: <strong>{{ preview.totais.vagas_impactadas }}</strong> vaga(s) (criar/atualizar).
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-md-3"><div class="small text-muted">Turnos a criar</div><div class="h5 mb-0">{{ preview.totais.turnos_criar }}</div></div>
+            <div class="col-md-3"><div class="small text-muted">Turnos a sincronizar</div><div class="h5 mb-0">{{ preview.totais.turnos_sincronizar }}</div></div>
+            <div class="col-md-3"><div class="small text-muted">Vagas a criar</div><div class="h5 mb-0">{{ preview.totais.vagas_criar }}</div></div>
+            <div class="col-md-3"><div class="small text-muted">Vagas a atualizar</div><div class="h5 mb-0">{{ preview.totais.vagas_atualizar }}</div></div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Data</th><th>Turno</th><th>Ação</th><th>Funções</th></tr></thead>
+                <tbody>
+                    {% for item in preview.detalhes|slice:":40" %}
+                    <tr>
+                        <td>{{ item.data|date:"d/m/Y" }}</td>
+                        <td>{{ item.hora_inicio|time:"H:i" }} — {{ item.hora_fim|time:"H:i" }}</td>
+                        <td>
+                            {% if item.acao_turno == 'criar' %}
+                                <span class="badge bg-success">criar</span>
+                            {% else %}
+                                <span class="badge bg-secondary">sincronizar</span>
+                            {% endif %}
+                        </td>
+                        <td class="small">
+                            {% for f in item.funcoes %}
+                                {{ f.funcao_nome }}:
+                                {% if f.acao == 'criar' %}
+                                    <span class="badge bg-success">criar</span>
+                                {% elif f.acao == 'atualizar' %}
+                                    <span class="badge bg-warning text-dark">atualizar</span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark border">manter</span>
+                                {% endif %}
+                                {% if f.qtd_atual %}(atual {{ f.qtd_atual }} → desejada {{ f.qtd_desejada }}){% else %}(desejada {{ f.qtd_desejada }}){% endif %}
+                                {% if not forloop.last %}; {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<template id="tpl-select-funcoes">
+    <select class="form-select form-select-sm js-sel-funcao">
+        <option value="">—</option>
+        {% for f in funcoes %}<option value="{{ f.pk }}">{{ f.nome }}</option>{% endfor %}
+    </select>
+</template>
+
+<script>
+(function () {
+  const form = document.getElementById('form-programacao-vagas');
+  const hidden = document.getElementById('carga_json');
+  const acao = document.getElementById('acao_programacao');
+  const tpl = document.getElementById('tpl-select-funcoes');
+  if (!form || !hidden || !acao) return;
+
+  function collectPayload() {
+    const dias = [];
+    document.querySelectorAll('[data-weekday-card]').forEach(function (card, idx) {
+      const ativo = card.querySelector('.js-dia-ativo')?.checked || false;
+      const hi = card.querySelector('.js-hora-ini')?.value || '08:00';
+      const hf = card.querySelector('.js-hora-fim')?.value || '16:00';
+      const demandas = [];
+      card.querySelectorAll('tr.js-linha-demanda').forEach(function (tr) {
+        const fid = parseInt(tr.querySelector('.js-sel-funcao')?.value || '0', 10);
+        const qtd = parseInt(tr.querySelector('.js-inp-qtd')?.value || '0', 10);
+        if (fid > 0 && qtd > 0) demandas.push({ funcao_id: fid, quantidade: qtd });
+      });
+      dias.push({ weekday: idx, ativo: ativo, hora_inicio: hi, hora_fim: hf, demandas: demandas });
+    });
+    return { dias: dias };
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target?.classList.contains('js-add-linha')) {
+      const tbody = e.target.closest('.card-body')?.querySelector('.js-tbody-demandas');
+      if (!tbody) return;
+      const tr = document.createElement('tr');
+      tr.className = 'js-linha-demanda';
+      tr.innerHTML =
+        '<td></td><td><input type="number" class="form-control form-control-sm js-inp-qtd" min="0" value="1"></td><td><button type="button" class="btn btn-sm btn-outline-danger js-linha-rm">×</button></td>';
+      const sel = tpl.content.firstElementChild.cloneNode(true);
+      tr.children[0].appendChild(sel);
+      tbody.appendChild(tr);
+    }
+    if (e.target?.classList.contains('js-linha-rm')) {
+      const tr = e.target.closest('tr.js-linha-demanda');
+      const tb = tr?.parentElement;
+      if (tr && tb && tb.querySelectorAll('tr.js-linha-demanda').length > 1) tr.remove();
+    }
+  });
+
+  function submitAcao(tipo) {
+    hidden.value = JSON.stringify(collectPayload());
+    acao.value = tipo;
+    form.submit();
+  }
+  document.getElementById('btn-preview')?.addEventListener('click', function () { submitAcao('preview'); });
+  document.getElementById('btn-apply')?.addEventListener('click', function () { submitAcao('apply'); });
+})();
+</script>
+{% endblock %}
+

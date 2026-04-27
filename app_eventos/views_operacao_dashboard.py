@@ -36,6 +36,7 @@ from app_eventos.services.carga_semanal_operacao import (
     substituir_regras_pela_carga,
 )
 from app_eventos.services.motor_recorrencia_turnos import gerar_turnos_janela
+from app_eventos.services.programacao_vagas_preview import simular_geracao_programacao
 from app_eventos.utils_empresa_ativa import empresa_ativa
 
 
@@ -456,6 +457,96 @@ def operacao_carga_semanal(request, unidade_pk):
             'dias': dias_dataclass_para_contexto(dias_dc),
             'funcoes': funcoes,
             'avisos_grade': avisos_grade,
+            'sem_funcoes': not funcoes.exists(),
+            'user': request.user,
+        },
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def operacao_programacao_vagas(request, unidade_pk):
+    """
+    UX principal de programação:
+    - monta a grade semanal
+    - pré-visualiza impacto de geração
+    - aplica grade e gera/sincroniza turnos + vagas
+    """
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    unidade = get_object_or_404(
+        UnidadeOperacional,
+        pk=unidade_pk,
+        empresa_contratante=empresa,
+    )
+    funcoes = _funcoes_carga_semanal_queryset(empresa)
+    dias_dc = grade_a_partir_das_regras(unidade)
+    preview = None
+    modo_aplicacao = 'sincronizar'
+    dias_janela = 14
+
+    if request.method == 'POST':
+        acao = (request.POST.get('acao') or '').strip()
+        raw = (request.POST.get('carga_json') or '').strip()
+        modo_aplicacao = (request.POST.get('modo_aplicacao') or 'sincronizar').strip()
+        if modo_aplicacao not in {'sincronizar', 'somente_novos'}:
+            modo_aplicacao = 'sincronizar'
+        try:
+            dias_janela = int(request.POST.get('dias_geracao', 14))
+        except ValueError:
+            dias_janela = 14
+        dias_janela = max(1, min(dias_janela, 60))
+        try:
+            payload = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            messages.error(request, 'Não foi possível interpretar os dados da programação.')
+        else:
+            dias_dc = payload_lista_para_dias(payload)
+            if acao == 'preview':
+                preview = simular_geracao_programacao(
+                    unidade,
+                    dias_grade=dias_dc,
+                    dias_a_frente=dias_janela,
+                )
+                messages.info(request, 'Pré-visualização pronta. Revise e clique em aplicar.')
+            elif acao == 'apply':
+                try:
+                    grupos = agrupar_carga_para_regras(dias_dc)
+                    substituir_regras_pela_carga(unidade, empresa=empresa, grupos=grupos)
+                except ValidationError as e:
+                    for m in e.messages:
+                        messages.error(request, m)
+                else:
+                    sincronizar_existentes = modo_aplicacao == 'sincronizar'
+                    resultado = gerar_turnos_janela(
+                        unidade,
+                        dias_a_frente=dias_janela,
+                        sincronizar_existentes=sincronizar_existentes,
+                    )
+                    messages.success(
+                        request,
+                        f"Programação aplicada. Turnos novos {resultado.get('turnos_criados', 0)}, "
+                        f"sincronizados {resultado.get('turnos_atualizados', 0)}, "
+                        f"vagas criadas {resultado.get('vagas_turno_criadas', 0)}, "
+                        f"vagas atualizadas {resultado.get('vagas_turno_atualizadas', 0)}.",
+                    )
+                    return redirect(
+                        'dashboard_empresa:operacao_programacao_vagas',
+                        unidade_pk=unidade.pk,
+                    )
+
+    return render(
+        request,
+        'dashboard_empresa/operacao/programacao_vagas.html',
+        {
+            'empresa': empresa,
+            'unidade': unidade,
+            'dias': dias_dataclass_para_contexto(dias_dc),
+            'funcoes': funcoes,
+            'preview': preview,
+            'modo_aplicacao': modo_aplicacao,
+            'dias_janela': dias_janela,
             'sem_funcoes': not funcoes.exists(),
             'user': request.user,
         },

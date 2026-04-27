@@ -67,6 +67,7 @@ def gerar_turnos_janela(
     *,
     dias_a_frente: int = 7,
     data_referencia: Optional[date] = None,
+    sincronizar_existentes: bool = True,
 ) -> dict:
     """
     Para cada regra ativa da unidade, gera turnos nos dias que batem dias_semana.
@@ -123,8 +124,9 @@ def gerar_turnos_janela(
 
                 if existente:
                     ignorados += 1
-                    turnos_atualizados += 1
-                    vagas_atualizadas += _sincronizar_vagas_para_turno(existente, regra)
+                    if sincronizar_existentes:
+                        turnos_atualizados += 1
+                        vagas_atualizadas += _sincronizar_vagas_para_turno(existente, regra)
                     d += timedelta(days=1)
                     continue
 
