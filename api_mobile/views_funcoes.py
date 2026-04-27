@@ -4,7 +4,6 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
 
 from app_eventos.models import Freelance, Funcao, TipoFuncao, FreelancerFuncao
 from .serializers import FuncaoSerializer, FreelancerFuncaoSerializer
@@ -18,17 +17,7 @@ class FuncaoViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         queryset = Funcao.objects.filter(ativo=True).select_related('tipo_funcao')
-        
-        # Filtrar apenas funções de segurança
-        queryset = queryset.filter(
-            Q(nome__icontains='segurança') |
-            Q(nome__icontains='seguranca') |
-            Q(nome__icontains='security') |
-            Q(tipo_funcao__nome__icontains='segurança') |
-            Q(tipo_funcao__nome__icontains='seguranca') |
-            Q(tipo_funcao__nome__icontains='security')
-        )
-        
+
         return queryset.order_by('tipo_funcao__nome', 'nome')
 
 class FreelancerFuncaoViewSet(viewsets.ModelViewSet):

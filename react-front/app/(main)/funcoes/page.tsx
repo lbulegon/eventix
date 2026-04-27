@@ -74,10 +74,11 @@ export default function FuncoesPage() {
         <section>
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-[#B0B3B8]">Disponíveis para adicionar</h2>
           <ul className="space-y-2">
-            {disponiveis.map((f) => {
+            {disponiveis
+              .filter((f) => !minhasIds.has(Number(f.id)))
+              .map((f) => {
               const id = Number(f.id);
               const nome = String(f.nome ?? id);
-              const ja = minhasIds.has(id);
               return (
                 <li
                   key={id}
@@ -86,11 +87,11 @@ export default function FuncoesPage() {
                   <span className="text-white">{nome}</span>
                   <button
                     type="button"
-                    disabled={ja || loading}
+                    disabled={loading}
                     className="shrink-0 rounded bg-[#6366F1] px-3 py-1 text-xs text-white disabled:opacity-40"
                     onClick={() => add(id)}
                   >
-                    {ja ? 'Já tens' : 'Adicionar'}
+                    Adicionar
                   </button>
                 </li>
               );

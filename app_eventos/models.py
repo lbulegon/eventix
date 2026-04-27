@@ -1701,9 +1701,20 @@ class Vaga(models.Model):
     def esta_aberta_candidatura(self):
         """Verifica se ainda está aberto para candidaturas"""
         from django.utils import timezone
-        if not self.data_limite_candidatura:
-            return self.ativa and self.publicada
-        return self.ativa and self.publicada and timezone.now() <= self.data_limite_candidatura
+        if not (self.ativa and self.publicada):
+            return False
+
+        now = timezone.now()
+        if self.data_limite_candidatura and now > self.data_limite_candidatura:
+            return False
+        # Regra de negócio: candidatura só pode ocorrer até o início do turno/trabalho.
+        if self.data_inicio_trabalho and now > self.data_inicio_trabalho:
+            return False
+        # Fallback para dados legados: sem início explícito da vaga, usa início do evento.
+        evento_ref = self.evento or (self.setor.evento if self.setor_id else None)
+        if not self.data_inicio_trabalho and evento_ref and now.date() > evento_ref.data_inicio:
+            return False
+        return True
     
     @property
     def tem_vagas_disponiveis(self):

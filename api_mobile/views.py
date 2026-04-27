@@ -61,8 +61,23 @@ class VagaViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
+        now = timezone.now()
+        today = timezone.localdate()
         queryset = (
-            Vaga.objects.filter(ativa=True)
+            Vaga.objects.filter(
+                ativa=True,
+            )
+            .filter(
+                Q(data_limite_candidatura__isnull=True) | Q(data_limite_candidatura__gte=now)
+            )
+            .filter(
+                Q(data_inicio_trabalho__gte=now)
+                # Fallback legado: sem data_inicio_trabalho, respeitar data de início do evento.
+                | Q(data_inicio_trabalho__isnull=True, setor__evento__data_inicio__gte=today)
+                | Q(data_inicio_trabalho__isnull=True, evento__data_inicio__gte=today)
+                # Vagas de operação contínua (ponto de operação) podem não ter data de evento.
+                | Q(data_inicio_trabalho__isnull=True, ponto_operacao__isnull=False)
+            )
             .annotate(_candidaturas_count=Count('candidaturas'))
             .select_related(
                 'setor__evento',
@@ -158,6 +173,11 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         # Verificar se já existe candidatura
         if Candidatura.objects.filter(freelance=freelance, vaga=vaga).exists():
             raise serializers.ValidationError("Você já se candidatou para esta vaga")
+
+        if not vaga.pode_candidatar():
+            raise serializers.ValidationError(
+                "Esta vaga não está mais disponível para candidatura (prazo/turno encerrado)."
+            )
         
         serializer.save(freelance=freelance)
     

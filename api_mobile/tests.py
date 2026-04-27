@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.urls import reverse
+from django.utils import timezone
+from datetime import timedelta
 
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, EmpresaContratante, PlanoContratacao, GrupoEmpresarial,
@@ -110,6 +112,16 @@ class VagaAPITestCase(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), 1)
+
+    def test_listar_vagas_oculta_turno_iniciado(self):
+        """Vaga com data_inicio_trabalho no passado não deve aparecer."""
+        self.vaga.data_inicio_trabalho = timezone.now() - timedelta(hours=1)
+        self.vaga.save(update_fields=['data_inicio_trabalho'])
+        self.client.force_authenticate(user=self.user_freelancer)
+        url = reverse('vaga-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 0)
     
     def test_listar_vagas_nao_autenticado(self):
         """Teste para listar vagas sem autenticação"""
@@ -132,6 +144,18 @@ class VagaAPITestCase(APITestCase):
         ).first()
         self.assertIsNotNone(candidatura)
         self.assertEqual(candidatura.status, 'pendente')
+
+    def test_candidatar_vaga_com_turno_iniciado_bloqueia(self):
+        self.vaga.data_inicio_trabalho = timezone.now() - timedelta(minutes=10)
+        self.vaga.publicada = True
+        self.vaga.save(update_fields=['data_inicio_trabalho', 'publicada'])
+        self.client.force_authenticate(user=self.user_freelancer)
+        url = reverse('candidatura-list')
+        response = self.client.post(url, {'vaga_id': self.vaga.id})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(
+            Candidatura.objects.filter(freelance=self.freelancer, vaga=self.vaga).exists()
+        )
     
     def test_listar_minhas_candidaturas(self):
         """Teste para listar candidaturas do freelancer"""
