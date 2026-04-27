@@ -94,6 +94,11 @@ urlpatterns = [
         views_operacao_dashboard.operacao_regra_nova,
         name='operacao_regra_nova',
     ),
+    path(
+        'operacao/unidades/<int:unidade_pk>/carga-semanal/',
+        views_operacao_dashboard.operacao_carga_semanal,
+        name='operacao_carga_semanal',
+    ),
     path('operacao/regras/<int:pk>/editar/', views_operacao_dashboard.operacao_regra_editar, name='operacao_regra_editar'),
     path('operacao/regras/<int:pk>/excluir/', views_operacao_dashboard.operacao_regra_excluir, name='operacao_regra_excluir'),
     path('operacao/turnos/', views_operacao_dashboard.operacao_turnos_lista, name='operacao_turnos_lista'),

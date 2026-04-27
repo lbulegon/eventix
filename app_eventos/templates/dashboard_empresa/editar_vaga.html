@@ -75,6 +75,13 @@
                                   placeholder="Descreva as responsabilidades, requisitos e o que o profissional vai fazer...">{{ vaga.descricao }}</textarea>
                         <small class="text-muted">Seja claro sobre as responsabilidades e requisitos da vaga</small>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="data_inicio_trabalho" class="form-label">Início do Turno *</label>
+                        <input type="datetime-local" class="form-control" id="data_inicio_trabalho" name="data_inicio_trabalho" required
+                               value="{% if vaga.data_inicio_trabalho %}{{ vaga.data_inicio_trabalho|date:'Y-m-d\\TH:i' }}{% endif %}">
+                        <small class="text-muted">A vaga ficará disponível até este horário de início.</small>
+                    </div>
                     
                     <div class="row">
                         <div class="col-md-4">

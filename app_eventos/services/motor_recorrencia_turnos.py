@@ -32,6 +32,36 @@ def _criar_vagas_para_turno(turno, regra: RegraRecorrencia):
         )
 
 
+def _sincronizar_vagas_para_turno(turno, regra: RegraRecorrencia) -> int:
+    """
+    Sincroniza capacidade das vagas do turno com a regra atual.
+    - cria função faltante;
+    - se já existe, ajusta quantidade_total para o alvo (sem ficar abaixo de preenchida).
+    Não remove funções antigas para evitar perda de dados operacionais.
+    Retorna quantidade de linhas criadas/atualizadas.
+    """
+    alteradas = 0
+    demandas = RegraRecorrenciaFuncao.objects.filter(regra=regra).select_related('funcao')
+    for d in demandas:
+        vaga, criada = VagaTurno.objects.get_or_create(
+            turno=turno,
+            funcao_id=d.funcao_id,
+            defaults={
+                'quantidade_total': d.quantidade,
+                'quantidade_preenchida': 0,
+            },
+        )
+        if criada:
+            alteradas += 1
+            continue
+        alvo = max(int(d.quantidade), int(vaga.quantidade_preenchida))
+        if vaga.quantidade_total != alvo:
+            vaga.quantidade_total = alvo
+            vaga.save(update_fields=['quantidade_total'])
+            alteradas += 1
+    return alteradas
+
+
 def gerar_turnos_janela(
     unidade: UnidadeOperacional,
     *,
@@ -42,16 +72,30 @@ def gerar_turnos_janela(
     Para cada regra ativa da unidade, gera turnos nos dias que batem dias_semana.
 
     Returns:
-        dict com chaves: turnos_criados, vagas_turno_criadas, turnos_existentes_ignorados
+        dict com chaves:
+          - turnos_criados
+          - turnos_atualizados
+          - vagas_turno_criadas
+          - vagas_turno_atualizadas
+          - turnos_existentes_ignorados (mantido por compatibilidade)
     """
     if not unidade.ativo:
-        return {'erro': 'Unidade inativa.', 'turnos_criados': 0, 'vagas_turno_criadas': 0, 'turnos_existentes_ignorados': 0}
+        return {
+            'erro': 'Unidade inativa.',
+            'turnos_criados': 0,
+            'turnos_atualizados': 0,
+            'vagas_turno_criadas': 0,
+            'vagas_turno_atualizadas': 0,
+            'turnos_existentes_ignorados': 0,
+        }
 
     data_ref = data_referencia or date.today()
     limite = data_ref + timedelta(days=max(0, dias_a_frente))
 
     turnos_criados = 0
+    turnos_atualizados = 0
     vagas_criadas = 0
+    vagas_atualizadas = 0
     ignorados = 0
 
     regras = RegraRecorrencia.objects.filter(unidade=unidade, ativo=True).prefetch_related('demandas_por_funcao')
@@ -79,6 +123,8 @@ def gerar_turnos_janela(
 
                 if existente:
                     ignorados += 1
+                    turnos_atualizados += 1
+                    vagas_atualizadas += _sincronizar_vagas_para_turno(existente, regra)
                     d += timedelta(days=1)
                     continue
 
@@ -102,6 +148,8 @@ def gerar_turnos_janela(
 
     return {
         'turnos_criados': turnos_criados,
+        'turnos_atualizados': turnos_atualizados,
         'vagas_turno_criadas': vagas_criadas,
+        'vagas_turno_atualizadas': vagas_atualizadas,
         'turnos_existentes_ignorados': ignorados,
     }

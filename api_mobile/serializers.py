@@ -165,6 +165,7 @@ class VagaSerializer(serializers.ModelSerializer):
             'ponto_operacao', 'ponto_operacao_id',
             'empresa_contratante', 'empresa_contratante_id',
             'quantidade', 'remuneracao', 'descricao', 'ativa',
+            'data_inicio_trabalho', 'data_limite_candidatura',
             'evento_nome', 'candidaturas_count'
         ]
     
@@ -209,6 +210,14 @@ class VagaSerializer(serializers.ModelSerializer):
             )
         if not funcao:
             raise serializers.ValidationError("Informe a função (especialidade) da vaga.")
+        data_inicio = attrs.get('data_inicio_trabalho', getattr(self.instance, 'data_inicio_trabalho', None))
+        if not data_inicio:
+            raise serializers.ValidationError(
+                "Informe data_inicio_trabalho (início do turno) para publicar a vaga."
+            )
+        # Mantém consistência: por padrão o prazo de candidatura acompanha o início do turno.
+        if not attrs.get('data_limite_candidatura'):
+            attrs['data_limite_candidatura'] = data_inicio
 
         empresa_user_id = None
         if user and getattr(user, 'is_empresa_user', False) and user.empresa_contratante_id:

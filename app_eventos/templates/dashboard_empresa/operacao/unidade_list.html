@@ -34,6 +34,7 @@
                 <td class="small">{% if u.tipo == 'evento' and u.evento %}{{ u.evento.nome }}{% elif u.ponto_operacao %}{{ u.ponto_operacao.nome }}{% else %}—{% endif %}</td>
                 <td>{% if u.ativo %}<span class="badge bg-success">Sim</span>{% else %}<span class="badge bg-secondary">Não</span>{% endif %}</td>
                 <td class="text-end">
+                    <a href="{% url 'dashboard_empresa:operacao_carga_semanal' u.pk %}" class="btn btn-sm btn-success" title="Planeamento por dia da semana">Carga sem.</a>
                     <a href="{% url 'dashboard_empresa:operacao_regras_lista' u.pk %}" class="btn btn-sm btn-outline-primary">Regras</a>
                     <a href="{% url 'dashboard_empresa:operacao_unidade_editar' u.pk %}" class="btn btn-sm btn-outline-secondary">Editar</a>
                 </td>

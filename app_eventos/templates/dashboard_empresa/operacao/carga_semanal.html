@@ -1,0 +1,256 @@
+{% extends 'dashboard_empresa/base.html' %}
+{% block page_title %}Carga semanal — {{ unidade.nome }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_turnos' %}">Operação e turnos</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_unidades_lista' %}">Unidades</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'dashboard_empresa:operacao_regras_lista' unidade.pk %}">Regras</a></li>
+        <li class="breadcrumb-item active">Carga semanal</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+    <div>
+        <h4 class="mb-1">Planeamento de carga por dia da semana</h4>
+        <p class="text-muted small mb-0">
+            <strong>{{ unidade.nome }}</strong> — Defina, para cada dia, o horário do turno e quantas vagas precisa por função.
+            Dias com a <em>mesma</em> combinação (horário + funções e quantidades) são guardados numa única regra.
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <form method="post" action="{% url 'dashboard_empresa:operacao_gerar_turnos' unidade.pk %}" class="d-inline">
+            {% csrf_token %}
+            <input type="hidden" name="dias" value="14" />
+            <button type="submit" class="btn btn-outline-primary btn-sm">Gerar turnos (14 dias)</button>
+        </form>
+        <a href="{% url 'dashboard_empresa:operacao_regras_lista' unidade.pk %}" class="btn btn-outline-secondary btn-sm">Lista de regras</a>
+    </div>
+</div>
+
+<div class="alert alert-warning small mb-3">
+    <strong>Atenção:</strong> ao guardar, <strong>substitui todas as regras de recorrência</strong> desta unidade
+    (as linhas em «Regras») pelas que definir aqui. Turnos já materializados no calendário não são apagados;
+    use a lista de turnos para ajustar casos pontuais.
+</div>
+
+{% for a in avisos_grade %}
+<div class="alert alert-info small py-2">{{ a }}</div>
+{% endfor %}
+
+{% if sem_funcoes %}
+<div class="alert alert-danger">Não há funções disponíveis para a sua empresa. Crie funções no admin ou em configurações antes de planear a carga.</div>
+{% endif %}
+
+<form method="post" id="form-carga-semanal" class="mb-4" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="carga_json" id="carga_json" value="" />
+
+    <div class="row g-3">
+        {% for d in dias %}
+        <div class="col-12" data-weekday-card="{{ d.weekday }}">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2 py-2 bg-light">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="form-check m-0">
+                            <input class="form-check-input js-dia-ativo" type="checkbox" name="ativo_{{ d.weekday }}"
+                                   id="ativo_{{ d.weekday }}" data-weekday="{{ d.weekday }}" {% if d.ativo %}checked{% endif %} />
+                            <label class="form-check-label fw-semibold" for="ativo_{{ d.weekday }}">{{ d.label }}</label>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap align-items-center gap-2 small">
+                        <span class="text-muted">Turno</span>
+                        <input type="time" class="form-control form-control-sm js-hora-ini" style="width:7.5rem"
+                               data-weekday="{{ d.weekday }}" value="{{ d.hora_inicio }}" />
+                        <span>—</span>
+                        <input type="time" class="form-control form-control-sm js-hora-fim" style="width:7.5rem"
+                               data-weekday="{{ d.weekday }}" value="{{ d.hora_fim }}" />
+                    </div>
+                </div>
+                <div class="card-body py-2">
+                    {% if d.aviso %}
+                    <div class="alert alert-warning small py-1 mb-2">{{ d.aviso }}</div>
+                    {% endif %}
+                    <p class="small text-muted mb-2">Funções e quantidade de vagas neste turno (por dia).</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Função</th>
+                                    <th style="width:6rem">Qtd</th>
+                                    <th style="width:2.5rem"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="js-tbody-demandas" data-weekday="{{ d.weekday }}">
+                                {% for dem in d.demandas %}
+                                <tr class="js-linha-demanda">
+                                    <td>
+                                        <select class="form-select form-select-sm js-sel-funcao" name="f_ign" {% if sem_funcoes %}disabled{% endif %}>
+                                            <option value="">—</option>
+                                            {% for f in funcoes %}
+                                            <option value="{{ f.pk }}"
+                                                {% if f.pk == dem.funcao_id %}selected{% endif %}>
+                                                {{ f.nome }}{% if f.tipo_funcao %} ({{ f.tipo_funcao.nome }}){% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" class="form-control form-control-sm js-inp-qtd" min="0" value="{{ dem.quantidade|default:1 }}" />
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 js-linha-rm" title="Remover linha">×</button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr class="js-linha-demanda">
+                                    <td>
+                                        <select class="form-select form-select-sm js-sel-funcao" name="f_ign" {% if sem_funcoes %}disabled{% endif %}>
+                                            <option value="">—</option>
+                                            {% for f in funcoes %}
+                                            <option value="{{ f.pk }}">{{ f.nome }}{% if f.tipo_funcao %} ({{ f.tipo_funcao.nome }}){% endif %}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="form-control form-control-sm js-inp-qtd" min="0" value="1" /></td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-outline-danger py-0 js-linha-rm" title="Remover linha">×</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-1 js-add-linha" data-weekday="{{ d.weekday }}" {% if sem_funcoes %}disabled{% endif %}>
+                        + Função
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="d-flex flex-wrap gap-2 mt-4">
+        <div class="d-flex align-items-center flex-wrap gap-2 me-3">
+            <input class="form-check-input" type="checkbox" value="1" id="gerar_apos_salvar" name="gerar_apos_salvar" checked>
+            <label class="form-check-label" for="gerar_apos_salvar">Gerar turnos após guardar</label>
+            <select class="form-select form-select-sm" style="width:8rem" name="dias_geracao" id="dias_geracao">
+                <option value="7">7 dias</option>
+                <option value="14" selected>14 dias</option>
+                <option value="30">30 dias</option>
+                <option value="60">60 dias</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-carga" {% if sem_funcoes %}disabled{% endif %}>
+            Guardar carga semanal
+        </button>
+        <a href="{% url 'dashboard_empresa:operacao_regras_lista' unidade.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+    </div>
+</form>
+
+<template id="tpl-select-funcoes">
+        <select class="form-select form-select-sm js-sel-funcao">
+            <option value="">—</option>
+            {% for f in funcoes %}
+            <option value="{{ f.pk }}">{{ f.nome }}{% if f.tipo_funcao %} ({{ f.tipo_funcao.nome }}){% endif %}</option>
+            {% endfor %}
+        </select>
+</template>
+
+<script>
+(function () {
+  const form = document.getElementById('form-carga-semanal');
+  const hidden = document.getElementById('carga_json');
+  const tpl = document.getElementById('tpl-select-funcoes');
+  if (!form || !hidden) return;
+
+  function selClone() {
+    return tpl ? tpl.content.firstElementChild.cloneNode(true) : null;
+  }
+
+  function collectPayload() {
+    const dias = [];
+    for (let wd = 0; wd < 7; wd++) {
+      const card = document.querySelector('[data-weekday-card="' + wd + '"]');
+      if (!card) continue;
+      const ativo = card.querySelector('.js-dia-ativo') && card.querySelector('.js-dia-ativo').checked;
+      const hi = card.querySelector('.js-hora-ini') ? card.querySelector('.js-hora-ini').value : '08:00';
+      const hf = card.querySelector('.js-hora-fim') ? card.querySelector('.js-hora-fim').value : '16:00';
+      const demandas = [];
+      const tbody = card.querySelector('tbody.js-tbody-demandas');
+      if (tbody) {
+        tbody.querySelectorAll('tr.js-linha-demanda').forEach(function (tr) {
+          const sel = tr.querySelector('.js-sel-funcao');
+          const inp = tr.querySelector('.js-inp-qtd');
+          if (!sel || !inp) return;
+          const fid = sel.value ? parseInt(sel.value, 10) : 0;
+          const q = parseInt(inp.value, 10);
+          if (fid > 0 && !isNaN(q) && q > 0) {
+            demandas.push({ funcao_id: fid, quantidade: q });
+          }
+        });
+      }
+      dias.push({ weekday: wd, ativo: !!ativo, hora_inicio: hi, hora_fim: hf, demandas: demandas });
+    }
+    return { dias: dias };
+  }
+
+  function addLine(wd) {
+    const card = document.querySelector('[data-weekday-card="' + wd + '"]');
+    if (!card) return;
+    const tbody = card.querySelector('tbody.js-tbody-demandas');
+    if (!tbody) return;
+    const tr = document.createElement('tr');
+    tr.className = 'js-linha-demanda';
+    const c1 = document.createElement('td');
+    const c2 = document.createElement('td');
+    const c3 = document.createElement('td');
+    const s = selClone();
+    if (s) c1.appendChild(s);
+    const num = document.createElement('input');
+    num.type = 'number';
+    num.className = 'form-control form-control-sm js-inp-qtd';
+    num.min = '0';
+    num.value = '1';
+    c2.appendChild(num);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn btn-sm btn-outline-danger py-0 js-linha-rm';
+    b.title = 'Remover linha';
+    b.textContent = '×';
+    c3.appendChild(b);
+    tr.appendChild(c1);
+    tr.appendChild(c2);
+    tr.appendChild(c3);
+    tbody.appendChild(tr);
+  }
+
+  document.querySelectorAll('.js-add-linha').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      addLine(parseInt(btn.getAttribute('data-weekday'), 10));
+    });
+  });
+
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.classList.contains('js-linha-rm')) {
+      const tr = e.target.closest('tr.js-linha-demanda');
+      if (!tr) return;
+      const tb = tr.parentElement;
+      if (tb && tb.querySelectorAll('tr.js-linha-demanda').length > 1) {
+        tr.remove();
+      } else {
+        tr.querySelectorAll('select, input').forEach(function (el) {
+          if (el.classList && el.classList.contains('js-sel-funcao')) el.value = '';
+          if (el.classList && el.classList.contains('js-inp-qtd')) el.value = '0';
+        });
+      }
+    }
+  });
+
+  form.addEventListener('submit', function () {
+    const payload = collectPayload();
+    hidden.value = JSON.stringify(payload);
+  });
+})();
+</script>
+{% endblock %}

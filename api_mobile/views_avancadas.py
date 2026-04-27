@@ -9,8 +9,8 @@ from django.shortcuts import get_object_or_404
 
 from app_eventos.utils_empresa_ativa import empresa_contexto_api
 from app_eventos.models import (
-    Vaga, Candidatura, Evento, Freelance, Empresa, 
-    EmpresaContratante, SetorEvento, Funcao
+    Vaga, Candidatura, Evento, Freelance, Empresa,
+    EmpresaContratante, SetorEvento, Funcao, FreelancerFuncao
 )
 from app_eventos.services.matching_service import MatchingService, VagaRecommendationService
 from .serializers import (
@@ -32,12 +32,22 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
         user = self.request.user
         
         if user.is_freelancer:
-            # Freelancer vê vagas ativas e publicadas
-            return (
+            # Marketplace global para freelancer: vagas ativas/publicadas e ainda abertas por turno/prazo.
+            now = timezone.now()
+            today = timezone.localdate()
+            qs = (
                 Vaga.objects.filter(
                     ativa=True,
                     publicada=True,
-                    data_limite_candidatura__gte=timezone.now(),
+                )
+                .filter(
+                    Q(data_limite_candidatura__isnull=True) | Q(data_limite_candidatura__gte=now)
+                )
+                .filter(
+                    Q(data_inicio_trabalho__gte=now)
+                    | Q(data_inicio_trabalho__isnull=True, setor__evento__data_inicio__gte=today)
+                    | Q(data_inicio_trabalho__isnull=True, evento__data_inicio__gte=today)
+                    | Q(data_inicio_trabalho__isnull=True, ponto_operacao__isnull=False)
                 )
                 .annotate(**_VAGA_COUNT_ANNOTATE)
                 .select_related(
@@ -48,6 +58,17 @@ class VagaAvancadaViewSet(viewsets.ModelViewSet):
                     'empresa_contratante',
                 )
             )
+            try:
+                freelance = user.freelance
+            except Freelance.DoesNotExist:
+                return Vaga.objects.none()
+            funcao_ids = list(
+                FreelancerFuncao.objects.filter(freelancer=freelance, ativo=True)
+                .values_list('funcao_id', flat=True)
+            )
+            if not funcao_ids:
+                return Vaga.objects.none()
+            return qs.filter(funcao_id__in=funcao_ids)
         elif user.is_empresa_user:
             # Empresa vê suas próprias vagas
             return (

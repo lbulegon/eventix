@@ -21,6 +21,19 @@ from .models import (
 from .mixins import EmpresaContratanteRequiredMixin
 
 
+def _parse_turno_inicio_or_none(value):
+    raw = (value or "").strip()
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt
+
+
 @csrf_protect
 def login_empresa(request):
     """
@@ -600,8 +613,9 @@ def criar_vaga(request, setor_id):
         tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
         nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
         funcao_id = request.POST.get('funcao')
+        data_inicio_trabalho = _parse_turno_inicio_or_none(request.POST.get('data_inicio_trabalho'))
         
-        if titulo and quantidade and remuneracao and funcao_id:
+        if titulo and quantidade and remuneracao and funcao_id and data_inicio_trabalho:
             try:
                 funcao = Funcao.objects.get(id=funcao_id)
                 
@@ -616,6 +630,9 @@ def criar_vaga(request, setor_id):
                     tipo_remuneracao=tipo_remuneracao,
                     nivel_experiencia=nivel_experiencia,
                     funcao=funcao,
+                    publicada=True,
+                    data_inicio_trabalho=data_inicio_trabalho,
+                    data_limite_candidatura=data_inicio_trabalho,
                     ativa=True
                 )
                 messages.success(request, f'Vaga "{titulo}" criada com sucesso!')
@@ -623,7 +640,7 @@ def criar_vaga(request, setor_id):
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
         else:
-            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
+            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo Função e Início do turno.')
     
     # Buscar funções disponíveis (globais ou da empresa)
     funcoes = Funcao.objects.filter(
@@ -669,8 +686,9 @@ def criar_vaga_generica(request, evento_id):
         tipo_remuneracao = request.POST.get('tipo_remuneracao', 'por_dia')
         nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
         funcao_id = request.POST.get('funcao')
+        data_inicio_trabalho = _parse_turno_inicio_or_none(request.POST.get('data_inicio_trabalho'))
         
-        if titulo and quantidade and remuneracao and funcao_id:
+        if titulo and quantidade and remuneracao and funcao_id and data_inicio_trabalho:
             try:
                 funcao = Funcao.objects.get(id=funcao_id)
                 
@@ -685,6 +703,9 @@ def criar_vaga_generica(request, evento_id):
                     tipo_remuneracao=tipo_remuneracao,
                     nivel_experiencia=nivel_experiencia,
                     funcao=funcao,
+                    publicada=True,
+                    data_inicio_trabalho=data_inicio_trabalho,
+                    data_limite_candidatura=data_inicio_trabalho,
                     ativa=True
                 )
                 messages.success(request, f'Vaga genérica "{titulo}" criada com sucesso!')
@@ -692,7 +713,7 @@ def criar_vaga_generica(request, evento_id):
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
         else:
-            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
+            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo Função e Início do turno.')
     
     # Buscar funções disponíveis
     funcoes = Funcao.objects.filter(
@@ -906,8 +927,9 @@ def editar_vaga(request, vaga_id):
         nivel_experiencia = request.POST.get('nivel_experiencia', 'iniciante')
         funcao_id = request.POST.get('funcao')
         ativa = request.POST.get('ativa') == 'on'
+        data_inicio_trabalho = _parse_turno_inicio_or_none(request.POST.get('data_inicio_trabalho'))
         
-        if titulo and quantidade and remuneracao and funcao_id:
+        if titulo and quantidade and remuneracao and funcao_id and data_inicio_trabalho:
             try:
                 funcao = Funcao.objects.get(id=funcao_id)
                 
@@ -918,6 +940,9 @@ def editar_vaga(request, vaga_id):
                 vaga.tipo_remuneracao = tipo_remuneracao
                 vaga.nivel_experiencia = nivel_experiencia
                 vaga.funcao = funcao
+                vaga.publicada = True
+                vaga.data_inicio_trabalho = data_inicio_trabalho
+                vaga.data_limite_candidatura = data_inicio_trabalho
                 vaga.ativa = ativa
                 vaga.save()
                 
@@ -926,7 +951,7 @@ def editar_vaga(request, vaga_id):
             except Funcao.DoesNotExist:
                 messages.error(request, 'Função selecionada não encontrada.')
         else:
-            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo a Função.')
+            messages.error(request, 'Preencha todos os campos obrigatórios, incluindo Função e Início do turno.')
     
     # Buscar funções disponíveis (globais ou da empresa)
     funcoes = Funcao.objects.filter(

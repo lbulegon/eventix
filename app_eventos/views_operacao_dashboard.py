@@ -8,6 +8,8 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.db.models import Q
+import json
 
 from app_eventos.forms_operacao_dashboard import (
     AlocacaoTurnoEditForm,
@@ -18,13 +20,20 @@ from app_eventos.forms_operacao_dashboard import (
     TurnoOperacionalForm,
     UnidadeOperacionalForm,
 )
-from app_eventos.models import PontoOperacao
+from app_eventos.models import Funcao, PontoOperacao
 from app_eventos.models_operacao_continua import (
     AlocacaoTurno,
     RegraRecorrencia,
     TurnoOperacional,
     UnidadeOperacional,
     VagaTurno,
+)
+from app_eventos.services.carga_semanal_operacao import (
+    agrupar_carga_para_regras,
+    dias_dataclass_para_contexto,
+    grade_a_partir_das_regras,
+    payload_lista_para_dias,
+    substituir_regras_pela_carga,
 )
 from app_eventos.services.motor_recorrencia_turnos import gerar_turnos_janela
 from app_eventos.utils_empresa_ativa import empresa_ativa
@@ -233,11 +242,15 @@ def operacao_gerar_turnos(request, unidade_pk):
     if resultado.get('erro'):
         messages.warning(request, resultado['erro'])
     else:
+        turnos_atualizados = resultado.get('turnos_atualizados', 0)
+        vagas_atualizadas = resultado.get('vagas_turno_atualizadas', 0)
         messages.success(
             request,
             f"Turnos gerados: {resultado.get('turnos_criados', 0)}; "
-            f"vagas: {resultado.get('vagas_turno_criadas', 0)}; "
-            f"já existentes ignorados: {resultado.get('turnos_existentes_ignorados', 0)}.",
+            f"turnos sincronizados: {turnos_atualizados}; "
+            f"vagas criadas: {resultado.get('vagas_turno_criadas', 0)}; "
+            f"vagas atualizadas: {vagas_atualizadas}; "
+            f"já existentes lidos: {resultado.get('turnos_existentes_ignorados', 0)}.",
         )
     ref = request.META.get('HTTP_REFERER')
     if ref:
@@ -346,6 +359,106 @@ def operacao_regra_excluir(request, pk):
         request,
         'dashboard_empresa/operacao/regra_confirm_delete.html',
         {'empresa': empresa, 'regra': regra, 'unidade': regra.unidade, 'user': request.user},
+    )
+
+
+def _funcoes_carga_semanal_queryset(empresa):
+    return (
+        Funcao.objects.filter(
+            Q(empresa_contratante=empresa) | Q(empresa_contratante__isnull=True),
+            ativo=True,
+            disponivel_para_vagas=True,
+        )
+        .select_related('tipo_funcao')
+        .order_by('tipo_funcao__nome', 'nome')
+    )
+
+
+@login_required(login_url='/empresa/login/')
+@require_http_methods(['GET', 'POST'])
+def operacao_carga_semanal(request, unidade_pk):
+    """
+    Grade semanal: define por dia (seg–dom) horário e quantidades por função;
+    persiste em RegraRecorrencia(s), agrupando dias idênticos.
+    """
+    empresa = _empresa(request)
+    if not empresa:
+        return _deny(request)
+    unidade = get_object_or_404(
+        UnidadeOperacional,
+        pk=unidade_pk,
+        empresa_contratante=empresa,
+    )
+    funcoes = _funcoes_carga_semanal_queryset(empresa)
+    avisos_grade = []
+    dias_dc = grade_a_partir_das_regras(unidade)
+
+    if request.method == 'POST':
+        raw = (request.POST.get('carga_json') or '').strip()
+        gerar_apos_salvar = (request.POST.get('gerar_apos_salvar') or '') == '1'
+        try:
+            dias_geracao = int(request.POST.get('dias_geracao', 14))
+        except ValueError:
+            dias_geracao = 14
+        dias_geracao = max(1, min(dias_geracao, 60))
+        try:
+            payload = json.loads(raw) if raw else {}
+        except json.JSONDecodeError:
+            messages.error(
+                request,
+                'Não foi possível ler o formulário. Atualize a página e tente de novo.',
+            )
+        else:
+            dias_dc = payload_lista_para_dias(payload)
+            try:
+                grupos = agrupar_carga_para_regras(dias_dc)
+                n = substituir_regras_pela_carga(
+                    unidade, empresa=empresa, grupos=grupos
+                )
+            except ValidationError as e:
+                for m in e.messages:
+                    messages.error(request, m)
+            else:
+                if n == 0:
+                    messages.warning(
+                        request,
+                        'Nenhum dia com carga ativa: todas as regras de recorrência desta unidade foram removidas.',
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f'Carga semanal guardada: {n} regra(s) de recorrência. '
+                        'Use «Gerar turnos» na unidade para materializar as vagas no calendário.',
+                    )
+                if gerar_apos_salvar:
+                    resultado = gerar_turnos_janela(unidade, dias_a_frente=dias_geracao)
+                    messages.success(
+                        request,
+                        f"Geração automática: turnos novos {resultado.get('turnos_criados', 0)}, "
+                        f"turnos sincronizados {resultado.get('turnos_atualizados', 0)}, "
+                        f"vagas criadas {resultado.get('vagas_turno_criadas', 0)}, "
+                        f"vagas atualizadas {resultado.get('vagas_turno_atualizadas', 0)}.",
+                    )
+                return redirect(
+                    'dashboard_empresa:operacao_carga_semanal', unidade_pk=unidade.pk
+                )
+    else:
+        for d in dias_dc:
+            if d.aviso:
+                avisos_grade.append(d.aviso)
+
+    return render(
+        request,
+        'dashboard_empresa/operacao/carga_semanal.html',
+        {
+            'empresa': empresa,
+            'unidade': unidade,
+            'dias': dias_dataclass_para_contexto(dias_dc),
+            'funcoes': funcoes,
+            'avisos_grade': avisos_grade,
+            'sem_funcoes': not funcoes.exists(),
+            'user': request.user,
+        },
     )
 
 
