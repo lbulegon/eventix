@@ -23,7 +23,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 from app_eventos.models import (
     Vaga, Candidatura, Evento, Freelance, Empresa,
-    EmpresaContratante, SetorEvento, Funcao, PontoOperacao,
+    EmpresaContratante, SetorEvento, Funcao, PontoOperacao, FreelancerFuncao,
     RegistroPresencaFreelancer,
 )
 from app_eventos.services.freelancer_score import aplicar_pontuacao_para_registro
@@ -120,6 +120,21 @@ class VagaViewSet(viewsets.ReadOnlyModelViewSet):
                 Q(descricao__icontains=search) |
                 Q(funcao__nome__icontains=search)
             )
+
+        # Marketplace global para freelancer, mas filtrado por especialidades ativas.
+        user = self.request.user
+        if getattr(user, 'is_freelancer', False):
+            try:
+                freelance = user.freelance
+            except Freelance.DoesNotExist:
+                return Vaga.objects.none()
+            funcao_ids = list(
+                FreelancerFuncao.objects.filter(freelancer=freelance, ativo=True)
+                .values_list('funcao_id', flat=True)
+            )
+            if not funcao_ids:
+                return Vaga.objects.none()
+            queryset = queryset.filter(funcao_id__in=funcao_ids)
         
         return queryset.order_by('-data_criacao')
 
@@ -177,6 +192,16 @@ class CandidaturaViewSet(viewsets.ModelViewSet):
         if not vaga.pode_candidatar():
             raise serializers.ValidationError(
                 "Esta vaga não está mais disponível para candidatura (prazo/turno encerrado)."
+            )
+
+        # Freelancer só pode candidatar se possuir a especialidade da vaga.
+        if vaga.funcao_id and not FreelancerFuncao.objects.filter(
+            freelancer=freelance,
+            funcao_id=vaga.funcao_id,
+            ativo=True,
+        ).exists():
+            raise serializers.ValidationError(
+                "Você não possui a especialidade exigida para esta vaga."
             )
         
         serializer.save(freelance=freelance)

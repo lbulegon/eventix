@@ -3,10 +3,15 @@ Empresa efetiva no dashboard: utilizadores de empresa (FK) ou gestor de grupo (s
 """
 from django.contrib import messages
 from django.shortcuts import redirect
+from django.conf import settings
 
 from .models import EmpresaContratante
 
 SESSION_EMPRESA_GESTOR_KEY = 'empresa_contexto_gestor_id'
+
+
+def _grupo_enabled() -> bool:
+    return bool(getattr(settings, 'MULTI_EMPRESA_GRUPO_ENABLED', False))
 
 
 def limpar_contexto_gestor_sessao(request):
@@ -17,7 +22,7 @@ def empresa_ativa(request):
     user = getattr(request, 'user', None)
     if not user or not user.is_authenticated:
         return None
-    if getattr(user, 'is_gestor_grupo', False):
+    if _grupo_enabled() and getattr(user, 'is_gestor_grupo', False):
         eid = request.session.get(SESSION_EMPRESA_GESTOR_KEY)
         if not eid:
             return None
@@ -60,7 +65,7 @@ def require_empresa_dashboard(request, denied_redirect='dashboard_empresa:login_
             return None, redirect(denied_redirect)
         return emp, None
 
-    if getattr(user, 'is_gestor_grupo', False):
+    if _grupo_enabled() and getattr(user, 'is_gestor_grupo', False):
         if not user.grupo_empresarial_id:
             messages.error(request, 'Conta de gestor de grupo sem grupo associado.')
             return None, redirect(denied_redirect)
@@ -102,7 +107,7 @@ def empresa_contexto_api(request):
         if ec and getattr(ec, 'ativo', True):
             return ec
         return None
-    if getattr(user, 'is_gestor_grupo', False):
+    if _grupo_enabled() and getattr(user, 'is_gestor_grupo', False):
         if not user.grupo_empresarial_id:
             return None
         raw = _raw_empresa_context_id_api(request)
@@ -140,6 +145,4 @@ def is_api_empresa_actor(request):
         return False
     if empresa_contexto_api(request) is None:
         return False
-    return bool(
-        getattr(user, 'is_empresa_user', False) or getattr(user, 'is_gestor_grupo', False)
-    )
+    return bool(getattr(user, 'is_empresa_user', False) or (_grupo_enabled() and getattr(user, 'is_gestor_grupo', False)))

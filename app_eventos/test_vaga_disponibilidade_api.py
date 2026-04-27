@@ -13,6 +13,7 @@ from app_eventos.models import (
     EmpresaContratante,
     Evento,
     Freelance,
+    FreelancerFuncao,
     Funcao,
     LocalEvento,
     PlanoContratacao,
@@ -95,6 +96,14 @@ class VagaDisponibilidadeApiTestCase(APITestCase):
             telefone="11999990000",
             cpf="12345678909",
         )
+        FreelancerFuncao.objects.create(
+            freelancer=self.freelancer,
+            funcao=self.funcao,
+            nivel="iniciante",
+            ativo=True,
+        )
+
+        self.tipo_funcao = tipo_funcao
 
     def _criar_vaga(self, *, inicio_offset_horas: int) -> Vaga:
         now = timezone.now()
@@ -154,3 +163,55 @@ class VagaDisponibilidadeApiTestCase(APITestCase):
         response = self.client.get(reverse("vaga-list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 0)
+
+    def test_listagem_filtra_por_especialidade_do_freelancer(self):
+        funcao_outra = Funcao.objects.create(
+            nome="Garçom",
+            tipo_funcao=self.tipo_funcao,
+            ativo=True,
+        )
+        self._criar_vaga(inicio_offset_horas=2)
+        Vaga.objects.create(
+            setor=self.setor,
+            evento=self.evento,
+            empresa_contratante=self.empresa_contratante,
+            titulo="Vaga Outra Especialidade",
+            funcao=funcao_outra,
+            quantidade=1,
+            remuneracao=Decimal("90.00"),
+            descricao="Descrição",
+            ativa=True,
+            publicada=True,
+            data_limite_candidatura=timezone.now() + timedelta(hours=6),
+            data_inicio_trabalho=timezone.now() + timedelta(hours=2),
+        )
+        self.client.force_authenticate(user=self.user_freelancer)
+        response = self.client.get(reverse("vaga-list"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertEqual(response.data["results"][0]["funcao"]["nome"], "Segurança")
+
+    def test_candidatura_bloqueada_sem_especialidade(self):
+        funcao_outra = Funcao.objects.create(
+            nome="Bartender",
+            tipo_funcao=self.tipo_funcao,
+            ativo=True,
+        )
+        vaga = Vaga.objects.create(
+            setor=self.setor,
+            evento=self.evento,
+            empresa_contratante=self.empresa_contratante,
+            titulo="Vaga Bartender",
+            funcao=funcao_outra,
+            quantidade=1,
+            remuneracao=Decimal("110.00"),
+            descricao="Descrição",
+            ativa=True,
+            publicada=True,
+            data_limite_candidatura=timezone.now() + timedelta(hours=6),
+            data_inicio_trabalho=timezone.now() + timedelta(hours=1),
+        )
+        self.client.force_authenticate(user=self.user_freelancer)
+        response = self.client.post(reverse("candidatura-list"), {"vaga_id": vaga.id})
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertFalse(Candidatura.objects.filter(vaga=vaga, freelance=self.freelancer).exists())

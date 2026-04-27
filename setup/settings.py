@@ -243,6 +243,10 @@ try:
 except Exception:  # pragma: no cover
     pass
 
+# Tenant/grupo: por padrão, operação sem contexto de grupo.
+# Quando False, fluxo gestor_grupo e cabeçalho X-Empresa-Context-Id ficam inativos.
+MULTI_EMPRESA_GRUPO_ENABLED = os.getenv("MULTI_EMPRESA_GRUPO_ENABLED", "False").lower() == "true"
+
 # Integrações
 MERCADOPAGO_ACCESS_TOKEN = os.getenv("MERCADOPAGO_ACCESS_TOKEN", "")  # do painel Mercado Pago
 
