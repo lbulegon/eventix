@@ -19,7 +19,7 @@ const JSON_HEADERS = { 'Content-Type': 'application/json' } as const;
 export async function loginWithPassword(username: string, password: string): Promise<LoginResponse> {
   assertApiUrlConfigured();
   const base = getPublicApiBaseUrl();
-  const res = await fetch(`${base}/api/v1/auth/login/`, {
+  const res = await fetch(`${base}/api/auth/login/`, {
     method: 'POST',
     headers: { ...JSON_HEADERS },
     body: JSON.stringify({ username, password }),
@@ -37,14 +37,14 @@ export async function loginWithPassword(username: string, password: string): Pro
   return data;
 }
 
-/** POST /api/v1/auth/refresh/ — atualiza só o access token. */
+/** POST /api/auth/refresh/ — atualiza só o access token. */
 export async function refreshAccessToken(): Promise<string | null> {
   assertApiUrlConfigured();
   const refresh = getRefreshToken();
   if (!refresh) return null;
 
   const base = getPublicApiBaseUrl();
-  const res = await fetch(`${base}/api/v1/auth/refresh/`, {
+  const res = await fetch(`${base}/api/auth/refresh/`, {
     method: 'POST',
     headers: { ...JSON_HEADERS },
     body: JSON.stringify({ refresh }),
@@ -69,7 +69,7 @@ export async function logoutClient(): Promise<void> {
   const token = getAccessToken();
   if (base && token) {
     try {
-      await fetch(`${base}/api/v1/auth/logout/`, {
+      await fetch(`${base}/api/auth/logout/`, {
         method: 'POST',
         headers: { ...JSON_HEADERS, Authorization: `Bearer ${token}` },
       });

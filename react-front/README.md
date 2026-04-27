@@ -12,8 +12,8 @@ O front chama o **backend Eventix (Django + DRF + SimpleJWT)** na URL definida p
 
 | Método | Caminho | Notas |
 |--------|---------|--------|
-| `POST` | `/api/v1/auth/login/` | Corpo JSON: `{ "username", "password" }`. Resposta: `{ user, tokens: { access, refresh } }`. |
-| `POST` | `/api/v1/auth/refresh/` | Corpo: `{ "refresh" }`. Resposta: `{ access }`. |
+| `POST` | `/api/auth/login/` | Corpo JSON: `{ "username", "password" }`. Resposta: `{ user, tokens: { access, refresh } }`. |
+| `POST` | `/api/auth/refresh/` | Corpo: `{ "refresh" }`. Resposta: `{ access }`. |
 
 Módulo de cliente: `@/lib/api` — `loginWithPassword`, `logoutClient`, `apiGet`, `apiPost`, `apiFetch`. Tokens em `localStorage` (apenas browser).
 

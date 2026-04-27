@@ -1,4 +1,4 @@
-/** Resposta de POST /api/v1/auth/login/ (CustomTokenObtainPairView). */
+/** Resposta de POST /api/auth/login/ (CustomTokenObtainPairView). */
 export type LoginUser = {
   id: number;
   username: string;

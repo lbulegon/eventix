@@ -2,11 +2,12 @@ class AppConfig {
   static const String baseUrl = 'https://eventix-development.up.railway.app';
   static const String apiPrefix = '/api/v1';
   static const String apiUrl = '$baseUrl$apiPrefix';
+  static const String authUrl = '$baseUrl/api/auth';
 
   // Autenticação
-  static const String login = '$apiUrl/auth/login/';
-  static const String refreshToken = '$apiUrl/auth/refresh/';
-  static const String logout = '$apiUrl/auth/logout/';
+  static const String login = '$authUrl/login/';
+  static const String refreshToken = '$authUrl/refresh/';
+  static const String logout = '$authUrl/logout/';
   static const String tokenVerify = '$apiUrl/token/verify/';
   static const String userProfile = '$apiUrl/users/profile/';
 

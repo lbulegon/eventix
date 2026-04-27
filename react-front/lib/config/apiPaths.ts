@@ -3,9 +3,9 @@
  * Usar com `apiGet` / `apiPost` de `@/lib/api` (juntam `NEXT_PUBLIC_API_URL`).
  */
 export const paths = {
-  login: () => `/api/v1/auth/login/`,
-  refresh: () => `/api/v1/auth/refresh/`,
-  logout: () => `/api/v1/auth/logout/`,
+  login: () => `/api/auth/login/`,
+  refresh: () => `/api/auth/refresh/`,
+  logout: () => `/api/auth/logout/`,
   userProfile: () => `/api/v1/users/profile/`,
   vagas: () => `/api/v1/vagas/`,
   vagasRecomendadas: () => `/api/v1/vagas-avancadas/recomendadas/`,
