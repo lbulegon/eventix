@@ -93,7 +93,9 @@ async function proxy(req: NextRequest, segments: string[]): Promise<NextResponse
     );
   }
   const preserveTrailingSlash = req.nextUrl.pathname.endsWith('/');
-  const mustUseTrailingSlash = suffix.startsWith('api/v1/');
+  // Django (APPEND_SLASH) pode devolver HTML de redirect quando falta "/".
+  // Forçamos barra final para qualquer endpoint proxied em /api/*.
+  const mustUseTrailingSlash = suffix.startsWith('api/');
   const shouldAppendSlash = (preserveTrailingSlash || mustUseTrailingSlash) && !suffix.endsWith('/');
   const suffixWithSlash = shouldAppendSlash ? `${suffix}/` : suffix;
   const url = `${base}/${suffixWithSlash}${req.nextUrl.search}`;
